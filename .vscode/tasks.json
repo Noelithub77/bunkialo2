@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "EAS Update Production",
+      "type": "shell",
+      "command": "eas",
+      "args": [
+        "update",
+        "--branch",
+        "production",
+        "--message",
+        "${input:updateMessage}"
+      ],  "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "updateMessage",
+      "type": "promptString",
+      "description": "Enter the update message",
+      "default": "changes"
+    }
+  ]
+}
