@@ -1,3 +1,4 @@
+import { AddBunkModal } from '@/components/add-bunk-modal'
 import { CourseEditModal } from '@/components/course-edit-modal'
 import { DLInputModal } from '@/components/dl-input-modal'
 import { DutyLeaveModal } from '@/components/duty-leave-modal'
@@ -98,12 +99,13 @@ interface CourseCardProps {
   course: CourseBunkData
   isEditMode: boolean
   onEdit: () => void
+  onAddBunk: () => void
   onMarkDL: (bunkId: string) => void
   onRemoveDL: (bunkId: string) => void
   onUpdateNote: (bunkId: string, note: string) => void
 }
 
-const CourseCard = ({ course, isEditMode, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: CourseCardProps) => {
+const CourseCard = ({ course, isEditMode, onEdit, onAddBunk, onMarkDL, onRemoveDL, onUpdateNote }: CourseCardProps) => {
   const [expanded, setExpanded] = useState(false)
   const [showTotal, setShowTotal] = useState(false)
   const colorScheme = useColorScheme()
@@ -211,6 +213,12 @@ const CourseCard = ({ course, isEditMode, onEdit, onMarkDL, onRemoveDL, onUpdate
               No absences recorded
             </Text>
           )}
+
+          {/* add bunk button */}
+          <Pressable onPress={onAddBunk} style={[styles.addBunkBtn, { borderColor: theme.border }]}>
+            <Ionicons name="add-circle-outline" size={16} color={theme.textSecondary} />
+            <Text style={[styles.addBunkText, { color: theme.textSecondary }]}>Add Bunk</Text>
+          </Pressable>
         </View>
       )}
     </GradientCard>
@@ -222,10 +230,11 @@ export default function BunksScreen() {
   const isDark = colorScheme === 'dark'
   const theme = isDark ? Colors.dark : Colors.light
 
-  const { courses, syncFromLms, updateCourseConfig, markAsDutyLeave, removeDutyLeave, updateBunkNote } = useBunkStore()
+  const { courses, syncFromLms, updateCourseConfig, addBunk, markAsDutyLeave, removeDutyLeave, updateBunkNote } = useBunkStore()
   const { courses: attendanceCourses, isLoading, fetchAttendance } = useAttendanceStore()
 
   const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
+  const [addBunkCourse, setAddBunkCourse] = useState<CourseBunkData | null>(null)
   const [showDLModal, setShowDLModal] = useState(false)
   const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -252,6 +261,19 @@ export default function BunksScreen() {
 
   const handleSaveConfig = (courseId: string, config: CourseConfig) => {
     updateCourseConfig(courseId, config)
+  }
+
+  const handleAddBunk = (date: string, timeSlot: string, note: string) => {
+    if (addBunkCourse) {
+      addBunk(addBunkCourse.courseId, {
+        date,
+        description: 'Manual entry',
+        timeSlot,
+        note,
+        isDutyLeave: false,
+        dutyLeaveNote: '',
+      })
+    }
   }
 
   const handleMarkDL = (courseId: string, bunkId: string) => {
@@ -323,6 +345,7 @@ export default function BunksScreen() {
               setEditCourse(item)
               setIsEditMode(false)
             }}
+            onAddBunk={() => setAddBunkCourse(item)}
             onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
             onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
             onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
@@ -355,6 +378,13 @@ export default function BunksScreen() {
         visible={!!dlPromptBunk}
         onClose={() => setDlPromptBunk(null)}
         onConfirm={handleConfirmDL}
+      />
+
+      <AddBunkModal
+        visible={!!addBunkCourse}
+        courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
+        onClose={() => setAddBunkCourse(null)}
+        onAdd={handleAddBunk}
       />
     </Container>
   )
@@ -570,5 +600,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  addBunkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    borderStyle: 'dashed',
+  },
+  addBunkText: {
+    fontSize: 13,
   },
 })
