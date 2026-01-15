@@ -137,17 +137,24 @@ const links = querySelectorAll(doc, 'a')
 ### 5. Scraping Flow (`services/scraper.ts`)
 
 ```
-1. GET /my/ (dashboard) - list enrolled courses
-   NOTE: /my/courses.php does NOT show course links properly!
+1. GET sesskey from /my/ page (needed for API auth)
+
+2. POST to Moodle AJAX API for IN-PROGRESS courses only:
+   URL: /lib/ajax/service.php?sesskey={key}&info=core_course_get_enrolled_courses_by_timeline_classification
+   Body: [{
+     methodname: 'core_course_get_enrolled_courses_by_timeline_classification',
+     args: { classification: 'inprogress', limit: 0 }
+   }]
    
-2. For each course (parallel):
+3. For each course (parallel):
    a. GET /course/view.php?id={id} - find attendance module link
    b. GET /mod/attendance/view.php?id={id}&view=5 - get user's attendance report
-      NOTE: view=5 parameter is crucial - shows all sessions for current user
    c. Parse table with columns: Date | Description | Status | Points | Remarks
    
-3. Return CourseAttendance[] array sorted by attendance percentage
+4. Return CourseAttendance[] sorted by attendance percentage
 ```
+
+**Classification options**: `inprogress`, `past`, `future`, `all`
 
 ### Attendance Table Structure
 

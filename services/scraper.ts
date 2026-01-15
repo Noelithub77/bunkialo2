@@ -1,21 +1,89 @@
-import { api, BASE_URL } from './api'
-import { parseHtml, querySelectorAll, getText, getAttr } from '@/utils/html-parser'
+import type { AttendanceRecord, AttendanceStatus, Course, CourseAttendance } from '@/types'
 import { debug } from '@/utils/debug'
-import type { Course, CourseAttendance, AttendanceRecord, AttendanceStatus } from '@/types'
+import { getAttr, getText, parseHtml, querySelectorAll } from '@/utils/html-parser'
+import { api, BASE_URL } from './api'
 
-// Parse courses from dashboard (not /my/courses.php - that page doesn't show course links properly)
+// Get sesskey from page for API calls
+const getSesskey = async (): Promise<string | null> => {
+  const response = await api.get('/my/')
+  const doc = parseHtml(response.data)
+  
+  // Find sesskey in page - it's in M.cfg.sesskey in a script tag
+  const html = response.data as string
+  const match = html.match(/"sesskey":"([^"]+)"/)
+  
+  if (match) {
+    debug.scraper(`Found sesskey: ${match[1]}`)
+    return match[1]
+  }
+  
+  debug.scraper('Sesskey not found')
+  return null
+}
+
+// Fetch courses using Moodle's AJAX API (only "in progress" courses)
 export const fetchCourses = async (): Promise<Course[]> => {
-  debug.scraper('=== FETCHING COURSES FROM DASHBOARD ===')
+  debug.scraper('=== FETCHING IN-PROGRESS COURSES ===')
+  
+  const sesskey = await getSesskey()
+  if (!sesskey) {
+    debug.scraper('No sesskey, falling back to HTML parsing')
+    return fetchCoursesFromHtml()
+  }
+  
+  // Moodle AJAX API call for in-progress courses
+  const apiPayload = [{
+    index: 0,
+    methodname: 'core_course_get_enrolled_courses_by_timeline_classification',
+    args: {
+      offset: 0,
+      limit: 0, // 0 = no limit
+      classification: 'inprogress', // Only in-progress courses
+      sort: 'fullname',
+    }
+  }]
+  
+  try {
+    const response = await api.post(
+      `/lib/ajax/service.php?sesskey=${sesskey}&info=core_course_get_enrolled_courses_by_timeline_classification`,
+      JSON.stringify(apiPayload),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    )
+    
+    const data = response.data
+    
+    if (Array.isArray(data) && data[0]?.data?.courses) {
+      const courses: Course[] = data[0].data.courses.map((c: any) => ({
+        id: String(c.id),
+        name: c.fullname || c.shortname,
+        url: `${BASE_URL}/course/view.php?id=${c.id}`,
+      }))
+      
+      debug.scraper(`Found ${courses.length} in-progress courses via API`)
+      courses.forEach(c => debug.scraper(`  [${c.id}] ${c.name.substring(0, 40)}`))
+      
+      return courses
+    }
+  } catch (error) {
+    debug.scraper(`API error: ${error}, falling back to HTML`)
+  }
+  
+  return fetchCoursesFromHtml()
+}
+
+// Fallback: Parse courses from dashboard HTML
+const fetchCoursesFromHtml = async (): Promise<Course[]> => {
+  debug.scraper('Parsing courses from dashboard HTML')
   
   const response = await api.get('/my/')
-  debug.scraper(`Dashboard page size: ${response.data.length} chars`)
-  
   const doc = parseHtml(response.data)
   const courses: Course[] = []
   
-  // Find all course links
   const links = querySelectorAll(doc, 'a')
-  debug.scraper(`Total links found: ${links.length}`)
   
   for (const link of links) {
     const href = getAttr(link, 'href') || ''
@@ -26,19 +94,17 @@ export const fetchCourses = async (): Promise<Course[]> => {
     
     if (idMatch && name && name.length > 3) {
       const courseId = idMatch[1]
-      // Avoid duplicates
       if (!courses.some(c => c.id === courseId)) {
         courses.push({
           id: courseId,
           name: name,
           url: href.startsWith('http') ? href : `${BASE_URL}${href}`,
         })
-        debug.scraper(`Found course: [${courseId}] ${name.substring(0, 40)}`)
       }
     }
   }
   
-  debug.scraper(`Total unique courses: ${courses.length}`)
+  debug.scraper(`Found ${courses.length} courses from HTML`)
   return courses
 }
 
@@ -49,7 +115,6 @@ const findAttendanceModuleId = async (courseId: string): Promise<string | null> 
   const response = await api.get(`/course/view.php?id=${courseId}`)
   const doc = parseHtml(response.data)
   
-  // Look for attendance module link
   const links = querySelectorAll(doc, 'a')
   for (const link of links) {
     const href = getAttr(link, 'href') || ''
@@ -62,7 +127,7 @@ const findAttendanceModuleId = async (courseId: string): Promise<string | null> 
     }
   }
   
-  debug.scraper(`No attendance module found for course ${courseId}`)
+  debug.scraper(`No attendance module for course ${courseId}`)
   return null
 }
 
@@ -88,14 +153,13 @@ const parseAttendanceTable = (html: string): AttendanceRecord[] => {
   const doc = parseHtml(html)
   const records: AttendanceRecord[] = []
   
-  // Find tables
   const tables = querySelectorAll(doc, 'table')
   debug.scraper(`Found ${tables.length} tables`)
   
   for (const table of tables) {
     const headerText = getText(table).toLowerCase()
     
-    // Check if this looks like an attendance table (has Date, Status, Points columns)
+    // Check if this looks like an attendance table
     const isAttendanceTable = 
       headerText.includes('date') && 
       (headerText.includes('status') || headerText.includes('points') || headerText.includes('present'))
@@ -104,36 +168,29 @@ const parseAttendanceTable = (html: string): AttendanceRecord[] => {
     
     debug.scraper('Found attendance table')
     
-    // Parse table rows
     const rows = querySelectorAll(table, 'tr')
-    debug.scraper(`Table has ${rows.length} rows`)
     
     for (const row of rows) {
-      // Skip header rows
       const headerCells = querySelectorAll(row, 'th')
       if (headerCells.length > 0) continue
       
       const cells = querySelectorAll(row, 'td')
       if (cells.length < 2) continue
       
-      // Columns: Date | Description | Status | Points | Remarks
       const date = getText(cells[0])
       const description = cells.length > 1 ? getText(cells[1]) : ''
       const statusText = cells.length > 2 ? getText(cells[2]) : ''
       const points = cells.length > 3 ? getText(cells[3]) : ''
       const remarks = cells.length > 4 ? getText(cells[4]) : ''
       
-      // Validate this is a real record (date should have numbers)
       if (date && date.match(/\d/)) {
         const status = parseStatus(statusText, points)
         records.push({ date, description, status, points, remarks })
-        debug.scraper(`Record: ${date} | ${status} | ${points}`)
       }
     }
     
-    // If we found records, stop looking at other tables
     if (records.length > 0) {
-      debug.scraper(`Parsed ${records.length} attendance records`)
+      debug.scraper(`Parsed ${records.length} records`)
       break
     }
   }
@@ -143,12 +200,11 @@ const parseAttendanceTable = (html: string): AttendanceRecord[] => {
 
 // Fetch attendance data for a single course
 export const fetchAttendanceForCourse = async (course: Course): Promise<CourseAttendance> => {
-  debug.scraper(`=== FETCHING ATTENDANCE: ${course.name.substring(0, 30)} ===`)
+  debug.scraper(`=== ATTENDANCE: ${course.name.substring(0, 30)} ===`)
   
   const attendanceModuleId = await findAttendanceModuleId(course.id)
   
   if (!attendanceModuleId) {
-    debug.scraper('No attendance module, returning empty')
     return {
       courseId: course.id,
       courseName: course.name,
@@ -161,14 +217,10 @@ export const fetchAttendanceForCourse = async (course: Course): Promise<CourseAt
     }
   }
   
-  // Fetch the user's attendance report (view=5 shows all sessions for current user)
-  debug.scraper(`Fetching attendance report: /mod/attendance/view.php?id=${attendanceModuleId}&view=5`)
+  // Fetch user's attendance report (view=5)
   const response = await api.get(`/mod/attendance/view.php?id=${attendanceModuleId}&view=5`)
-  debug.scraper(`Attendance page size: ${response.data.length} chars`)
-  
   const records = parseAttendanceTable(response.data)
   
-  // Calculate attendance stats
   const totalSessions = records.length
   const attended = records.filter(r => r.status === 'Present').length
   const percentage = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0
@@ -187,23 +239,22 @@ export const fetchAttendanceForCourse = async (course: Course): Promise<CourseAt
   }
 }
 
-// Fetch attendance for all courses in parallel
+// Fetch attendance for all in-progress courses in parallel
 export const fetchAllAttendance = async (): Promise<CourseAttendance[]> => {
   debug.scraper('=== FETCHING ALL ATTENDANCE ===')
   
   const courses = await fetchCourses()
   
   if (courses.length === 0) {
-    debug.scraper('No courses found!')
+    debug.scraper('No in-progress courses found!')
     return []
   }
   
-  debug.scraper(`Fetching attendance for ${courses.length} courses in parallel...`)
+  debug.scraper(`Fetching attendance for ${courses.length} courses...`)
   
-  // Fetch attendance for all courses in parallel
   const attendancePromises = courses.map(course => 
     fetchAttendanceForCourse(course).catch(error => {
-      debug.scraper(`Error fetching ${course.name}: ${error.message}`)
+      debug.scraper(`Error: ${course.name}: ${error.message}`)
       return {
         courseId: course.id,
         courseName: course.name,
@@ -219,19 +270,19 @@ export const fetchAllAttendance = async (): Promise<CourseAttendance[]> => {
   
   const results = await Promise.all(attendancePromises)
   
-  // Sort by courses with attendance first, then by percentage
-  results.sort((a, b) => {
-    if (a.totalSessions === 0 && b.totalSessions > 0) return 1
-    if (a.totalSessions > 0 && b.totalSessions === 0) return -1
-    return b.percentage - a.percentage
+  // Filter out courses with no attendance data
+  const coursesWithAttendance = results.filter(c => c.totalSessions > 0)
+  
+  debug.scraper(`Courses with attendance: ${coursesWithAttendance.length} / ${results.length}`)
+  
+  // Sort by percentage (highest first)
+  coursesWithAttendance.sort((a, b) => b.percentage - a.percentage)
+  
+  coursesWithAttendance.forEach(c => {
+    debug.scraper(`  ${c.courseName.substring(0, 30)}: ${c.attended}/${c.totalSessions} (${c.percentage}%)`)
   })
   
-  debug.scraper(`=== FETCH COMPLETE: ${results.length} courses ===`)
-  results.forEach(r => {
-    if (r.totalSessions > 0) {
-      debug.scraper(`  ${r.courseName.substring(0, 30)}: ${r.attended}/${r.totalSessions} (${r.percentage}%)`)
-    }
-  })
+  debug.scraper(`=== COMPLETE: ${coursesWithAttendance.length} courses with attendance ===`)
   
-  return results
+  return coursesWithAttendance
 }
