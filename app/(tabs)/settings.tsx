@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Container } from '@/components/ui/container'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAttendanceStore } from '@/stores/attendance-store'
+import { useBunkStore } from '@/stores/bunk-store'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { Colors, Spacing, Radius } from '@/constants/theme'
 
@@ -50,6 +51,7 @@ export default function SettingsScreen() {
 
   const { username, logout } = useAuthStore()
   const { fetchAttendance, clearAttendance, isLoading } = useAttendanceStore()
+  const { resetToLms } = useBunkStore()
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure?', [
@@ -71,6 +73,17 @@ export default function SettingsScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear', style: 'destructive', onPress: clearAttendance },
     ])
+  }
+
+  const handleResetBunks = () => {
+    Alert.alert(
+      'Reset Bunks to LMS',
+      'This will remove all your notes, duty leaves, and course configs. LMS data becomes the sole truth.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: resetToLms },
+      ]
+    )
   }
 
   return (
@@ -98,6 +111,13 @@ export default function SettingsScreen() {
             icon="trash-outline"
             label="Clear Cache"
             onPress={handleClearCache}
+            theme={theme}
+          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <SettingRow
+            icon="refresh-circle-outline"
+            label="Reset Bunks to LMS"
+            onPress={handleResetBunks}
             theme={theme}
           />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />

@@ -5,6 +5,7 @@ import { Calendar, DateData } from 'react-native-calendars'
 import { GradientCard } from '@/components/ui/gradient-card'
 import { Colors, Spacing, CalendarTheme } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { useBunkStore } from '@/stores/bunk-store'
 import type { CourseAttendance, AttendanceRecord, MarkedDates, SessionType } from '@/types'
 
 interface AttendanceCardProps {
@@ -115,6 +116,13 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
   const theme = isDark ? Colors.dark : Colors.light
   const calTheme = isDark ? CalendarTheme.dark : CalendarTheme.light
 
+  // get alias from bunk store if available
+  const bunkCourses = useBunkStore((state) => state.courses)
+  const courseAlias = useMemo(() => {
+    const bunkCourse = bunkCourses.find((c) => c.courseId === course.courseId)
+    return bunkCourse?.config?.alias || course.courseName
+  }, [bunkCourses, course.courseId, course.courseName])
+
   // filter to past sessions only
   const pastRecords = useMemo(() => filterPastRecords(course.records), [course.records])
   const totalSessions = pastRecords.length
@@ -141,7 +149,7 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
       <GradientCard>
         <View style={styles.header}>
           <Text style={[styles.courseName, { color: theme.text }]} numberOfLines={2}>
-            {course.courseName}
+            {courseAlias}
           </Text>
           <Text style={[styles.noData, { color: theme.textSecondary }]}>
             No attendance data
@@ -161,7 +169,7 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.courseName, { color: theme.text }]} numberOfLines={2}>
-              {course.courseName}
+              {courseAlias}
             </Text>
             <Text style={[styles.sessionCount, { color: theme.textSecondary }]}>
               {attended} / {totalSessions} sessions

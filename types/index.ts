@@ -203,3 +203,49 @@ export interface CalendarMarking {
 }
 
 export type MarkedDates = Record<string, CalendarMarking>
+
+// ============================================================================
+// BUNK TYPES
+// ============================================================================
+
+export type BunkSource = 'lms' | 'user'
+
+export interface BunkRecord {
+  id: string
+  date: string
+  description: string
+  timeSlot: string | null
+  note: string
+  source: BunkSource
+  isDutyLeave: boolean
+  dutyLeaveNote: string
+}
+
+export interface CourseConfig {
+  credits: number
+  alias: string
+}
+
+export interface CourseBunkData {
+  courseId: string
+  courseName: string
+  config: CourseConfig | null
+  bunks: BunkRecord[]
+  isConfigured: boolean
+}
+
+export interface BunkState {
+  courses: CourseBunkData[]
+  lastSyncTime: number | null
+  isLoading: boolean
+  error: string | null
+}
+
+export interface DutyLeaveInfo {
+  courseId: string
+  courseName: string
+  bunkId: string
+  date: string
+  timeSlot: string | null
+  note: string
+}

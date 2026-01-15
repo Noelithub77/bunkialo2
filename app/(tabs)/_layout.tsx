@@ -32,6 +32,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="bunks"
+        options={{
+          title: 'Bunks',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="remove-circle-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',

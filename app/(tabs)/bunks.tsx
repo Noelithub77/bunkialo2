@@ -1,0 +1,549 @@
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { StyleSheet, FlatList, RefreshControl, View, Text, Pressable, Alert, TextInput } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { Container } from '@/components/ui/container'
+import { GradientCard } from '@/components/ui/gradient-card'
+import { Button } from '@/components/ui/button'
+import { CourseEditModal } from '@/components/course-edit-modal'
+import { DutyLeaveModal } from '@/components/duty-leave-modal'
+import { DLInputModal } from '@/components/dl-input-modal'
+import { useBunkStore, selectAllDutyLeaves, selectCourseStats, getDisplayName, filterPastBunks } from '@/stores/bunk-store'
+import { useAttendanceStore } from '@/stores/attendance-store'
+import { useColorScheme } from '@/hooks/use-color-scheme'
+import { Colors, Spacing, Radius } from '@/constants/theme'
+import type { CourseBunkData, BunkRecord, CourseConfig } from '@/types'
+
+// parse date for display
+const formatDate = (dateStr: string): string => {
+  const match = dateStr.match(/(\w{3})\s+(\d{1,2})\s+(\w{3})/)
+  if (match) return `${match[2]} ${match[3]}`
+  return dateStr.slice(0, 15)
+}
+
+interface BunkItemProps {
+  bunk: BunkRecord
+  theme: typeof Colors.light
+  onMarkDL: () => void
+  onRemoveDL: () => void
+  onUpdateNote: (note: string) => void
+}
+
+const BunkItem = ({ bunk, theme, onMarkDL, onRemoveDL, onUpdateNote }: BunkItemProps) => {
+  const [showNote, setShowNote] = useState(false)
+  const [noteText, setNoteText] = useState(bunk.note)
+
+  return (
+    <View style={[styles.bunkItem, { borderBottomColor: theme.border }]}>
+      <View style={styles.bunkMain}>
+        {/* source tag */}
+        <View style={[styles.sourceTag, { backgroundColor: bunk.source === 'lms' ? Colors.status.info : Colors.status.warning }]}>
+          <Text style={styles.sourceText}>{bunk.source.toUpperCase()}</Text>
+        </View>
+
+        {/* date + time */}
+        <View style={styles.bunkInfo}>
+          <Text style={[styles.bunkDate, { color: theme.text }]}>{formatDate(bunk.date)}</Text>
+          {bunk.timeSlot && (
+            <Text style={[styles.bunkTime, { color: theme.textSecondary }]}>{bunk.timeSlot}</Text>
+          )}
+        </View>
+
+        {/* DL badge or action */}
+        {bunk.isDutyLeave ? (
+          <Pressable onPress={onRemoveDL} style={[styles.dlBadge, { backgroundColor: Colors.status.info }]}>
+            <Ionicons name="briefcase" size={12} color={Colors.white} />
+            <Text style={styles.dlText}>DL</Text>
+          </Pressable>
+        ) : (
+          <Pressable onPress={onMarkDL} style={[styles.markDlBtn, { borderColor: theme.border }]}>
+            <Text style={[styles.markDlText, { color: theme.textSecondary }]}>Mark DL</Text>
+          </Pressable>
+        )}
+
+        {/* note toggle */}
+        <Pressable onPress={() => setShowNote(!showNote)} hitSlop={8}>
+          <Ionicons
+            name={bunk.note || showNote ? 'chatbubble' : 'chatbubble-outline'}
+            size={18}
+            color={bunk.note ? Colors.status.info : theme.textSecondary}
+          />
+        </Pressable>
+      </View>
+
+      {/* note input */}
+      {showNote && (
+        <View style={styles.noteSection}>
+          <TextInput
+            style={[styles.noteInput, { color: theme.text, borderColor: theme.border }]}
+            placeholder="Add note..."
+            placeholderTextColor={theme.textSecondary}
+            value={noteText}
+            onChangeText={setNoteText}
+            onBlur={() => onUpdateNote(noteText)}
+            multiline
+          />
+        </View>
+      )}
+
+      {/* DL note display */}
+      {bunk.isDutyLeave && bunk.dutyLeaveNote && (
+        <Text style={[styles.dlNote, { color: theme.textSecondary }]}>
+          DL: {bunk.dutyLeaveNote}
+        </Text>
+      )}
+    </View>
+  )
+}
+
+interface CourseCardProps {
+  course: CourseBunkData
+  onEdit: () => void
+  onMarkDL: (bunkId: string) => void
+  onRemoveDL: (bunkId: string) => void
+  onUpdateNote: (bunkId: string, note: string) => void
+}
+
+const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: CourseCardProps) => {
+  const [expanded, setExpanded] = useState(false)
+  const [showTotal, setShowTotal] = useState(false)
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme === 'dark'
+  const theme = isDark ? Colors.dark : Colors.light
+
+  const stats = selectCourseStats(course)
+  const pastBunks = filterPastBunks(course.bunks)
+  const displayName = getDisplayName(course)
+  const isConfigured = course.isConfigured && course.config
+
+  // bunks display value: toggle between "X left" and "X/Y used"
+  const bunksDisplay = showTotal ? `${stats.usedBunks}/${stats.totalBunks}` : stats.bunksLeft.toString()
+  const bunksLabel = showTotal ? 'used' : 'left'
+  const bunksColor = !isConfigured
+    ? theme.textSecondary
+    : stats.bunksLeft <= 0
+      ? Colors.status.danger
+      : stats.bunksLeft <= 3
+        ? Colors.status.warning
+        : Colors.status.success
+
+  return (
+    <GradientCard>
+      <Pressable onPress={() => setExpanded(!expanded)}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardLeft}>
+            <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={2}>
+              {displayName}
+            </Text>
+            <View style={styles.cardMeta}>
+              <Text style={[styles.cardCount, { color: theme.textSecondary }]}>
+                {pastBunks.length} absence{pastBunks.length !== 1 ? 's' : ''}
+              </Text>
+              {stats.dutyLeaveCount > 0 && (
+                <View style={styles.dlCount}>
+                  <Ionicons name="briefcase" size={10} color={Colors.status.info} />
+                  <Text style={[styles.dlCountText, { color: Colors.status.info }]}>
+                    {stats.dutyLeaveCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.cardRight}>
+            {isConfigured ? (
+              <Pressable onPress={() => setShowTotal(!showTotal)}>
+                <View style={styles.bunksDisplay}>
+                  <Text style={[styles.bunksValue, showTotal && styles.bunksValueSmall, { color: bunksColor }]}>
+                    {bunksDisplay}
+                  </Text>
+                  <Text style={[styles.bunksLabel, { color: theme.textSecondary }]}>{bunksLabel}</Text>
+                </View>
+              </Pressable>
+            ) : (
+              <Pressable onPress={onEdit} style={[styles.configBtn, { borderColor: Colors.status.warning }]}>
+                <Ionicons name="settings-outline" size={14} color={Colors.status.warning} />
+                <Text style={[styles.configText, { color: Colors.status.warning }]}>Setup</Text>
+              </Pressable>
+            )}
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={theme.textSecondary}
+            />
+          </View>
+        </View>
+      </Pressable>
+
+      {expanded && (
+        <View style={styles.expandedContent}>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* edit button */}
+          <Pressable onPress={onEdit} style={styles.editRow}>
+            <Ionicons name="pencil" size={14} color={theme.textSecondary} />
+            <Text style={[styles.editText, { color: theme.textSecondary }]}>
+              {isConfigured ? `${course.config?.credits} credits` : 'Configure course'}
+            </Text>
+          </Pressable>
+
+          {/* bunks list (past only) */}
+          {pastBunks.length > 0 ? (
+            <View style={styles.bunksList}>
+              {pastBunks.map((bunk) => (
+                <BunkItem
+                  key={bunk.id}
+                  bunk={bunk}
+                  theme={theme}
+                  onMarkDL={() => onMarkDL(bunk.id)}
+                  onRemoveDL={() => onRemoveDL(bunk.id)}
+                  onUpdateNote={(note) => onUpdateNote(bunk.id, note)}
+                />
+              ))}
+            </View>
+          ) : (
+            <Text style={[styles.noBunks, { color: theme.textSecondary }]}>
+              No absences recorded
+            </Text>
+          )}
+        </View>
+      )}
+    </GradientCard>
+  )
+}
+
+export default function BunksScreen() {
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme === 'dark'
+  const theme = isDark ? Colors.dark : Colors.light
+
+  const { courses, syncFromLms, updateCourseConfig, markAsDutyLeave, removeDutyLeave, updateBunkNote } = useBunkStore()
+  const { courses: attendanceCourses, isLoading, fetchAttendance } = useAttendanceStore()
+
+  const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
+  const [showDLModal, setShowDLModal] = useState(false)
+  const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
+
+  const allDutyLeaves = useMemo(() => selectAllDutyLeaves(courses), [courses])
+
+  // sync bunks when attendance changes
+  useEffect(() => {
+    if (attendanceCourses.length > 0) {
+      syncFromLms()
+    }
+  }, [attendanceCourses])
+
+  // initial fetch if no data
+  useEffect(() => {
+    if (attendanceCourses.length === 0) {
+      fetchAttendance()
+    }
+  }, [])
+
+  const handleRefresh = useCallback(() => {
+    fetchAttendance()
+  }, [fetchAttendance])
+
+  const handleSaveConfig = (courseId: string, config: CourseConfig) => {
+    updateCourseConfig(courseId, config)
+  }
+
+  const handleMarkDL = (courseId: string, bunkId: string) => {
+    setDlPromptBunk({ courseId, bunkId })
+  }
+
+  const handleConfirmDL = (note: string) => {
+    if (dlPromptBunk) {
+      markAsDutyLeave(dlPromptBunk.courseId, dlPromptBunk.bunkId, note)
+      setDlPromptBunk(null)
+    }
+  }
+
+  const handleRemoveDL = (courseId: string, bunkId: string) => {
+    Alert.alert('Remove Duty Leave', 'This will count as a regular bunk again.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removeDutyLeave(courseId, bunkId) },
+    ])
+  }
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={[styles.screenTitle, { color: theme.text }]}>Bunks</Text>
+      <Pressable onPress={() => setShowDLModal(true)} style={styles.dlButton}>
+        <Ionicons name="briefcase-outline" size={20} color={Colors.status.info} />
+        {allDutyLeaves.length > 0 && (
+          <View style={styles.dlBadgeSmall}>
+            <Text style={styles.dlBadgeText}>{allDutyLeaves.length}</Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
+  )
+
+  const renderEmpty = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.empty}>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            Loading attendance data...
+          </Text>
+        </View>
+      )
+    }
+    return (
+      <View style={styles.empty}>
+        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+          No courses found. Pull to refresh.
+        </Text>
+      </View>
+    )
+  }
+
+  return (
+    <Container>
+      <FlatList
+        data={courses}
+        keyExtractor={(item) => item.courseId}
+        renderItem={({ item }) => (
+          <CourseCard
+            course={item}
+            onEdit={() => setEditCourse(item)}
+            onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
+            onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
+            onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
+          />
+        )}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.list}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={theme.text} />
+        }
+      />
+
+      <CourseEditModal
+        visible={!!editCourse}
+        course={editCourse}
+        onClose={() => setEditCourse(null)}
+        onSave={handleSaveConfig}
+      />
+
+      <DutyLeaveModal
+        visible={showDLModal}
+        dutyLeaves={allDutyLeaves}
+        onClose={() => setShowDLModal(false)}
+        onRemove={handleRemoveDL}
+      />
+
+      <DLInputModal
+        visible={!!dlPromptBunk}
+        onClose={() => setDlPromptBunk(null)}
+        onConfirm={handleConfirmDL}
+      />
+    </Container>
+  )
+}
+
+const styles = StyleSheet.create({
+  list: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxl,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  dlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+  },
+  dlBadgeSmall: {
+    backgroundColor: Colors.status.info,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  dlBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  separator: {
+    height: Spacing.md,
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  emptyText: {
+    fontSize: 14,
+  },
+
+  // card styles
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  cardLeft: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  cardName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: 4,
+  },
+  cardCount: {
+    fontSize: 13,
+  },
+  dlCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  dlCountText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  cardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  bunksDisplay: {
+    alignItems: 'center',
+  },
+  bunksValue: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  bunksValueSmall: {
+    fontSize: 18,
+  },
+  bunksLabel: {
+    fontSize: 10,
+  },
+  configBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+  },
+  configText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  // expanded content
+  expandedContent: {
+    marginTop: Spacing.md,
+  },
+  divider: {
+    height: 1,
+    marginBottom: Spacing.md,
+  },
+  editRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  editText: {
+    fontSize: 12,
+  },
+  bunksList: {
+    gap: 0,
+  },
+  noBunks: {
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
+  },
+
+  // bunk item
+  bunkItem: {
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  bunkMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  sourceTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  sourceText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  bunkInfo: {
+    flex: 1,
+  },
+  bunkDate: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  bunkTime: {
+    fontSize: 11,
+  },
+  dlBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dlText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  markDlBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  markDlText: {
+    fontSize: 10,
+  },
+  noteSection: {
+    marginTop: Spacing.sm,
+  },
+  noteInput: {
+    fontSize: 13,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    minHeight: 36,
+  },
+  dlNote: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+})
