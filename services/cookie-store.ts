@@ -1,6 +1,8 @@
 // Simple in-memory cookie store for session management
 // Works in React Native without native dependencies
 
+import { debug } from '@/utils/debug'
+
 interface Cookie {
   name: string
   value: string
@@ -18,12 +20,17 @@ class CookieStore {
 
     const headers = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
     
+    debug.cookie(`Received ${headers.length} Set-Cookie header(s)`)
+    
     for (const header of headers) {
       const cookie = this.parseCookie(header)
       if (cookie) {
         this.cookies.set(cookie.name, cookie)
+        debug.cookie(`Stored cookie: ${cookie.name}=${cookie.value.substring(0, 20)}...`)
       }
     }
+    
+    debug.cookie(`Total cookies stored: ${this.cookies.size}`)
   }
 
   // Parse a single Set-Cookie header
@@ -32,10 +39,14 @@ class CookieStore {
     if (parts.length === 0) return null
 
     const [nameValue, ...attributes] = parts
-    const [name, value] = nameValue.split('=')
-    if (!name || value === undefined) return null
+    const eqIndex = nameValue.indexOf('=')
+    if (eqIndex === -1) return null
+    
+    const name = nameValue.substring(0, eqIndex).trim()
+    const value = nameValue.substring(eqIndex + 1).trim()
+    if (!name) return null
 
-    const cookie: Cookie = { name: name.trim(), value: value.trim() }
+    const cookie: Cookie = { name, value }
 
     for (const attr of attributes) {
       const [key, val] = attr.split('=')
@@ -59,23 +70,42 @@ class CookieStore {
     for (const [name, cookie] of this.cookies) {
       // Skip expired cookies
       if (cookie.expires && cookie.expires < now) {
+        debug.cookie(`Cookie expired: ${name}`)
         this.cookies.delete(name)
         continue
       }
       validCookies.push(`${cookie.name}=${cookie.value}`)
     }
 
-    return validCookies.join('; ')
+    const header = validCookies.join('; ')
+    debug.cookie(`Cookie header (${validCookies.length} cookies): ${header.substring(0, 50)}...`)
+    return header
   }
 
   // Clear all cookies
   clear() {
+    const count = this.cookies.size
     this.cookies.clear()
+    debug.cookie(`Cleared ${count} cookies`)
   }
 
   // Check if we have any cookies
   hasCookies(): boolean {
     return this.cookies.size > 0
+  }
+
+  // Get all cookies for debugging
+  getAllCookies(): Record<string, string> {
+    const result: Record<string, string> = {}
+    for (const [name, cookie] of this.cookies) {
+      result[name] = cookie.value
+    }
+    return result
+  }
+
+  // Get cookie count
+  getCookieCount(): number {
+    return this.cookies.size
   }
 }
 

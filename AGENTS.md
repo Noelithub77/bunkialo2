@@ -137,13 +137,36 @@ const links = querySelectorAll(doc, 'a')
 ### 5. Scraping Flow (`services/scraper.ts`)
 
 ```
-1. GET /my/courses.php - list enrolled courses
+1. GET /my/ (dashboard) - list enrolled courses
+   NOTE: /my/courses.php does NOT show course links properly!
+   
 2. For each course (parallel):
-   a. GET /course/view.php?id={id} - find attendance module
-   b. GET /mod/attendance/view.php?id={id} - get attendance table
-   c. Parse table rows for date, status, points
-3. Return CourseAttendance[] array
+   a. GET /course/view.php?id={id} - find attendance module link
+   b. GET /mod/attendance/view.php?id={id}&view=5 - get user's attendance report
+      NOTE: view=5 parameter is crucial - shows all sessions for current user
+   c. Parse table with columns: Date | Description | Status | Points | Remarks
+   
+3. Return CourseAttendance[] array sorted by attendance percentage
 ```
+
+### Attendance Table Structure
+
+```html
+<table>
+  <tr><th>Date</th><th>Description</th><th>Status</th><th>Points</th><th>Remarks</th></tr>
+  <tr>
+    <td>Tue 7 Jan 2025 4PM - 5PM</td>
+    <td></td>
+    <td>Present</td>
+    <td>1 / 1</td>
+    <td></td>
+  </tr>
+</table>
+```
+
+**Status Detection:**
+- Check `points` column first: "1 / 1" = Present, "0 / 1" = Absent
+- Fall back to `status` text: "Present", "Absent", "Late", "Excused"
 
 ### 6. State Persistence (`stores/attendance-store.ts`)
 
@@ -319,13 +342,31 @@ app/(tabs)/index.tsx
 6. **Functional components** - No class components
 7. **TypeScript strict** - All code must be typed
 
-## Testing Credentials
+## Testing
+
+### Test Credentials
 
 ```
 Username: REDACTED_LMS_USERNAME
 Password: REDACTED_LMS_PASSWORD
 LMS URL: https://lmsug24.iiitkottayam.ac.in
 ```
+
+### Test Scraper Script
+
+Run the Node.js test script to verify scraping works:
+
+```bash
+node scripts/test-scraper.mjs
+```
+
+This script:
+1. Logs into the LMS
+2. Fetches courses from dashboard
+3. Fetches attendance for courses
+4. Saves debug HTML files: `debug-att-*.html`
+
+Output shows cookies, requests, and parsed data for debugging.
 
 ## Adding New Features
 
