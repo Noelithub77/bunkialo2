@@ -1,31 +1,93 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+import { Platform } from 'react-native'
 
-import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
+// Minimalistic black and premium gray palette
 export const Colors = {
+  // Primary colors
+  black: '#000000',
+  white: '#FFFFFF',
+  
+  // Gray scale - premium tones
+  gray: {
+    50: '#FAFAFA',
+    100: '#F5F5F5',
+    200: '#E5E5E5',
+    300: '#D4D4D4',
+    400: '#A3A3A3',
+    500: '#737373',
+    600: '#525252',
+    700: '#404040',
+    800: '#262626',
+    900: '#171717',
+    950: '#0A0A0A',
+  },
+  
+  // Accent colors for status
+  status: {
+    success: '#22C55E',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    info: '#3B82F6',
+  },
+  
+  // Theme colors
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#171717',
+    textSecondary: '#525252',
+    background: '#FFFFFF',
+    backgroundSecondary: '#F5F5F5',
+    border: '#E5E5E5',
+    tint: '#171717',
+    icon: '#525252',
+    tabIconDefault: '#A3A3A3',
+    tabIconSelected: '#171717',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: '#FAFAFA',
+    textSecondary: '#A3A3A3',
+    background: '#000000',
+    backgroundSecondary: '#0A0A0A',
+    border: '#262626',
+    tint: '#FFFFFF',
+    icon: '#A3A3A3',
+    tabIconDefault: '#525252',
+    tabIconSelected: '#FFFFFF',
   },
-};
+}
+
+// Gradient presets for LinearGradient
+export const Gradients = {
+  dark: {
+    card: ['#171717', '#0A0A0A'],
+    header: ['#262626', '#171717'],
+    button: ['#262626', '#171717'],
+    overlay: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)'],
+  },
+  light: {
+    card: ['#FFFFFF', '#F5F5F5'],
+    header: ['#FAFAFA', '#F5F5F5'],
+    button: ['#262626', '#171717'],
+    overlay: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)'],
+  },
+}
+
+// Spacing scale
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+}
+
+// Border radius
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+}
 
 export const Fonts = Platform.select({
   ios: {
