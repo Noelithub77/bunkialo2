@@ -68,12 +68,14 @@ export const fetchOverdueEvents = async (limit = 20): Promise<TimelineEvent[]> =
     }
 
     const nowTimestamp = Math.floor(Date.now() / 1000)
+    const thirtyDaysAgo = nowTimestamp - (30 * 24 * 60 * 60)
 
     const payload = [{
         index: 0,
         methodname: 'core_calendar_get_action_events_by_timesort',
         args: {
             limitnum: limit,
+            timesortfrom: thirtyDaysAgo,
             timesortto: nowTimestamp,
             limittononsuspendedevents: true,
         }

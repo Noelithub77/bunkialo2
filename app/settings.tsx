@@ -240,9 +240,15 @@ export default function SettingsScreen() {
               <Pressable onPress={() => Linking.openURL('https://www.linkedin.com/in/noel-georgi/')}>
                 <Text style={[styles.devLink, { color: theme.textSecondary }]}>Noel Georgi</Text>
               </Pressable>
-              <Text style={[styles.footerText, { color: theme.textSecondary }]}> & </Text>
+            </View>
+            <View style={styles.ideaInfo}>
+              <Text style={[styles.footerText, { color: theme.textSecondary }]}>Idea of </Text>
               <Pressable onPress={() => Linking.openURL('https://www.linkedin.com/in/srimoneyshankar-ajith-a5a6831ba/')}>
                 <Text style={[styles.devLink, { color: theme.textSecondary }]}>Srimoney</Text>
+              </Pressable>
+              <Text style={[styles.footerText, { color: theme.textSecondary }]}> & </Text>
+              <Pressable onPress={() => Linking.openURL('https://www.linkedin.com/in/niranjan-vasudevan/')}>
+                <Text style={[styles.devLink, { color: theme.textSecondary }]}>Niranjan V</Text>
               </Pressable>
             </View>
           </View>
@@ -363,6 +369,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   devInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ideaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
