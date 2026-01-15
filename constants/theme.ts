@@ -28,6 +28,13 @@ export const Colors = {
     danger: '#EF4444',
     info: '#3B82F6',
   },
+
+  // Session type colors
+  sessionType: {
+    regular: '#6B7280',
+    lab: '#8B5CF6',
+    tutorial: '#14B8A6',
+  },
   
   // Theme colors
   light: {
@@ -87,6 +94,26 @@ export const Radius = {
   lg: 16,
   xl: 24,
   full: 9999,
+}
+
+// Calendar theme for react-native-calendars
+export const CalendarTheme = {
+  light: {
+    calendarBackground: 'transparent',
+    dayTextColor: '#171717',
+    textDisabledColor: '#D4D4D4',
+    monthTextColor: '#171717',
+    arrowColor: '#525252',
+    todayTextColor: '#3B82F6',
+  },
+  dark: {
+    calendarBackground: 'transparent',
+    dayTextColor: '#FAFAFA',
+    textDisabledColor: '#525252',
+    monthTextColor: '#FAFAFA',
+    arrowColor: '#A3A3A3',
+    todayTextColor: '#3B82F6',
+  },
 }
 
 export const Fonts = Platform.select({

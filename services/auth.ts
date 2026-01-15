@@ -100,7 +100,12 @@ export const login = async (username: string, password: string): Promise<boolean
     password: password,
   }
   
-  const formData = new URLSearchParams(formDataObj)
+  const formData = new URLSearchParams({
+    anchor: formDataObj.anchor,
+    logintoken: formDataObj.logintoken,
+    username: formDataObj.username,
+    password: formDataObj.password,
+  })
   
   debug.auth('Form data:', {
     anchor: '',

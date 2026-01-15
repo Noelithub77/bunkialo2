@@ -1,17 +1,27 @@
 import { useEffect, useCallback } from 'react'
 import { StyleSheet, FlatList, RefreshControl, View, Text, ActivityIndicator } from 'react-native'
 import { Container } from '@/components/ui/container'
-import { StatsHeader } from '@/components/stats-header'
 import { AttendanceCard } from '@/components/attendance-card'
 import { useAttendanceStore } from '@/stores/attendance-store'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { Colors, Spacing } from '@/constants/theme'
 
+const formatSyncTime = (timestamp: number | null): string => {
+  if (!timestamp) return ''
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
+
 export default function AttendanceScreen() {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
   const theme = isDark ? Colors.dark : Colors.light
-  
+
   const { courses, isLoading, lastSyncTime, error, fetchAttendance } = useAttendanceStore()
 
   useEffect(() => {
@@ -24,14 +34,25 @@ export default function AttendanceScreen() {
     fetchAttendance()
   }, [fetchAttendance])
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <StatsHeader courses={courses} lastSyncTime={lastSyncTime} />
-      {error && (
+  const renderHeader = () => {
+    if (!error) return null
+    return (
+      <View style={styles.header}>
         <Text style={styles.error}>{error}</Text>
-      )}
-    </View>
-  )
+      </View>
+    )
+  }
+
+  const renderFooter = () => {
+    if (!lastSyncTime || courses.length === 0) return null
+    return (
+      <View style={styles.footer}>
+        <Text style={[styles.syncText, { color: theme.textSecondary }]}>
+          Updated {formatSyncTime(lastSyncTime)}
+        </Text>
+      </View>
+    )
+  }
 
   const renderEmpty = () => {
     if (isLoading) {
@@ -60,6 +81,7 @@ export default function AttendanceScreen() {
         keyExtractor={(item) => item.courseId}
         renderItem={({ item }) => <AttendanceCard course={item} />}
         ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -83,6 +105,13 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: Spacing.md,
   },
+  footer: {
+    alignItems: 'center',
+    paddingTop: Spacing.lg,
+  },
+  syncText: {
+    fontSize: 12,
+  },
   separator: {
     height: Spacing.md,
   },
@@ -98,6 +127,5 @@ const styles = StyleSheet.create({
     color: Colors.status.danger,
     fontSize: 14,
     textAlign: 'center',
-    marginTop: Spacing.md,
   },
 })
