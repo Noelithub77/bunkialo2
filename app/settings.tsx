@@ -233,7 +233,7 @@ export default function SettingsScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-              Bunkialo v1.0.0
+              Bunkialo v2.0.0
             </Text>
             <View style={styles.devInfo}>
               <Text style={[styles.footerText, { color: theme.textSecondary }]}>Made by </Text>
