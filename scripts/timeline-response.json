@@ -1,0 +1,91 @@
+[
+  {
+    "error": false,
+    "data": {
+      "events": [
+        {
+          "id": 10943,
+          "name": "Project Proposal is due",
+          "description": "",
+          "descriptionformat": 1,
+          "location": "",
+          "categoryid": null,
+          "groupid": null,
+          "userid": null,
+          "repeatid": null,
+          "eventcount": null,
+          "component": "mod_assign",
+          "modulename": "assign",
+          "activityname": "Project Proposal",
+          "activitystr": "Assignment is due",
+          "instance": 3987,
+          "eventtype": "due",
+          "timestart": 1768995000,
+          "timeduration": 0,
+          "timesort": 1768995000,
+          "timeusermidnight": 1768933800,
+          "visible": 1,
+          "timemodified": 1768471867,
+          "overdue": false,
+          "icon": {
+            "key": "monologo",
+            "component": "assign",
+            "alttext": "Activity event",
+            "iconurl": "https://lmsug24.iiitkottayam.ac.in/theme/image.php/degrade/assign/1724152882/monologo?filtericon=1",
+            "iconclass": ""
+          },
+          "course": {
+            "id": 111,
+            "fullname": "ICS222  Object-Oriented Analysis and Design",
+            "shortname": "ICS222",
+            "idnumber": "",
+            "summary": "",
+            "summaryformat": 1,
+            "startdate": 1766601000,
+            "enddate": 1779561000,
+            "visible": true,
+            "showactivitydates": true,
+            "showcompletionconditions": true,
+            "pdfexportfont": "",
+            "fullnamedisplay": "ICS222  Object-Oriented Analysis and Design",
+            "viewurl": "https://lmsug24.iiitkottayam.ac.in/course/view.php?id=111",
+            "courseimage": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTYiIGhlaWdodD0iNDYiPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InJnYigxMTYsIDE4NSwgMjU1KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjZGRkIiBmaWxsLW9wYWNpdHk9IjAuMDcyIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTMsIC03LjY2NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wNzIiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE0MywgLTcuNjY2NjY2NjY2NjY2NykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjA3MiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEzLCAzOC4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wNzIiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE0MywgMzguMzMzMzMzMzMzMzMzKSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjZGRkIiBmaWxsLW9wYWNpdHk9IjAuMDM3MzMzMzMzMzMzMzMzIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMywgLTcuNjY2NjY2NjY2NjY2NykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjAzNzMzMzMzMzMzMzMzMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMsIDM4LjMzMzMzMzMzMzMzMykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjAyODY2NjY2NjY2NjY2NyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzksIC03LjY2NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wMjg2NjY2NjY2NjY2NjciIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDM5LCAzOC4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wNzIiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDY1LCAtNy42NjY2NjY2NjY2NjY3KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjZGRkIiBmaWxsLW9wYWNpdHk9IjAuMDcyIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2NSwgMzguMzMzMzMzMzMzMzMzKSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjMjIyIiBmaWxsLW9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDkxLCAtNy42NjY2NjY2NjY2NjY3KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjMjIyIiBmaWxsLW9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDkxLCAzOC4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wODkzMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDExNywgLTcuNjY2NjY2NjY2NjY2NykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjA4OTMzMzMzMzMzMzMzMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTE3LCAzOC4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4xMDY2NjY2NjY2NjY2NyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwgMCkiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjEwNjY2NjY2NjY2NjY3IiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNTYsIDApIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wODA2NjY2NjY2NjY2NjciIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI2LCAwKSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjMjIyIiBmaWxsLW9wYWNpdHk9IjAuMDYzMzMzMzMzMzMzMzMzIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MiwgMCkiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjE1IiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3OCwgMCkiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjEzMjY2NjY2NjY2NjY3IiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDQsIDApIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wNjMzMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEzMCwgMCkiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjExNTMzMzMzMzMzMzMzIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTMsIDcuNjY2NjY2NjY2NjY2NykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjExNTMzMzMzMzMzMzMzIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNDMsIDcuNjY2NjY2NjY2NjY2NykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjExNTMzMzMzMzMzMzMzIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMywgNy42NjY2NjY2NjY2NjY3KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjMjIyIiBmaWxsLW9wYWNpdHk9IjAuMDQ2IiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzOSwgNy42NjY2NjY2NjY2NjY3KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjMjIyIiBmaWxsLW9wYWNpdHk9IjAuMTMyNjY2NjY2NjY2NjciIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDY1LCA3LjY2NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wNjMzMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDkxLCA3LjY2NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTE3LCA3LjY2NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wMzczMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAsIDE1LjMzMzMzMzMzMzMzMykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjAzNzMzMzMzMzMzMzMzMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTU2LCAxNS4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wMzczMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI2LCAxNS4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4xMTUzMzMzMzMzMzMzMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTIsIDE1LjMzMzMzMzMzMzMzMykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjA3MiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzgsIDE1LjMzMzMzMzMzMzMzMykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjE1IiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDQsIDE1LjMzMzMzMzMzMzMzMykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iIzIyMiIgZmlsbC1vcGFjaXR5PSIwLjA5OCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMwLCAxNS4zMzMzMzMzMzMzMzMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wOTgiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0xMywgMjMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wOTgiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE0MywgMjMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wNjMzMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEzLCAyMykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjA4OTMzMzMzMzMzMzMzMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzksIDIzKSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjZGRkIiBmaWxsLW9wYWNpdHk9IjAuMTI0IiBzdHJva2U9IiMwMDAiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2NSwgMjMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4xMzI2NjY2NjY2NjY2NyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoOTEsIDIzKSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjZGRkIiBmaWxsLW9wYWNpdHk9IjAuMTQxMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDExNywgMjMpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4xMzI2NjY2NjY2NjY2NyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwgMzAuNjY2NjY2NjY2NjY3KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjMjIyIiBmaWxsLW9wYWNpdHk9IjAuMTMyNjY2NjY2NjY2NjciIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1NiwgMzAuNjY2NjY2NjY2NjY3KSIgLz48cG9seWxpbmUgcG9pbnRzPSIxMywgMCwgMjYsIDcuNjY2NjY2NjY2NjY2NywgMTMsIDE1LjMzMzMzMzMzMzMzMywgMCwgNy42NjY2NjY2NjY2NjY3IiBmaWxsPSIjZGRkIiBmaWxsLW9wYWNpdHk9IjAuMTQxMzMzMzMzMzMzMzMiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI2LCAzMC42NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4wNDYiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUyLCAzMC42NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiMyMjIiIGZpbGwtb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzgsIDMwLjY2NjY2NjY2NjY2NykiIC8+PHBvbHlsaW5lIHBvaW50cz0iMTMsIDAsIDI2LCA3LjY2NjY2NjY2NjY2NjcsIDEzLCAxNS4zMzMzMzMzMzMzMzMsIDAsIDcuNjY2NjY2NjY2NjY2NyIgZmlsbD0iI2RkZCIgZmlsbC1vcGFjaXR5PSIwLjEyNCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTA0LCAzMC42NjY2NjY2NjY2NjcpIiAvPjxwb2x5bGluZSBwb2ludHM9IjEzLCAwLCAyNiwgNy42NjY2NjY2NjY2NjY3LCAxMywgMTUuMzMzMzMzMzMzMzMzLCAwLCA3LjY2NjY2NjY2NjY2NjciIGZpbGw9IiNkZGQiIGZpbGwtb3BhY2l0eT0iMC4wMiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4wMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMwLCAzMC42NjY2NjY2NjY2NjcpIiAvPjwvc3ZnPg==",
+            "progress": 0,
+            "hasprogress": false,
+            "isfavourite": false,
+            "hidden": false,
+            "showshortname": false,
+            "coursecategory": "BATCH IV"
+          },
+          "subscription": {
+            "displayeventsource": false
+          },
+          "canedit": false,
+          "candelete": false,
+          "deleteurl": "https://lmsug24.iiitkottayam.ac.in/calendar/delete.php?id=10943&course=111",
+          "editurl": "https://lmsug24.iiitkottayam.ac.in/course/mod.php?update=3987&return=1&sesskey=RPTBm4Eodp",
+          "viewurl": "https://lmsug24.iiitkottayam.ac.in/calendar/view.php?view=day&course=111&time=1768995000#event_10943",
+          "formattedtime": "<a href=\"https://lmsug24.iiitkottayam.ac.in/calendar/view.php?view=day&amp;time=1768995000\">Wednesday, 21 January</a>, 5:00 PM",
+          "formattedlocation": "",
+          "isactionevent": true,
+          "iscourseevent": false,
+          "iscategoryevent": false,
+          "groupname": null,
+          "normalisedeventtype": "course",
+          "normalisedeventtypetext": "Course event",
+          "action": {
+            "name": "Add submission",
+            "url": "https://lmsug24.iiitkottayam.ac.in/mod/assign/view.php?id=3987&action=editsubmission",
+            "itemcount": 1,
+            "actionable": true,
+            "showitemcount": false
+          },
+          "purpose": "assessment",
+          "url": "https://lmsug24.iiitkottayam.ac.in/mod/assign/view.php?id=3987"
+        }
+      ],
+      "firstid": 10943,
+      "lastid": 10943
+    }
+  }
+]

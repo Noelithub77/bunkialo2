@@ -1,18 +1,18 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native'
-import { router } from 'expo-router'
+import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Colors, Spacing } from '@/constants/theme'
-import { useAuthStore } from '@/stores/auth-store'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { useAuthStore } from '@/stores/auth-store'
+import { router } from 'expo-router'
+import { useState } from 'react'
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
   const theme = isDark ? Colors.dark : Colors.light
-  
+
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const { login, isLoading, error, setError } = useAuthStore()
@@ -22,7 +22,7 @@ export default function LoginScreen() {
       setError('Please enter both username and password')
       return
     }
-    
+
     const success = await login(username.trim(), password)
     if (success) {
       router.replace('/(tabs)')
@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
   return (
     <Container>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
@@ -47,14 +47,14 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <Input
-              label="Username"
-              placeholder="Enter your username"
+              label="Rollno."
+              placeholder="Enter your rollno."
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            
+
             <Input
               label="Password"
               placeholder="Enter your password"

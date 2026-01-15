@@ -1,12 +1,25 @@
+import { debug } from '@/utils/debug'
 import axios from 'axios'
 import { cookieStore } from './cookie-store'
-import { debug } from '@/utils/debug'
 
-const BASE_URL = 'https://lmsug24.iiitkottayam.ac.in'
+const DEFAULT_BASE_URL = 'https://lmsug24.iiitkottayam.ac.in'
+let currentBaseUrl = DEFAULT_BASE_URL
+
+const getBaseUrlFromUsername = (username: string): string => {
+  const yearMatch = username.match(/^20(\d{2})/)
+  if (!yearMatch) {
+    debug.api('Could not extract year from username, using default base URL')
+    return DEFAULT_BASE_URL
+  }
+  const yearSuffix = yearMatch[1]
+  const baseUrl = `https://lmsug${yearSuffix}.iiitkottayam.ac.in`
+  debug.api(`Base URL generated from username ${username}: ${baseUrl}`)
+  return baseUrl
+}
 
 // Axios instance for LMS requests
 export const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: currentBaseUrl,
   headers: {
     'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -52,6 +65,17 @@ api.interceptors.response.use(
   }
 )
 
+// Update base URL based on username
+export const updateBaseUrl = (username: string) => {
+  const newBaseUrl = getBaseUrlFromUsername(username)
+  currentBaseUrl = newBaseUrl
+  api.defaults.baseURL = newBaseUrl
+  debug.api(`Base URL updated to: ${newBaseUrl}`)
+}
+
+// Get current base URL
+export const getCurrentBaseUrl = () => currentBaseUrl
+
 // Clear all cookies
 export const clearCookies = () => {
   cookieStore.clear()
@@ -59,9 +83,9 @@ export const clearCookies = () => {
 
 // Get debug info
 export const getDebugInfo = () => ({
-  baseUrl: BASE_URL,
+  baseUrl: currentBaseUrl,
   cookieCount: cookieStore.getCookieCount(),
   cookies: cookieStore.getAllCookies(),
 })
 
-export { BASE_URL }
+export { currentBaseUrl as BASE_URL }

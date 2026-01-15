@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Colors, Spacing, Radius } from '@/constants/theme'
+import { Input } from '@/components/ui/input'
+import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { Ionicons } from '@expo/vector-icons'
+import { useEffect, useState } from 'react'
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 interface DLInputModalProps {
   visible: boolean
@@ -46,7 +46,7 @@ export function DLInputModal({ visible, onClose, onConfirm }: DLInputModalProps)
           </Text>
 
           <Input
-            placeholder="e.g. IEEE Workshop"
+            placeholder="e.g. Enigma CTF, best event to ever happen"
             value={note}
             onChangeText={setNote}
             autoFocus

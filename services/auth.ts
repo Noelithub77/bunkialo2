@@ -2,7 +2,7 @@ import type { Credentials, LoginFormData } from '@/types'
 import { debug } from '@/utils/debug'
 import { getAttr, hasMatch, parseHtml, querySelector, querySelectorAll } from '@/utils/html-parser'
 import * as SecureStore from 'expo-secure-store'
-import { api, clearCookies, getDebugInfo } from './api'
+import { api, clearCookies, getDebugInfo, updateBaseUrl } from './api'
 
 const CREDENTIALS_KEY = 'lms_credentials'
 
@@ -75,10 +75,13 @@ export const clearSession = () => {
 // Login to Moodle LMS
 export const login = async (username: string, password: string): Promise<boolean> => {
   debug.auth(`=== LOGIN ATTEMPT: ${username} ===`)
-  
+
   // Clear any existing session
   clearSession()
-  
+
+  // Set base URL based on username year
+  updateBaseUrl(username)
+
   // Step 1: Get the login page to extract CSRF token
   debug.auth('Step 1: Fetching login page...')
   const loginPageResponse = await api.get<string>('/login/index.php')
