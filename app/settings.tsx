@@ -1,12 +1,12 @@
-import { View, Text, StyleSheet, Alert, Pressable, ActivityIndicator, Linking } from 'react-native'
-import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { Container } from '@/components/ui/container'
-import { useAuthStore } from '@/stores/auth-store'
-import { useAttendanceStore } from '@/stores/attendance-store'
-import { useBunkStore } from '@/stores/bunk-store'
+import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { Colors, Spacing, Radius } from '@/constants/theme'
+import { useAttendanceStore } from '@/stores/attendance-store'
+import { useAuthStore } from '@/stores/auth-store'
+import { useBunkStore } from '@/stores/bunk-store'
+import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 
 type SettingRowProps = {
   icon: keyof typeof Ionicons.glyphMap
@@ -88,6 +88,13 @@ export default function SettingsScreen() {
 
   return (
     <Container>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={theme.text} />
+        </Pressable>
+        <Text style={[styles.title, { color: theme.text }]}>Settings</Text>
+        <View style={styles.placeholder} />
+      </View>
       <View style={styles.content}>
         {/* Profile */}
         <View style={styles.profile}>
@@ -152,6 +159,24 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  backButton: {
+    padding: Spacing.sm,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  placeholder: {
+    width: 40,
+  },
   content: {
     flex: 1,
     padding: Spacing.lg,

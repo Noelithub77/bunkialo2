@@ -1,8 +1,8 @@
-import { Tabs } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { HapticTab } from '@/components/haptic-tab'
 import { Colors } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { Ionicons } from '@expo/vector-icons'
+import { Tabs } from 'expo-router'
 
 export default function TabLayout() {
   const colorScheme = useColorScheme()
@@ -37,15 +37,6 @@ export default function TabLayout() {
           title: 'Bunks',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="remove-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />

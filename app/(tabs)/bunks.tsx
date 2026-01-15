@@ -1,17 +1,16 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { StyleSheet, FlatList, RefreshControl, View, Text, Pressable, Alert, TextInput } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { CourseEditModal } from '@/components/course-edit-modal'
+import { DLInputModal } from '@/components/dl-input-modal'
+import { DutyLeaveModal } from '@/components/duty-leave-modal'
 import { Container } from '@/components/ui/container'
 import { GradientCard } from '@/components/ui/gradient-card'
-import { Button } from '@/components/ui/button'
-import { CourseEditModal } from '@/components/course-edit-modal'
-import { DutyLeaveModal } from '@/components/duty-leave-modal'
-import { DLInputModal } from '@/components/dl-input-modal'
-import { useBunkStore, selectAllDutyLeaves, selectCourseStats, getDisplayName, filterPastBunks } from '@/stores/bunk-store'
-import { useAttendanceStore } from '@/stores/attendance-store'
+import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { Colors, Spacing, Radius } from '@/constants/theme'
-import type { CourseBunkData, BunkRecord, CourseConfig } from '@/types'
+import { useAttendanceStore } from '@/stores/attendance-store'
+import { filterPastBunks, getDisplayName, selectAllDutyLeaves, selectCourseStats, useBunkStore } from '@/stores/bunk-store'
+import type { BunkRecord, CourseBunkData, CourseConfig } from '@/types'
+import { Ionicons } from '@expo/vector-icons'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native'
 
 // parse date for display
 const formatDate = (dateStr: string): string => {
@@ -97,13 +96,14 @@ const BunkItem = ({ bunk, theme, onMarkDL, onRemoveDL, onUpdateNote }: BunkItemP
 
 interface CourseCardProps {
   course: CourseBunkData
+  isEditMode: boolean
   onEdit: () => void
   onMarkDL: (bunkId: string) => void
   onRemoveDL: (bunkId: string) => void
   onUpdateNote: (bunkId: string, note: string) => void
 }
 
-const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: CourseCardProps) => {
+const CourseCard = ({ course, isEditMode, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: CourseCardProps) => {
   const [expanded, setExpanded] = useState(false)
   const [showTotal, setShowTotal] = useState(false)
   const colorScheme = useColorScheme()
@@ -114,6 +114,14 @@ const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: Cour
   const pastBunks = filterPastBunks(course.bunks)
   const displayName = getDisplayName(course)
   const isConfigured = course.isConfigured && course.config
+
+  const handleCardPress = () => {
+    if (isEditMode) {
+      onEdit()
+    } else {
+      setExpanded(!expanded)
+    }
+  }
 
   // bunks display value: toggle between "X left" and "X/Y used"
   const bunksDisplay = showTotal ? `${stats.usedBunks}/${stats.totalBunks}` : stats.bunksLeft.toString()
@@ -128,7 +136,7 @@ const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: Cour
 
   return (
     <GradientCard>
-      <Pressable onPress={() => setExpanded(!expanded)}>
+      <Pressable onPress={handleCardPress} style={isEditMode && styles.editModeCard}>
         <View style={styles.cardHeader}>
           <View style={styles.cardLeft}>
             <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={2}>
@@ -151,7 +159,10 @@ const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: Cour
 
           <View style={styles.cardRight}>
             {isConfigured ? (
-              <Pressable onPress={() => setShowTotal(!showTotal)}>
+              <Pressable onPress={(e) => {
+                e.stopPropagation()
+                setShowTotal(!showTotal)
+              }}>
                 <View style={styles.bunksDisplay}>
                   <Text style={[styles.bunksValue, showTotal && styles.bunksValueSmall, { color: bunksColor }]}>
                     {bunksDisplay}
@@ -160,7 +171,10 @@ const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: Cour
                 </View>
               </Pressable>
             ) : (
-              <Pressable onPress={onEdit} style={[styles.configBtn, { borderColor: Colors.status.warning }]}>
+              <Pressable onPress={(e) => {
+                e.stopPropagation()
+                onEdit()
+              }} style={[styles.configBtn, { borderColor: Colors.status.warning }]}>
                 <Ionicons name="settings-outline" size={14} color={Colors.status.warning} />
                 <Text style={[styles.configText, { color: Colors.status.warning }]}>Setup</Text>
               </Pressable>
@@ -177,14 +191,6 @@ const CourseCard = ({ course, onEdit, onMarkDL, onRemoveDL, onUpdateNote }: Cour
       {expanded && (
         <View style={styles.expandedContent}>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-          {/* edit button */}
-          <Pressable onPress={onEdit} style={styles.editRow}>
-            <Ionicons name="pencil" size={14} color={theme.textSecondary} />
-            <Text style={[styles.editText, { color: theme.textSecondary }]}>
-              {isConfigured ? `${course.config?.credits} credits` : 'Configure course'}
-            </Text>
-          </Pressable>
 
           {/* bunks list (past only) */}
           {pastBunks.length > 0 ? (
@@ -222,6 +228,7 @@ export default function BunksScreen() {
   const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
   const [showDLModal, setShowDLModal] = useState(false)
   const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
 
   const allDutyLeaves = useMemo(() => selectAllDutyLeaves(courses), [courses])
 
@@ -268,14 +275,19 @@ export default function BunksScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={[styles.screenTitle, { color: theme.text }]}>Bunks</Text>
-      <Pressable onPress={() => setShowDLModal(true)} style={styles.dlButton}>
-        <Ionicons name="briefcase-outline" size={20} color={Colors.status.info} />
-        {allDutyLeaves.length > 0 && (
-          <View style={styles.dlBadgeSmall}>
-            <Text style={styles.dlBadgeText}>{allDutyLeaves.length}</Text>
-          </View>
-        )}
-      </Pressable>
+      <View style={styles.headerActions}>
+        <Pressable onPress={() => setIsEditMode(!isEditMode)} style={[styles.editModeBtn, isEditMode && styles.editModeBtnActive, !isEditMode && { backgroundColor: theme.backgroundSecondary }]}>
+          <Ionicons name="pencil" size={20} color={isEditMode ? Colors.white : theme.textSecondary} />
+        </Pressable>
+        <Pressable onPress={() => setShowDLModal(true)} style={styles.dlButton}>
+          <Ionicons name="briefcase-outline" size={20} color={Colors.status.info} />
+          {allDutyLeaves.length > 0 && (
+            <View style={styles.dlBadgeSmall}>
+              <Text style={styles.dlBadgeText}>{allDutyLeaves.length}</Text>
+            </View>
+          )}
+        </Pressable>
+      </View>
     </View>
   )
 
@@ -306,7 +318,11 @@ export default function BunksScreen() {
         renderItem={({ item }) => (
           <CourseCard
             course={item}
-            onEdit={() => setEditCourse(item)}
+            isEditMode={isEditMode}
+            onEdit={() => {
+              setEditCourse(item)
+              setIsEditMode(false)
+            }}
             onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
             onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
             onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
@@ -355,9 +371,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   screenTitle: {
     fontSize: 28,
     fontWeight: '700',
+  },
+  editModeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editModeBtnActive: {
+    backgroundColor: Colors.status.info,
+  },
+  editModeCard: {
+    opacity: 0.8,
   },
   dlButton: {
     flexDirection: 'row',
@@ -460,15 +494,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginBottom: Spacing.md,
-  },
-  editRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  editText: {
-    fontSize: 12,
   },
   bunksList: {
     gap: 0,
