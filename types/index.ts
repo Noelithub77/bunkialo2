@@ -1,7 +1,9 @@
-// Attendance status types
+// ============================================================================
+// ATTENDANCE TYPES
+// ============================================================================
+
 export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused'
 
-// Single attendance record from the table
 export interface AttendanceRecord {
   date: string
   description: string
@@ -10,7 +12,6 @@ export interface AttendanceRecord {
   remarks: string
 }
 
-// Course with its attendance data
 export interface CourseAttendance {
   courseId: string
   courseName: string
@@ -22,14 +23,82 @@ export interface CourseAttendance {
   lastUpdated: number
 }
 
-// Basic course info from courses page
+// ============================================================================
+// COURSE TYPES
+// ============================================================================
+
 export interface Course {
   id: string
   name: string
   url: string
 }
 
-// Auth state
+// Moodle Course API Response (from core_course_get_enrolled_courses_by_timeline_classification)
+export interface MoodleCourseApiResponse {
+  id: number
+  fullname: string
+  shortname: string
+  idnumber: string
+  summary: string
+  summaryformat: number
+  startdate: number
+  enddate: number
+  visible: boolean
+  fullnamedisplay: string
+  viewurl: string
+  courseimage: string
+  progress: number | null
+  hasprogress: boolean
+  isfavourite: boolean
+  hidden: boolean
+  timeaccess: number | null
+  showshortname: boolean
+  coursecategory: string
+}
+
+export interface MoodleCourseTimelineData {
+  courses: MoodleCourseApiResponse[]
+  nextoffset: number
+}
+
+export interface MoodleAjaxResponse<T = unknown> {
+  error: boolean
+  exception?: {
+    errorcode: string
+    message: string
+    type: string
+  }
+  data: T
+}
+
+// ============================================================================
+// MOODLE AJAX API TYPES
+// ============================================================================
+
+export interface MoodleAjaxRequest {
+  index: number
+  methodname: string
+  args: Record<string, unknown>
+}
+
+export type MoodleTimelineClassification = 'inprogress' | 'past' | 'future' | 'all'
+
+export interface MoodleCourseTimelineArgs {
+  offset: number
+  limit: number
+  classification: MoodleTimelineClassification
+  sort: 'fullname' | 'lastaccess' | 'shortname'
+}
+
+// ============================================================================
+// AUTHENTICATION TYPES
+// ============================================================================
+
+export interface Credentials {
+  username: string
+  password: string
+}
+
 export interface AuthState {
   isLoggedIn: boolean
   isLoading: boolean
@@ -37,10 +106,82 @@ export interface AuthState {
   error: string | null
 }
 
-// Attendance store state
+// ============================================================================
+// STORE TYPES
+// ============================================================================
+
 export interface AttendanceState {
   courses: CourseAttendance[]
   isLoading: boolean
   lastSyncTime: number | null
   error: string | null
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+export interface ApiResponse<T = unknown> {
+  data: T
+  status: number
+  statusText: string
+  headers: Record<string, string>
+}
+
+export interface LoginPageResponse {
+  html: string
+  logintoken: string | null
+}
+
+export interface LoginFormData {
+  anchor: string
+  logintoken: string
+  username: string
+  password: string
+}
+
+// ============================================================================
+// HTML PARSING TYPES
+// ============================================================================
+
+export interface ParsedCourseLink {
+  id: string
+  name: string
+  href: string
+}
+
+export interface ParsedAttendanceTable {
+  headers: string[]
+  rows: AttendanceRecord[]
+}
+
+// ============================================================================
+// DEBUG TYPES
+// ============================================================================
+
+export type LogCategory = 'AUTH' | 'COOKIE' | 'SCRAPER' | 'API' | 'STORE'
+
+export interface DebugInfo {
+  baseUrl: string
+  cookieCount: number
+  cookies: Record<string, string>
+}
+
+// ============================================================================
+// UTILITY TYPES
+// ============================================================================
+
+export interface CourseStats {
+  totalCourses: number
+  totalSessions: number
+  totalAttended: number
+  overallPercentage: number
+}
+
+export interface AttendanceSummary {
+  courseId: string
+  courseName: string
+  percentage: number
+  attended: number
+  totalSessions: number
 }

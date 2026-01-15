@@ -1,3 +1,4 @@
+import type { Credentials, LoginFormData } from '@/types'
 import { debug } from '@/utils/debug'
 import { getAttr, hasMatch, parseHtml, querySelector, querySelectorAll } from '@/utils/html-parser'
 import * as SecureStore from 'expo-secure-store'
@@ -48,13 +49,13 @@ export const saveCredentials = async (username: string, password: string) => {
 }
 
 // Get saved credentials
-export const getCredentials = async (): Promise<{ username: string; password: string } | null> => {
+export const getCredentials = async (): Promise<Credentials | null> => {
   const stored = await SecureStore.getItemAsync(CREDENTIALS_KEY)
   if (!stored) {
     debug.auth('No stored credentials found')
     return null
   }
-  const parsed = JSON.parse(stored)
+  const parsed = JSON.parse(stored) as Credentials
   debug.auth(`Credentials loaded for: ${parsed.username}`)
   return parsed
 }
@@ -80,7 +81,7 @@ export const login = async (username: string, password: string): Promise<boolean
   
   // Step 1: Get the login page to extract CSRF token
   debug.auth('Step 1: Fetching login page...')
-  const loginPageResponse = await api.get('/login/index.php')
+  const loginPageResponse = await api.get<string>('/login/index.php')
   debug.auth(`Login page size: ${loginPageResponse.data.length} chars`)
   
   const loginToken = extractLoginToken(loginPageResponse.data)
@@ -92,12 +93,14 @@ export const login = async (username: string, password: string): Promise<boolean
   
   // Step 2: Submit login form
   debug.auth('Step 2: Submitting login form...')
-  const formData = new URLSearchParams({
+  const formDataObj: LoginFormData = {
     anchor: '',
     logintoken: loginToken,
     username: username,
     password: password,
-  })
+  }
+  
+  const formData = new URLSearchParams(formDataObj)
   
   debug.auth('Form data:', {
     anchor: '',
@@ -106,7 +109,7 @@ export const login = async (username: string, password: string): Promise<boolean
     password: '***',
   })
   
-  const loginResponse = await api.post('/login/index.php', formData.toString(), {
+  const loginResponse = await api.post<string>('/login/index.php', formData.toString(), {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
@@ -132,7 +135,7 @@ export const login = async (username: string, password: string): Promise<boolean
 export const checkSession = async (): Promise<boolean> => {
   debug.auth('Checking session validity...')
   try {
-    const response = await api.get('/my/')
+    const response = await api.get<string>('/my/')
     const isValid = isLoginSuccessful(response.data)
     debug.auth(`Session valid: ${isValid}`)
     return isValid

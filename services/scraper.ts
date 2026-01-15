@@ -1,16 +1,24 @@
-import type { AttendanceRecord, AttendanceStatus, Course, CourseAttendance } from '@/types'
+import type {
+    AttendanceRecord,
+    AttendanceStatus,
+    Course,
+    CourseAttendance,
+    MoodleAjaxRequest,
+    MoodleAjaxResponse,
+    MoodleCourseApiResponse,
+    MoodleCourseTimelineArgs,
+    MoodleCourseTimelineData,
+} from '@/types'
 import { debug } from '@/utils/debug'
 import { getAttr, getText, parseHtml, querySelectorAll } from '@/utils/html-parser'
 import { api, BASE_URL } from './api'
 
 // Get sesskey from page for API calls
 const getSesskey = async (): Promise<string | null> => {
-  const response = await api.get('/my/')
-  const doc = parseHtml(response.data)
+  const response = await api.get<string>('/my/')
   
   // Find sesskey in page - it's in M.cfg.sesskey in a script tag
-  const html = response.data as string
-  const match = html.match(/"sesskey":"([^"]+)"/)
+  const match = response.data.match(/"sesskey":"([^"]+)"/)
   
   if (match) {
     debug.scraper(`Found sesskey: ${match[1]}`)
@@ -32,7 +40,7 @@ export const fetchCourses = async (): Promise<Course[]> => {
   }
   
   // Moodle AJAX API call for in-progress courses
-  const apiPayload = [{
+  const apiPayload: MoodleAjaxRequest[] = [{
     index: 0,
     methodname: 'core_course_get_enrolled_courses_by_timeline_classification',
     args: {
@@ -40,11 +48,11 @@ export const fetchCourses = async (): Promise<Course[]> => {
       limit: 0, // 0 = no limit
       classification: 'inprogress', // Only in-progress courses
       sort: 'fullname',
-    }
+    } as MoodleCourseTimelineArgs,
   }]
   
   try {
-    const response = await api.post(
+    const response = await api.post<MoodleAjaxResponse<MoodleCourseTimelineData>[]>(
       `/lib/ajax/service.php?sesskey=${sesskey}&info=core_course_get_enrolled_courses_by_timeline_classification`,
       JSON.stringify(apiPayload),
       {
@@ -57,7 +65,14 @@ export const fetchCourses = async (): Promise<Course[]> => {
     const data = response.data
     
     if (Array.isArray(data) && data[0]?.data?.courses) {
-      const courses: Course[] = data[0].data.courses.map((c: any) => ({
+      const apiResponse = data[0] as MoodleAjaxResponse<MoodleCourseTimelineData>
+      
+      if (apiResponse.error) {
+        debug.scraper(`API error: ${apiResponse.exception?.message || 'Unknown error'}`)
+        throw new Error(apiResponse.exception?.message || 'API error')
+      }
+      
+      const courses: Course[] = apiResponse.data.courses.map((c: MoodleCourseApiResponse) => ({
         id: String(c.id),
         name: c.fullname || c.shortname,
         url: `${BASE_URL}/course/view.php?id=${c.id}`,
@@ -79,7 +94,7 @@ export const fetchCourses = async (): Promise<Course[]> => {
 const fetchCoursesFromHtml = async (): Promise<Course[]> => {
   debug.scraper('Parsing courses from dashboard HTML')
   
-  const response = await api.get('/my/')
+  const response = await api.get<string>('/my/')
   const doc = parseHtml(response.data)
   const courses: Course[] = []
   
@@ -112,7 +127,7 @@ const fetchCoursesFromHtml = async (): Promise<Course[]> => {
 const findAttendanceModuleId = async (courseId: string): Promise<string | null> => {
   debug.scraper(`Finding attendance module for course ${courseId}`)
   
-  const response = await api.get(`/course/view.php?id=${courseId}`)
+  const response = await api.get<string>(`/course/view.php?id=${courseId}`)
   const doc = parseHtml(response.data)
   
   const links = querySelectorAll(doc, 'a')
@@ -218,7 +233,7 @@ export const fetchAttendanceForCourse = async (course: Course): Promise<CourseAt
   }
   
   // Fetch user's attendance report (view=5)
-  const response = await api.get(`/mod/attendance/view.php?id=${attendanceModuleId}&view=5`)
+  const response = await api.get<string>(`/mod/attendance/view.php?id=${attendanceModuleId}&view=5`)
   const records = parseAttendanceTable(response.data)
   
   const totalSessions = records.length

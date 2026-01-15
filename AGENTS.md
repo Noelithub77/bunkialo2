@@ -1,399 +1,167 @@
-# AGENTS.md - Project Collaboration Guide
-
-This document provides guidance for LLMs collaborating on the Bunkialo project.
+# AGENTS.md - Project Guide
 
 ## Project Overview
 
-**Bunkialo** is a React Native (Expo) app that scrapes attendance data from IIIT Kottayam's Moodle LMS.
+**Bunkialo** - React Native (Expo) app that scrapes attendance from IIIT Kottayam Moodle LMS.
 
-**Target LMS**: `https://lmsug24.iiitkottayam.ac.in`
+**LMS**: `https://lmsug24.iiitkottayam.ac.in`
 
-### Key Features
-- Secure credential storage with `expo-secure-store`
-- Cookie-based session management (pure JS, no native deps)
-- HTML parsing with `htmlparser2` (works in React Native)
-- Parallel course scraping for performance
-- Offline caching with AsyncStorage
-- Minimalistic black/gray gradient UI
+**Key Features**: Secure auth, Moodle API integration, HTML parsing, offline cache, only shows in-progress courses with attendance.
 
-## Technology Stack
+## Tech Stack
 
-| Category | Technology | Notes |
-|----------|------------|-------|
-| Framework | Expo SDK 54 + Expo Router 6 | File-based routing |
-| Language | TypeScript (strict) | All code is typed |
-| State | Zustand 5 | With AsyncStorage persistence |
-| HTTP | Axios | With custom cookie interceptors |
-| HTML Parser | htmlparser2 + domutils + css-select | Cheerio alternative for RN |
-| Storage | expo-secure-store (credentials), AsyncStorage (cache) | No native modules |
-| UI | Custom components + expo-linear-gradient | Black/gray theme |
+- **Framework**: Expo SDK 54 + Expo Router 6
+- **Language**: TypeScript (strict, no `any`)
+- **State**: Zustand + AsyncStorage
+- **HTTP**: Axios with cookie interceptors
+- **Parser**: htmlparser2 (not cheerio - has Node deps)
+- **Storage**: expo-secure-store (credentials), AsyncStorage (cache)
 
 ## Project Structure
 
 ```
-bunkialo/
-├── app/                          # Expo Router screens
-│   ├── _layout.tsx              # Root layout, auth routing, theme
-│   ├── login.tsx                # Login screen
-│   └── (tabs)/                  # Tab navigator group
-│       ├── _layout.tsx          # Tab bar config
-│       ├── index.tsx            # Attendance list (main screen)
-│       └── settings.tsx         # Settings, logout
-│
-├── components/                   # UI components
-│   ├── attendance-card.tsx      # Expandable course card
-│   ├── stats-header.tsx         # Overall stats display
-│   └── ui/                      # Base components
-│       ├── button.tsx           # Gradient button
-│       ├── container.tsx        # Safe area wrapper
-│       ├── gradient-card.tsx    # Card with gradient
-│       └── input.tsx            # Text input
-│
-├── services/                     # Business logic (NO React)
-│   ├── api.ts                   # Axios instance + cookie interceptors
-│   ├── auth.ts                  # Login/logout/credentials
-│   ├── cookie-store.ts          # In-memory cookie management
-│   └── scraper.ts               # HTML scraping logic
-│
-├── stores/                       # Zustand stores
-│   ├── storage.ts               # AsyncStorage adapter
-│   ├── auth-store.ts            # Auth state
-│   └── attendance-store.ts      # Attendance data + cache
-│
-├── utils/                        # Utility functions
-│   └── html-parser.ts           # htmlparser2 wrapper
-│
-├── types/                        # TypeScript types
-│   └── index.ts                 # All shared interfaces
-│
-├── constants/                    # App constants
-│   └── theme.ts                 # Colors, gradients, spacing
-│
-└── hooks/                        # React hooks
-    └── use-color-scheme.ts      # Theme hook
+app/                    # Expo Router screens
+  ├── _layout.tsx      # Root layout, auth routing
+  ├── login.tsx        # Login screen
+  └── (tabs)/
+      ├── index.tsx    # Attendance list
+      └── settings.tsx # Settings
+
+services/              # Business logic (NO React)
+  ├── api.ts          # Axios + cookie interceptors
+  ├── auth.ts         # Login/logout
+  ├── cookie-store.ts  # In-memory cookies
+  └── scraper.ts      # Moodle API + HTML parsing
+
+stores/                # Zustand stores
+  ├── auth-store.ts
+  └── attendance-store.ts
+
+types/index.ts         # All TypeScript types
+utils/debug.ts         # Debug logging
 ```
 
-## Key Implementation Details
-
-### 1. Cookie Management (`services/cookie-store.ts`)
-
-Pure JavaScript cookie store - no native dependencies.
+## Key Types (`types/index.ts`)
 
 ```typescript
-// How it works:
-// 1. Response interceptor captures Set-Cookie headers
-// 2. Cookies stored in memory Map
-// 3. Request interceptor attaches Cookie header
-// 4. Handles expiration automatically
+// Core
+type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused'
+interface AttendanceRecord { date, description, status, points, remarks }
+interface CourseAttendance { courseId, courseName, totalSessions, attended, percentage, records }
+interface Course { id, name, url }
 
-// Usage:
+// Moodle API
+interface MoodleAjaxRequest { index, methodname, args }
+interface MoodleAjaxResponse<T> { error, exception?, data: T }
+interface MoodleCourseApiResponse { id, fullname, shortname, courseimage, ... }
+interface MoodleCourseTimelineData { courses, nextoffset }
+
+// Auth
+interface Credentials { username, password }
+interface LoginFormData { anchor, logintoken, username, password }
+```
+
+**Rule**: Never use `any`. Always import types from `types/index.ts`.
+
+## Implementation Flow
+
+### Authentication
+1. GET `/login/index.php` → extract `logintoken`
+2. POST credentials with token
+3. Verify success (check for logout link)
+4. Save to `expo-secure-store`
+
+### Course Fetching
+1. GET `/my/` → extract `sesskey` from HTML
+2. POST to Moodle AJAX API:
+   ```
+   /lib/ajax/service.php?sesskey={key}&info=core_course_get_enrolled_courses_by_timeline_classification
+   Body: [{
+     methodname: 'core_course_get_enrolled_courses_by_timeline_classification',
+     args: { classification: 'inprogress', limit: 0, sort: 'fullname' }
+   }]
+   ```
+3. Response: `MoodleAjaxResponse<MoodleCourseTimelineData>`
+
+### Attendance Fetching
+1. For each course: GET `/course/view.php?id={id}` → find attendance module
+2. GET `/mod/attendance/view.php?id={moduleId}&view=5` (view=5 = user report)
+3. Parse table: Date | Description | Status | Points | Remarks
+4. Filter: Only return courses where `totalSessions > 0`
+5. Sort by percentage (highest first)
+
+### Status Detection
+- Check `points` first: `"1 / 1"` = Present, `"0 / 1"` = Absent
+- Fallback to `status` text
+
+## Cookie Management
+
+```typescript
+// Automatic via interceptors in api.ts
 cookieStore.setCookiesFromHeader(response.headers['set-cookie'])
-const cookieHeader = cookieStore.getCookieHeader()
-cookieStore.clear()
+cookieStore.getCookieHeader() // Attached to requests automatically
 ```
 
-### 2. HTTP Client (`services/api.ts`)
-
-Axios with interceptors for automatic cookie handling:
-
-```typescript
-// Request interceptor: attaches stored cookies
-api.interceptors.request.use((config) => {
-  config.headers.Cookie = cookieStore.getCookieHeader()
-  return config
-})
-
-// Response interceptor: stores new cookies
-api.interceptors.response.use((response) => {
-  cookieStore.setCookiesFromHeader(response.headers['set-cookie'])
-  return response
-})
-```
-
-### 3. HTML Parsing (`utils/html-parser.ts`)
-
-Wrapper around htmlparser2 for jQuery-like syntax:
+## HTML Parsing
 
 ```typescript
 import { parseHtml, querySelector, querySelectorAll, getText, getAttr } from '@/utils/html-parser'
 
 const doc = parseHtml(html)
-const element = querySelector(doc, 'input[name="logintoken"]')
-const value = getAttr(element, 'value')
-const text = getText(element)
-const links = querySelectorAll(doc, 'a')
+const token = getAttr(querySelector(doc, 'input[name="logintoken"]'), 'value')
 ```
 
-### 4. Authentication Flow (`services/auth.ts`)
-
-```
-1. clearSession() - clear cookies
-2. GET /login/index.php - get CSRF token (logintoken)
-3. POST /login/index.php - submit credentials
-4. Check response HTML for success indicators
-5. Save credentials to expo-secure-store
-```
-
-### 5. Scraping Flow (`services/scraper.ts`)
-
-```
-1. GET sesskey from /my/ page (needed for API auth)
-
-2. POST to Moodle AJAX API for IN-PROGRESS courses only:
-   URL: /lib/ajax/service.php?sesskey={key}&info=core_course_get_enrolled_courses_by_timeline_classification
-   Body: [{
-     methodname: 'core_course_get_enrolled_courses_by_timeline_classification',
-     args: { classification: 'inprogress', limit: 0 }
-   }]
-   
-3. For each course (parallel):
-   a. GET /course/view.php?id={id} - find attendance module link
-   b. GET /mod/attendance/view.php?id={id}&view=5 - get user's attendance report
-   c. Parse table with columns: Date | Description | Status | Points | Remarks
-   
-4. Return CourseAttendance[] sorted by attendance percentage
-```
-
-**Classification options**: `inprogress`, `past`, `future`, `all`
-
-### Attendance Table Structure
-
-```html
-<table>
-  <tr><th>Date</th><th>Description</th><th>Status</th><th>Points</th><th>Remarks</th></tr>
-  <tr>
-    <td>Tue 7 Jan 2025 4PM - 5PM</td>
-    <td></td>
-    <td>Present</td>
-    <td>1 / 1</td>
-    <td></td>
-  </tr>
-</table>
-```
-
-**Status Detection:**
-- Check `points` column first: "1 / 1" = Present, "0 / 1" = Absent
-- Fall back to `status` text: "Present", "Absent", "Late", "Excused"
-
-### 6. State Persistence (`stores/attendance-store.ts`)
+## Debug Logging
 
 ```typescript
-// Uses Zustand persist middleware with AsyncStorage
-persist(
-  (set) => ({ /* state and actions */ }),
-  {
-    name: 'attendance-storage',
-    storage: createJSONStorage(() => zustandStorage),
-    partialize: (state) => ({
-      courses: state.courses,
-      lastSyncTime: state.lastSyncTime,
-    }),
-  }
-)
+import { debug } from '@/utils/debug'
+
+debug.auth('Message', data)
+debug.cookie('Message', data)
+debug.scraper('Message', data)
+debug.api('Message', data)
 ```
 
-## Data Types (`types/index.ts`)
+Only logs in `__DEV__` mode.
 
-```typescript
-interface AttendanceRecord {
-  date: string
-  description: string
-  status: 'Present' | 'Absent' | 'Late' | 'Excused'
-  points: string
-  remarks: string
-}
-
-interface CourseAttendance {
-  courseId: string
-  courseName: string
-  attendanceModuleId: string | null
-  totalSessions: number
-  attended: number
-  percentage: number
-  records: AttendanceRecord[]
-  lastUpdated: number
-}
-
-interface Course {
-  id: string
-  name: string
-  url: string
-}
-```
-
-## Design System (`constants/theme.ts`)
-
-```typescript
-// Color palette
-Colors.black        // #000000
-Colors.white        // #FFFFFF
-Colors.gray[50-950] // Gray scale
-Colors.status.success // #22C55E (green)
-Colors.status.warning // #F59E0B (yellow)
-Colors.status.danger  // #EF4444 (red)
-
-// Theme-aware
-Colors.light / Colors.dark // Auto-switches based on system
-
-// Gradients (for LinearGradient)
-Gradients.dark.card   // ['#171717', '#0A0A0A']
-Gradients.dark.button // ['#262626', '#171717']
-
-// Spacing
-Spacing.xs/sm/md/lg/xl/xxl // 4/8/16/24/32/48
-
-// Border radius
-Radius.sm/md/lg/xl/full // 8/12/16/24/9999
-```
-
-## Development Commands
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm expo start
-
-# Clear cache and start
-pnpm expo start --clear
-
-# Run on Android
-pnpm expo start --android
-
-# Run on iOS
-pnpm expo start --ios
-
-# Lint code
-pnpm lint
-```
-
-## Debugging Tips
-
-### 1. Network Issues
-Check `services/api.ts` - add console.log in interceptors:
-```typescript
-api.interceptors.request.use((config) => {
-  console.log('REQUEST:', config.url)
-  console.log('COOKIES:', cookieStore.getCookieHeader())
-  return config
-})
-```
-
-### 2. Cookie Issues
-Check `services/cookie-store.ts`:
-```typescript
-// After login, verify cookies are stored
-console.log('Stored cookies:', cookieStore.getCookieHeader())
-```
-
-### 3. Parsing Issues
-Check `utils/html-parser.ts` - test selectors:
-```typescript
-const doc = parseHtml(html)
-console.log('Found elements:', querySelectorAll(doc, 'selector').length)
-```
-
-### 4. Auth Issues
-In `services/auth.ts`:
-```typescript
-// Log the login token extraction
-console.log('Login token:', extractLoginToken(html))
-// Log success check
-console.log('Login successful:', isLoginSuccessful(html))
-```
-
-### 5. State Issues
-In stores, add logging:
-```typescript
-set((state) => {
-  console.log('State update:', newState)
-  return newState
-})
-```
-
-## Common Errors
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| "NitroModules not found" | Using native package in Expo Go | Use Expo-compatible packages |
-| "node:stream import" | Using Node.js package | Use RN-compatible alternative |
-| "Missing default export" | Route file issue | Ensure `export default function` |
-| "Network request failed" | CORS or connectivity | Check URL and network |
-| "logintoken not found" | HTML structure changed | Update selectors in auth.ts |
-
-## File Dependencies
-
-```
-app/_layout.tsx
-  └── stores/auth-store.ts
-      └── services/auth.ts
-          ├── services/api.ts
-          │   └── services/cookie-store.ts
-          └── utils/html-parser.ts
-
-app/(tabs)/index.tsx
-  └── stores/attendance-store.ts
-      └── services/scraper.ts
-          ├── services/api.ts
-          └── utils/html-parser.ts
-```
-
-## Important Constraints
+## Constraints
 
 1. **No native modules** - Must work in Expo Go
 2. **No Node.js imports** - No `node:*` modules
-3. **Pure JS cookies** - Custom cookie store, not tough-cookie
-4. **htmlparser2 not cheerio** - Cheerio 1.x has Node deps
-5. **AsyncStorage not MMKV** - MMKV requires native
-6. **Functional components** - No class components
-7. **TypeScript strict** - All code must be typed
+3. **No `any` types** - Use types from `types/index.ts`
+4. **Only in-progress courses** - Via Moodle API classification
+5. **Only courses with attendance** - Filter `totalSessions === 0`
+6. **Functional components only**
+
+## Common Errors
+
+| Error | Fix |
+|-------|-----|
+| "NitroModules not found" | Use Expo-compatible packages |
+| "node:stream import" | Use htmlparser2, not cheerio |
+| "Type 'any' not allowed" | Add proper type from `types/index.ts` |
+| "Sesskey not found" | Check login session is valid |
 
 ## Testing
 
-### Test Credentials
+```bash
+# Test scraper
+node scripts/test-scraper.mjs
 
-```
+# Credentials
 Username: REDACTED_LMS_USERNAME
 Password: REDACTED_LMS_PASSWORD
-LMS URL: https://lmsug24.iiitkottayam.ac.in
 ```
-
-### Test Scraper Script
-
-Run the Node.js test script to verify scraping works:
-
-```bash
-node scripts/test-scraper.mjs
-```
-
-This script:
-1. Logs into the LMS
-2. Fetches courses from dashboard
-3. Fetches attendance for courses
-4. Saves debug HTML files: `debug-att-*.html`
-
-Output shows cookies, requests, and parsed data for debugging.
-
-## Adding New Features
-
-1. **New screens**: Add to `app/` folder with `export default function`
-2. **New components**: Add to `components/` or `components/ui/`
-3. **New services**: Add to `services/`, no React imports
-4. **New types**: Add to `types/index.ts`
-5. **New state**: Create store in `stores/` using Zustand
 
 ## Code Style
 
-- Functional programming preferred
-- Self-explanatory variable names
-- No emojis in code or UI
-- Use theme constants, not hardcoded colors
-- Use Spacing constants, not hardcoded values
-- kebab-case for files, PascalCase for components
+- Functional programming
+- Self-explanatory names
+- No emojis
+- Use theme constants (`Colors`, `Spacing`, `Radius`)
+- kebab-case files, PascalCase components
+- Import types: `import type { Type } from '@/types'`
 
 ---
 
-**Last Updated**: January 2026
-**Expo SDK**: 54
-**React Native**: 0.81.5
+**Expo SDK**: 54 | **React Native**: 0.81.5 | **TypeScript**: 5.9.2 (strict)
