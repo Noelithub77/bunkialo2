@@ -173,3 +173,43 @@ export const getDayName = (day: DayOfWeek, short = true): string => {
         : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     return names[day]
 }
+
+// get nearby slots for carousel (2 prev + current/next + 2 upcoming)
+export const getNearbySlots = (slots: TimetableSlot[], now: Date = new Date()): TimetableSlot[] => {
+    if (slots.length === 0) return []
+
+    const currentDay = now.getDay() as DayOfWeek
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+
+    // flatten slots into chronological order starting from Sunday
+    const weekSlots: { slot: TimetableSlot; dayOffset: number }[] = []
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const day = ((currentDay + dayOffset) % 7) as DayOfWeek
+        const daySlots = slots.filter(s => s.dayOfWeek === day)
+        daySlots.sort((a, b) => a.startTime.localeCompare(b.startTime))
+        daySlots.forEach(slot => weekSlots.push({ slot, dayOffset }))
+    }
+
+    // also add previous week's slots for wrapping
+    for (let dayOffset = -7; dayOffset < 0; dayOffset++) {
+        const day = ((currentDay + dayOffset + 7) % 7) as DayOfWeek
+        const daySlots = slots.filter(s => s.dayOfWeek === day)
+        daySlots.sort((a, b) => a.startTime.localeCompare(b.startTime))
+        daySlots.forEach(slot => weekSlots.unshift({ slot, dayOffset }))
+    }
+
+    // find current position (first slot that hasn't ended yet today, or next day's first)
+    let currentIndex = weekSlots.findIndex(({ slot, dayOffset }) => {
+        if (dayOffset > 0) return true
+        if (dayOffset === 0 && slot.endTime > currentTime) return true
+        return false
+    })
+
+    if (currentIndex === -1) currentIndex = weekSlots.length - 1
+
+    // get 2 before and 2 after
+    const startIdx = Math.max(0, currentIndex - 2)
+    const nearby = weekSlots.slice(startIdx, startIdx + 5)
+
+    return nearby.map(({ slot }) => slot)
+}

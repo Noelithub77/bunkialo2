@@ -23,15 +23,27 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}
     >
+      {/* left side: timetable, faculty */}
       <Tabs.Screen
-        name="attendance"
+        name="timetable"
         options={{
-          title: 'Attendance',
+          title: 'Timetable',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+            <Ionicons name="time-outline" size={size} color={color} />
           ),
         }}
       />
+      <Tabs.Screen
+        name="faculty"
+        options={{
+          title: 'Faculty',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* center: dashboard */}
       <Tabs.Screen
         name="index"
         options={{
@@ -41,12 +53,14 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* right side: attendance, bunks */}
       <Tabs.Screen
-        name="timetable"
+        name="attendance"
         options={{
-          title: 'Timetable',
+          title: 'Attendance',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
+            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />

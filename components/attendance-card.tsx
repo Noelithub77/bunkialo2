@@ -21,10 +21,38 @@ const getPercentageColor = (percentage: number) => {
   return percentage >= 80 ? Colors.status.success : Colors.status.danger
 }
 
-const getSessionType = (desc: string): SessionType => {
+// parse time slot like "11AM - 12PM" or "10:00AM - 12:00PM" and return duration in hours
+const parseDurationInHours = (timeSlot: string | null): number => {
+  if (!timeSlot) return 0
+
+  const timeMatch = timeSlot.match(/(\d{1,2})(?::(\d{2}))?(AM|PM)\s*-\s*(\d{1,2})(?::(\d{2}))?(AM|PM)/i)
+  if (!timeMatch) return 0
+
+  const [, startHour, startMin, startMeridiem, endHour, endMin, endMeridiem] = timeMatch
+
+  const startHours24 = (parseInt(startHour) % 12) + (startMeridiem.toUpperCase() === 'PM' ? 12 : 0)
+  const endHours24 = (parseInt(endHour) % 12) + (endMeridiem.toUpperCase() === 'PM' ? 12 : 0)
+
+  const startMinutes = startHours24 * 60 + (startMin ? parseInt(startMin) : 0)
+  const endMinutes = endHours24 * 60 + (endMin ? parseInt(endMin) : 0)
+
+  const durationMinutes = endMinutes - startMinutes
+
+  return durationMinutes / 60
+}
+
+const getSessionType = (desc: string, dateStr: string): SessionType => {
   const lower = desc.toLowerCase()
-  if (lower.includes('lab')) return 'lab'
+
   if (lower.includes('tutorial')) return 'tutorial'
+
+  const { time } = parseDateString(dateStr)
+  const durationHours = parseDurationInHours(time)
+
+  if (durationHours >= 2) return 'lab'
+
+  if (lower.includes('lab')) return 'lab'
+
   return 'regular'
 }
 
@@ -85,7 +113,7 @@ const buildMarkedDates = (records: AttendanceRecord[]): MarkedDates => {
     if (!date) continue
 
     const color = getStatusColor(record.status)
-    const sessionType = getSessionType(record.description)
+    const sessionType = getSessionType(record.description, record.date)
 
     if (!marked[date]) {
       marked[date] = { dots: [] }

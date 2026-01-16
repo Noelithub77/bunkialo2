@@ -1,14 +1,16 @@
-import { CurrentClassCard } from '@/components/current-class-card'
+import { DaySchedule } from '@/components/day-schedule'
+import { DaySelector } from '@/components/day-selector'
 import { Container } from '@/components/ui/container'
 import { GradientCard } from '@/components/ui/gradient-card'
-import { WeeklyTimetable } from '@/components/weekly-timetable'
+import { UpNextCarousel } from '@/components/upnext-carousel'
 import { Colors, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useAttendanceStore } from '@/stores/attendance-store'
-import { getCurrentAndNextClass, useTimetableStore } from '@/stores/timetable-store'
+import { useTimetableStore } from '@/stores/timetable-store'
+import type { DayOfWeek } from '@/types'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 export default function TimetableScreen() {
@@ -16,24 +18,22 @@ export default function TimetableScreen() {
     const isDark = colorScheme === 'dark'
     const theme = isDark ? Colors.dark : Colors.light
 
-    const { slots, lastGeneratedAt, isLoading, generateTimetable, clearTimetable } = useTimetableStore()
+    const { slots, lastGeneratedAt, isLoading, generateTimetable } = useTimetableStore()
     const { courses: attendanceCourses, fetchAttendance, isLoading: isAttendanceLoading } = useAttendanceStore()
     const [refreshing, setRefreshing] = useState(false)
 
-    // generate timetable on first load or if attendance updates
+    // default to current day (Mon-Fri only, fallback to Monday)
+    const currentDay = new Date().getDay() as DayOfWeek
+    const defaultDay = currentDay >= 1 && currentDay <= 5 ? currentDay : 1
+    const [selectedDay, setSelectedDay] = useState<DayOfWeek>(defaultDay as DayOfWeek)
+
+    // generate timetable on first load
     useEffect(() => {
         if (attendanceCourses.length > 0 && slots.length === 0) {
             generateTimetable()
         }
     }, [attendanceCourses.length])
 
-    // current/next class
-    const { currentClass, nextClass } = useMemo(
-        () => getCurrentAndNextClass(slots),
-        [slots]
-    )
-
-    // refresh: fetch attendance then regenerate timetable
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -42,7 +42,6 @@ export default function TimetableScreen() {
         setRefreshing(false)
     }, [fetchAttendance, generateTimetable])
 
-    // manual regenerate
     const handleRegenerate = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
         generateTimetable()
@@ -107,23 +106,27 @@ export default function TimetableScreen() {
                     </GradientCard>
                 )}
 
-                {/* current/next class card */}
+                {/* main content */}
                 {slots.length > 0 && (
                     <>
+                        {/* up next carousel */}
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Up Next</Text>
-                        <CurrentClassCard currentClass={currentClass} nextClass={nextClass} />
+                        <UpNextCarousel slots={slots} />
 
-                        {/* weekly view */}
-                        <View style={styles.weeklySection}>
-                            <View style={styles.weeklyHeader}>
-                                <Text style={[styles.sectionTitle, { color: theme.text }]}>Weekly Schedule</Text>
+                        {/* day schedule */}
+                        <View style={styles.scheduleSection}>
+                            <View style={styles.scheduleHeader}>
+                                <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 0, marginBottom: 0 }]}>
+                                    Schedule
+                                </Text>
                                 {lastGeneratedAt && (
                                     <Text style={[styles.lastGenerated, { color: theme.textSecondary }]}>
                                         Updated {formatLastGenerated(lastGeneratedAt)}
                                     </Text>
                                 )}
                             </View>
-                            <WeeklyTimetable slots={slots} />
+                            <DaySelector selectedDay={selectedDay} onSelect={setSelectedDay} />
+                            <DaySchedule slots={slots} selectedDay={selectedDay} />
                         </View>
                     </>
                 )}
@@ -180,14 +183,13 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.sm,
         marginTop: Spacing.lg,
     },
-    weeklySection: {
-        marginTop: Spacing.md,
+    scheduleSection: {
+        marginTop: Spacing.lg,
     },
-    weeklyHeader: {
+    scheduleHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.sm,
     },
     lastGenerated: {
         fontSize: 11,
