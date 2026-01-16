@@ -1,15 +1,18 @@
-import { useState, useMemo } from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { Calendar, DateData } from 'react-native-calendars'
+import { SwipeableBunkItem } from '@/components/swipeable-bunk-item'
 import { GradientCard } from '@/components/ui/gradient-card'
-import { Colors, Spacing, CalendarTheme } from '@/constants/theme'
+import { CalendarTheme, Colors, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useBunkStore } from '@/stores/bunk-store'
-import type { CourseAttendance, AttendanceRecord, MarkedDates, SessionType } from '@/types'
+import type { AttendanceRecord, AttendanceStatus, BunkRecord, CourseAttendance, MarkedDates, SessionType } from '@/types'
+import { Ionicons } from '@expo/vector-icons'
+import { useMemo, useState } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Calendar, DateData } from 'react-native-calendars'
 
 interface AttendanceCardProps {
   course: CourseAttendance
+  onMarkPresent?: (record: AttendanceRecord) => void
+  onMarkDL?: (record: AttendanceRecord) => void
 }
 
 // 80% threshold
@@ -28,7 +31,7 @@ const getSessionType = (desc: string): SessionType => {
 const parseDateString = (dateStr: string): { date: string | null; time: string | null } => {
   const cleaned = dateStr.trim()
 
-  // extract time slot (e.g., "11AM - 12PM" or "2PM - 3:55PM")
+  // extract time slot
   const timeMatch = cleaned.match(/(\d{1,2}(?::\d{2})?(?:AM|PM)\s*-\s*\d{1,2}(?::\d{2})?(?:AM|PM))/i)
   const time = timeMatch ? timeMatch[1] : null
 
@@ -62,20 +65,25 @@ const filterPastRecords = (records: AttendanceRecord[]): AttendanceRecord[] => {
   })
 }
 
+// status to color
+const getStatusColor = (status: AttendanceStatus): string => {
+  switch (status) {
+    case 'Present': return Colors.status.success
+    case 'Absent': return Colors.status.danger
+    case 'Late': return Colors.status.warning
+    case 'Excused': return Colors.status.info
+    case 'Unknown': return Colors.status.unknown
+  }
+}
+
 const buildMarkedDates = (records: AttendanceRecord[]): MarkedDates => {
   const marked: MarkedDates = {}
-  const statusColors: Record<string, string> = {
-    Present: Colors.status.success,
-    Absent: Colors.status.danger,
-    Late: Colors.status.warning,
-    Excused: Colors.status.info,
-  }
 
   for (const record of records) {
     const { date } = parseDateString(record.date)
     if (!date) continue
 
-    const color = statusColors[record.status] || Colors.status.info
+    const color = getStatusColor(record.status)
     const sessionType = getSessionType(record.description)
 
     if (!marked[date]) {
@@ -108,7 +116,7 @@ const getMostRecentDate = (records: AttendanceRecord[]): string | null => {
   return mostRecent
 }
 
-export function AttendanceCard({ course }: AttendanceCardProps) {
+export function AttendanceCard({ course, onMarkPresent, onMarkDL }: AttendanceCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const colorScheme = useColorScheme()
@@ -116,41 +124,69 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
   const theme = isDark ? Colors.dark : Colors.light
   const calTheme = isDark ? CalendarTheme.dark : CalendarTheme.light
 
-  // get alias from bunk store if available
+  // get alias and color from bunk store
   const bunkCourses = useBunkStore((state) => state.courses)
-  const courseAlias = useMemo(() => {
-    const bunkCourse = bunkCourses.find((c) => c.courseId === course.courseId)
-    return bunkCourse?.config?.alias || course.courseName
-  }, [bunkCourses, course.courseId, course.courseName])
+  const bunkCourse = useMemo(() =>
+    bunkCourses.find((c) => c.courseId === course.courseId),
+    [bunkCourses, course.courseId]
+  )
+  const bunkByRecordKey = useMemo(() => {
+    const map = new Map<string, BunkRecord>()
+    if (!bunkCourse) return map
+    for (const bunk of bunkCourse.bunks) {
+      map.set(`${bunk.date}-${bunk.description}`, bunk)
+    }
+    return map
+  }, [bunkCourse])
+  const courseAlias = bunkCourse?.config?.alias || course.courseName
+  const courseColor = bunkCourse?.config?.color
 
   // filter to past sessions only
   const pastRecords = useMemo(() => filterPastRecords(course.records), [course.records])
   const totalSessions = pastRecords.length
   const attended = pastRecords.filter(r => r.status === 'Present').length
+  const unknownCount = pastRecords.filter(r => r.status === 'Unknown').length
   const percentage = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0
 
   const percentageColor = getPercentageColor(percentage)
   const markedDates = useMemo(() => buildMarkedDates(pastRecords), [pastRecords])
   const initialDate = useMemo(() => getMostRecentDate(pastRecords), [pastRecords])
 
-  // sessions on selected date with parsed time
-  const selectedSessions = useMemo(() => {
+  // convert attendance sessions to bunk format for SwipeableBunkItem
+  const selectedBunks = useMemo((): BunkRecord[] => {
     if (!selectedDate) return []
     return pastRecords
-      .filter(r => parseDateString(r.date).date === selectedDate)
-      .map(r => ({
-        ...r,
-        timeSlot: parseDateString(r.date).time
-      }))
-  }, [selectedDate, pastRecords])
+      .filter(record => parseDateString(record.date).date === selectedDate)
+      .map(record => {
+        const recordKey = `${record.date}-${record.description}`
+        const bunkMatch = bunkByRecordKey.get(recordKey)
+        if (bunkMatch) return bunkMatch
+        const { time } = parseDateString(record.date)
+        return {
+          id: recordKey,
+          date: record.date,
+          description: record.description,
+          timeSlot: time,
+          note: record.remarks || '',
+          source: 'lms' as const,
+          isDutyLeave: false,
+          dutyLeaveNote: '',
+          isMarkedPresent: record.status === 'Present',
+          presenceNote: '',
+        }
+      })
+  }, [selectedDate, pastRecords, bunkByRecordKey])
 
   if (totalSessions === 0) {
     return (
       <GradientCard>
         <View style={styles.header}>
-          <Text style={[styles.courseName, { color: theme.text }]} numberOfLines={2}>
-            {courseAlias}
-          </Text>
+          <View style={styles.headerLeft}>
+            {courseColor && <View style={[styles.colorDot, { backgroundColor: courseColor }]} />}
+            <Text style={[styles.courseName, { color: theme.text }]} numberOfLines={2}>
+              {courseAlias}
+            </Text>
+          </View>
           <Text style={[styles.noData, { color: theme.textSecondary }]}>
             No attendance data
           </Text>
@@ -168,12 +204,25 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
       <Pressable onPress={() => setExpanded(!expanded)}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={[styles.courseName, { color: theme.text }]} numberOfLines={2}>
-              {courseAlias}
-            </Text>
-            <Text style={[styles.sessionCount, { color: theme.textSecondary }]}>
-              {attended} / {totalSessions} sessions
-            </Text>
+            {courseColor && <View style={[styles.colorDot, { backgroundColor: courseColor }]} />}
+            <View style={styles.headerInfo}>
+              <Text style={[styles.courseName, { color: theme.text }]} numberOfLines={2}>
+                {courseAlias}
+              </Text>
+              <View style={styles.sessionMeta}>
+                <Text style={[styles.sessionCount, { color: theme.textSecondary }]}>
+                  {attended} / {totalSessions} sessions
+                </Text>
+                {unknownCount > 0 && (
+                  <View style={styles.unknownBadge}>
+                    <Ionicons name="help" size={10} color={Colors.status.unknown} />
+                    <Text style={[styles.unknownText, { color: Colors.status.unknown }]}>
+                      {unknownCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <Text style={[styles.percentage, { color: percentageColor }]}>
@@ -212,38 +261,29 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
             }}
           />
 
-          {/* selected date sessions */}
-          {selectedDate && selectedSessions.length > 0 && (
+          {/* selected date sessions - swipeable */}
+          {selectedDate && selectedBunks.length > 0 && (
             <View style={[styles.sessionDetails, { borderTopColor: theme.border }]}>
-              {selectedSessions.map((session, idx) => {
-                const sessionType = getSessionType(session.description)
-                const typeColor = Colors.sessionType[sessionType]
-                const statusColor = {
-                  Present: Colors.status.success,
-                  Absent: Colors.status.danger,
-                  Late: Colors.status.warning,
-                  Excused: Colors.status.info,
-                }[session.status]
-
-                return (
-                  <View key={idx} style={styles.sessionRow}>
-                    <View style={[styles.typeBar, { backgroundColor: typeColor }]} />
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.timeSlot, { color: theme.text }]}>
-                        {session.timeSlot || 'No time'}
-                      </Text>
-                      <Text style={[styles.sessionType, { color: theme.textSecondary }]}>
-                        {sessionType.charAt(0).toUpperCase() + sessionType.slice(1)}
-                      </Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                      <Text style={styles.statusText}>
-                        {session.status.charAt(0)}
-                      </Text>
-                    </View>
-                  </View>
-                )
-              })}
+              {selectedBunks.map((bunk) => (
+                <SwipeableBunkItem
+                  key={bunk.id}
+                  bunk={bunk}
+                  onMarkDL={() => {
+                    const record = pastRecords.find(r => r.date === bunk.date && r.description === bunk.description)
+                    if (record) onMarkDL?.(record)
+                  }}
+                  onRemoveDL={() => { }}
+                  onMarkPresent={() => {
+                    const record = pastRecords.find(r => r.date === bunk.date && r.description === bunk.description)
+                    if (record) onMarkPresent?.(record)
+                  }}
+                  onRemovePresent={() => { }}
+                  onUpdateNote={() => { }}
+                />
+              ))}
+              <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+                Swipe left = Present · Swipe right = DL
+              </Text>
             </View>
           )}
 
@@ -258,8 +298,8 @@ export function AttendanceCard({ course }: AttendanceCardProps) {
               <Text style={[styles.legendText, { color: theme.textSecondary }]}>A</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.status.warning }]} />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>L</Text>
+              <View style={[styles.legendDot, { backgroundColor: Colors.status.unknown }]} />
+              <Text style={[styles.legendText, { color: theme.textSecondary }]}>?</Text>
             </View>
             <View style={styles.legendSpacer} />
             <View style={styles.legendItem}>
@@ -285,7 +325,19 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
     marginRight: Spacing.md,
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  headerInfo: {
+    flex: 1,
   },
   headerRight: {
     flexDirection: 'row',
@@ -296,9 +348,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  sessionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: 4,
+  },
   sessionCount: {
     fontSize: 13,
-    marginTop: 4,
+  },
+  unknownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  unknownText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   percentage: {
     fontSize: 24,
@@ -319,39 +385,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    gap: Spacing.sm,
   },
-  sessionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  typeBar: {
-    width: 3,
-    height: 32,
-    borderRadius: 2,
-  },
-  sessionInfo: {
-    flex: 1,
-  },
-  timeSlot: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  sessionType: {
-    fontSize: 11,
-  },
-  statusBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+  swipeHint: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    opacity: 0.6,
   },
   legend: {
     flexDirection: 'row',

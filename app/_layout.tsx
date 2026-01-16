@@ -1,13 +1,14 @@
-import { useEffect } from 'react'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { useEffect } from 'react'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import 'react-native-reanimated'
 
+import { Colors } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useAuthStore } from '@/stores/auth-store'
-import { Colors } from '@/constants/theme'
 
 // Custom dark theme with black background
 const CustomDarkTheme = {
@@ -58,13 +59,15 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   )
 }
 

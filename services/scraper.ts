@@ -149,6 +149,9 @@ const findAttendanceModuleId = async (courseId: string): Promise<string | null> 
 const parseStatus = (text: string, points: string): AttendanceStatus => {
   const lower = text.toLowerCase().trim()
 
+  // Check for unknown/unmarked status (shows as "?" in LMS)
+  if (points.includes('? /') || points.includes('?/') || lower === '?') return 'Unknown'
+
   // Check points first (more reliable)
   if (points.includes('1 /') || points.includes('1/')) return 'Present'
   if (points.includes('0 /') || points.includes('0/')) return 'Absent'

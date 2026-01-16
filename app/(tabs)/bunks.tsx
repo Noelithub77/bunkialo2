@@ -14,7 +14,6 @@ import type { CourseBunkData, CourseConfig } from '@/types'
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 interface CourseCardProps {
   course: CourseBunkData
@@ -293,70 +292,68 @@ export default function BunksScreen() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Container>
-        <FlatList
-          data={courses}
-          keyExtractor={(item) => item.courseId}
-          renderItem={({ item }) => (
-            <CourseCard
-              course={item}
-              isEditMode={isEditMode}
-              onEdit={() => {
-                setEditCourse(item)
-                setIsEditMode(false)
-              }}
-              onAddBunk={() => setAddBunkCourse(item)}
-              onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
-              onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
-              onMarkPresent={(bunkId) => handleMarkPresent(item.courseId, bunkId)}
-              onRemovePresent={(bunkId) => handleRemovePresent(item.courseId, bunkId)}
-              onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
-            />
-          )}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={renderEmpty}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={theme.text} />
-          }
-        />
+    <Container>
+      <FlatList
+        data={courses}
+        keyExtractor={(item) => item.courseId}
+        renderItem={({ item }) => (
+          <CourseCard
+            course={item}
+            isEditMode={isEditMode}
+            onEdit={() => {
+              setEditCourse(item)
+              setIsEditMode(false)
+            }}
+            onAddBunk={() => setAddBunkCourse(item)}
+            onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
+            onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
+            onMarkPresent={(bunkId) => handleMarkPresent(item.courseId, bunkId)}
+            onRemovePresent={(bunkId) => handleRemovePresent(item.courseId, bunkId)}
+            onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
+          />
+        )}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.list}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={theme.text} />
+        }
+      />
 
-        <CourseEditModal
-          visible={!!editCourse}
-          course={editCourse}
-          onClose={() => setEditCourse(null)}
-          onSave={handleSaveConfig}
-        />
+      <CourseEditModal
+        visible={!!editCourse}
+        course={editCourse}
+        onClose={() => setEditCourse(null)}
+        onSave={handleSaveConfig}
+      />
 
-        <DutyLeaveModal
-          visible={showDLModal}
-          dutyLeaves={allDutyLeaves}
-          onClose={() => setShowDLModal(false)}
-          onRemove={handleRemoveDL}
-        />
+      <DutyLeaveModal
+        visible={showDLModal}
+        dutyLeaves={allDutyLeaves}
+        onClose={() => setShowDLModal(false)}
+        onRemove={handleRemoveDL}
+      />
 
-        <DLInputModal
-          visible={!!dlPromptBunk}
-          onClose={() => setDlPromptBunk(null)}
-          onConfirm={handleConfirmDL}
-        />
+      <DLInputModal
+        visible={!!dlPromptBunk}
+        onClose={() => setDlPromptBunk(null)}
+        onConfirm={handleConfirmDL}
+      />
 
-        <PresenceInputModal
-          visible={!!presencePromptBunk}
-          onClose={() => setPresencePromptBunk(null)}
-          onConfirm={handleConfirmPresence}
-        />
+      <PresenceInputModal
+        visible={!!presencePromptBunk}
+        onClose={() => setPresencePromptBunk(null)}
+        onConfirm={handleConfirmPresence}
+      />
 
-        <AddBunkModal
-          visible={!!addBunkCourse}
-          courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
-          onClose={() => setAddBunkCourse(null)}
-          onAdd={handleAddBunk}
-        />
-      </Container>
-    </GestureHandlerRootView>
+      <AddBunkModal
+        visible={!!addBunkCourse}
+        courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
+        onClose={() => setAddBunkCourse(null)}
+        onAdd={handleAddBunk}
+      />
+    </Container>
   )
 }
 

@@ -2,7 +2,7 @@
 // ATTENDANCE TYPES
 // ============================================================================
 
-export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused'
+export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused' | 'Unknown'
 
 export interface AttendanceRecord {
   date: string
@@ -226,6 +226,7 @@ export interface BunkRecord {
 export interface CourseConfig {
   credits: number
   alias: string
+  color: string
 }
 
 export interface CourseBunkData {
@@ -305,5 +306,27 @@ export interface DashboardSettings {
   refreshIntervalMinutes: number
   reminders: number[]
   notificationsEnabled: boolean
+}
+
+// ============================================================================
+// TIMETABLE TYPES
+// ============================================================================
+
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+export interface TimetableSlot {
+  id: string
+  courseId: string
+  courseName: string
+  dayOfWeek: DayOfWeek
+  startTime: string // "10:00"
+  endTime: string // "10:55"
+  sessionType: SessionType
+}
+
+export interface TimetableState {
+  slots: TimetableSlot[]
+  lastGeneratedAt: number | null
+  isLoading: boolean
 }
 

@@ -5,7 +5,7 @@ export const Colors = {
   // Primary colors
   black: '#000000',
   white: '#FFFFFF',
-  
+
   // Gray scale - premium tones
   gray: {
     50: '#FAFAFA',
@@ -20,14 +20,27 @@ export const Colors = {
     900: '#171717',
     950: '#0A0A0A',
   },
-  
+
   // Accent colors for status
   status: {
     success: '#22C55E',
     warning: '#F59E0B',
     danger: '#EF4444',
     info: '#3B82F6',
+    unknown: '#8B5CF6',
   },
+
+  // Pastel colors for course customization
+  courseColors: [
+    '#F87171', // red
+    '#FB923C', // orange
+    '#FBBF24', // amber
+    '#34D399', // emerald
+    '#22D3EE', // cyan
+    '#60A5FA', // blue
+    '#A78BFA', // violet
+    '#F472B6', // pink
+  ],
 
   // Session type colors
   sessionType: {
@@ -35,7 +48,7 @@ export const Colors = {
     lab: '#8B5CF6',
     tutorial: '#14B8A6',
   },
-  
+
   // Theme colors
   light: {
     text: '#171717',
