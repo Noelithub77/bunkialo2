@@ -8,7 +8,9 @@ import { useBunkStore } from '@/stores/bunk-store'
 import { useDashboardStore } from '@/stores/dashboard-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { Ionicons } from '@expo/vector-icons'
+import Constants from 'expo-constants'
 import { router } from 'expo-router'
+import * as Updates from 'expo-updates'
 import { useState } from 'react'
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 
@@ -63,6 +65,9 @@ export default function SettingsScreen() {
   const { refreshIntervalMinutes, reminders, notificationsEnabled, setRefreshInterval, addReminder, removeReminder, toggleNotifications } = useSettingsStore()
 
   const [newReminder, setNewReminder] = useState('')
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+
+  const appVersion = Constants.expoConfig?.version ?? '0.0.0'
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure?', [
@@ -116,6 +121,35 @@ export default function SettingsScreen() {
     if (!isNaN(mins) && mins > 0) {
       addReminder(mins)
       setNewReminder('')
+    }
+  }
+
+  const handleCheckForUpdates = async () => {
+    if (__DEV__) {
+      Alert.alert('Dev Mode', 'Updates are not available in development mode.')
+      return
+    }
+    setIsCheckingUpdate(true)
+    try {
+      const update = await Updates.checkForUpdateAsync()
+      if (update.isAvailable) {
+        Alert.alert('Update Available', 'A new version is available. Download now?', [
+          { text: 'Later', style: 'cancel' },
+          {
+            text: 'Update',
+            onPress: async () => {
+              await Updates.fetchUpdateAsync()
+              await Updates.reloadAsync()
+            },
+          },
+        ])
+      } else {
+        Alert.alert('Up to Date', 'You are on the latest version.')
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not check for updates.')
+    } finally {
+      setIsCheckingUpdate(false)
     }
   }
 
@@ -204,6 +238,14 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingRow
+              icon="cloud-download-outline"
+              label="Check for Updates"
+              onPress={handleCheckForUpdates}
+              loading={isCheckingUpdate}
+              theme={theme}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingRow
               icon="trash-outline"
               label="Clear Cache"
               onPress={handleClearCache}
@@ -233,7 +275,7 @@ export default function SettingsScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-              Bunkialo v2.0.0
+              Bunkialo v{appVersion}
             </Text>
             <View style={styles.devInfo}>
               <Text style={[styles.footerText, { color: theme.textSecondary }]}>Made by </Text>
