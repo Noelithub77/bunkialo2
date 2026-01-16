@@ -219,6 +219,8 @@ export interface BunkRecord {
   source: BunkSource
   isDutyLeave: boolean
   dutyLeaveNote: string
+  isMarkedPresent: boolean
+  presenceNote: string
 }
 
 export interface CourseConfig {

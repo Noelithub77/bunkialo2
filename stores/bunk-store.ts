@@ -1,8 +1,8 @@
+import type { BunkRecord, BunkState, CourseBunkData, CourseConfig, DutyLeaveInfo } from '@/types'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { zustandStorage } from './storage'
 import { useAttendanceStore } from './attendance-store'
-import type { BunkState, CourseBunkData, BunkRecord, CourseConfig, DutyLeaveInfo } from '@/types'
+import { zustandStorage } from './storage'
 
 interface BunkActions {
   syncFromLms: () => void
@@ -12,6 +12,8 @@ interface BunkActions {
   updateBunkNote: (courseId: string, bunkId: string, note: string) => void
   markAsDutyLeave: (courseId: string, bunkId: string, note: string) => void
   removeDutyLeave: (courseId: string, bunkId: string) => void
+  markAsPresent: (courseId: string, bunkId: string, note: string) => void
+  removePresenceCorrection: (courseId: string, bunkId: string) => void
   removeBunk: (courseId: string, bunkId: string) => void
 }
 
@@ -81,6 +83,8 @@ export const useBunkStore = create<BunkState & BunkActions>()(
               source: 'lms' as const,
               isDutyLeave: false,
               dutyLeaveNote: '',
+              isMarkedPresent: false,
+              presenceNote: '',
             }))
 
           if (existing) {
@@ -93,7 +97,15 @@ export const useBunkStore = create<BunkState & BunkActions>()(
                 b => b.source === 'lms' && b.date === newBunk.date && b.description === newBunk.description
               )
               if (oldBunk) {
-                return { ...newBunk, id: oldBunk.id, note: oldBunk.note, isDutyLeave: oldBunk.isDutyLeave, dutyLeaveNote: oldBunk.dutyLeaveNote }
+                return {
+                  ...newBunk,
+                  id: oldBunk.id,
+                  note: oldBunk.note,
+                  isDutyLeave: oldBunk.isDutyLeave,
+                  dutyLeaveNote: oldBunk.dutyLeaveNote,
+                  isMarkedPresent: oldBunk.isMarkedPresent,
+                  presenceNote: oldBunk.presenceNote,
+                }
               }
               return newBunk
             })
@@ -135,6 +147,8 @@ export const useBunkStore = create<BunkState & BunkActions>()(
               source: 'lms' as const,
               isDutyLeave: false,
               dutyLeaveNote: '',
+              isMarkedPresent: false,
+              presenceNote: '',
             }))
 
           return {
@@ -200,6 +214,26 @@ export const useBunkStore = create<BunkState & BunkActions>()(
         }))
       },
 
+      markAsPresent: (courseId, bunkId, note) => {
+        set(state => ({
+          courses: state.courses.map(c =>
+            c.courseId === courseId
+              ? { ...c, bunks: c.bunks.map(b => (b.id === bunkId ? { ...b, isMarkedPresent: true, presenceNote: note } : b)) }
+              : c
+          ),
+        }))
+      },
+
+      removePresenceCorrection: (courseId, bunkId) => {
+        set(state => ({
+          courses: state.courses.map(c =>
+            c.courseId === courseId
+              ? { ...c, bunks: c.bunks.map(b => (b.id === bunkId ? { ...b, isMarkedPresent: false, presenceNote: '' } : b)) }
+              : c
+          ),
+        }))
+      },
+
       removeBunk: (courseId, bunkId) => {
         set(state => ({
           courses: state.courses.map(c =>
@@ -247,10 +281,12 @@ export const selectCourseStats = (course: CourseBunkData) => {
   const pastBunks = filterPastBunks(course.bunks)
   const totalBunks = course.config ? (2 * course.config.credits) + 1 : 0
   const dutyLeaveCount = pastBunks.filter(b => b.isDutyLeave).length
-  const usedBunks = pastBunks.filter(b => !b.isDutyLeave).length
+  const markedPresentCount = pastBunks.filter(b => b.isMarkedPresent).length
+  // exclude duty leaves AND marked-present from used count
+  const usedBunks = pastBunks.filter(b => !b.isDutyLeave && !b.isMarkedPresent).length
   const bunksLeft = totalBunks - usedBunks
 
-  return { totalBunks, dutyLeaveCount, usedBunks, bunksLeft, pastBunksCount: pastBunks.length }
+  return { totalBunks, dutyLeaveCount, markedPresentCount, usedBunks, bunksLeft, pastBunksCount: pastBunks.length }
 }
 
 // selector: get display name (alias or original)

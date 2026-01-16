@@ -2,98 +2,19 @@ import { AddBunkModal } from '@/components/add-bunk-modal'
 import { CourseEditModal } from '@/components/course-edit-modal'
 import { DLInputModal } from '@/components/dl-input-modal'
 import { DutyLeaveModal } from '@/components/duty-leave-modal'
+import { PresenceInputModal } from '@/components/presence-input-modal'
+import { SwipeableBunkItem } from '@/components/swipeable-bunk-item'
 import { Container } from '@/components/ui/container'
 import { GradientCard } from '@/components/ui/gradient-card'
 import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useAttendanceStore } from '@/stores/attendance-store'
 import { filterPastBunks, getDisplayName, selectAllDutyLeaves, selectCourseStats, useBunkStore } from '@/stores/bunk-store'
-import type { BunkRecord, CourseBunkData, CourseConfig } from '@/types'
+import type { CourseBunkData, CourseConfig } from '@/types'
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native'
-
-// parse date for display
-const formatDate = (dateStr: string): string => {
-  const match = dateStr.match(/(\w{3})\s+(\d{1,2})\s+(\w{3})/)
-  if (match) return `${match[2]} ${match[3]}`
-  return dateStr.slice(0, 15)
-}
-
-interface BunkItemProps {
-  bunk: BunkRecord
-  theme: typeof Colors.light
-  onMarkDL: () => void
-  onRemoveDL: () => void
-  onUpdateNote: (note: string) => void
-}
-
-const BunkItem = ({ bunk, theme, onMarkDL, onRemoveDL, onUpdateNote }: BunkItemProps) => {
-  const [showNote, setShowNote] = useState(false)
-  const [noteText, setNoteText] = useState(bunk.note)
-
-  return (
-    <View style={[styles.bunkItem, { borderBottomColor: theme.border }]}>
-      <View style={styles.bunkMain}>
-        {/* source tag */}
-        <View style={[styles.sourceTag, { backgroundColor: bunk.source === 'lms' ? Colors.status.info : Colors.status.warning }]}>
-          <Text style={styles.sourceText}>{bunk.source.toUpperCase()}</Text>
-        </View>
-
-        {/* date + time */}
-        <View style={styles.bunkInfo}>
-          <Text style={[styles.bunkDate, { color: theme.text }]}>{formatDate(bunk.date)}</Text>
-          {bunk.timeSlot && (
-            <Text style={[styles.bunkTime, { color: theme.textSecondary }]}>{bunk.timeSlot}</Text>
-          )}
-        </View>
-
-        {/* DL badge or action */}
-        {bunk.isDutyLeave ? (
-          <Pressable onPress={onRemoveDL} style={[styles.dlBadge, { backgroundColor: Colors.status.info }]}>
-            <Ionicons name="briefcase" size={12} color={Colors.white} />
-            <Text style={styles.dlText}>DL</Text>
-          </Pressable>
-        ) : (
-          <Pressable onPress={onMarkDL} style={[styles.markDlBtn, { borderColor: theme.border }]}>
-            <Text style={[styles.markDlText, { color: theme.textSecondary }]}>Mark DL</Text>
-          </Pressable>
-        )}
-
-        {/* note toggle */}
-        <Pressable onPress={() => setShowNote(!showNote)} hitSlop={8}>
-          <Ionicons
-            name={bunk.note || showNote ? 'chatbubble' : 'chatbubble-outline'}
-            size={18}
-            color={bunk.note ? Colors.status.info : theme.textSecondary}
-          />
-        </Pressable>
-      </View>
-
-      {/* note input */}
-      {showNote && (
-        <View style={styles.noteSection}>
-          <TextInput
-            style={[styles.noteInput, { color: theme.text, borderColor: theme.border }]}
-            placeholder="Add note..."
-            placeholderTextColor={theme.textSecondary}
-            value={noteText}
-            onChangeText={setNoteText}
-            onBlur={() => onUpdateNote(noteText)}
-            multiline
-          />
-        </View>
-      )}
-
-      {/* DL note display */}
-      {bunk.isDutyLeave && bunk.dutyLeaveNote && (
-        <Text style={[styles.dlNote, { color: theme.textSecondary }]}>
-          DL: {bunk.dutyLeaveNote}
-        </Text>
-      )}
-    </View>
-  )
-}
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 interface CourseCardProps {
   course: CourseBunkData
@@ -102,10 +23,12 @@ interface CourseCardProps {
   onAddBunk: () => void
   onMarkDL: (bunkId: string) => void
   onRemoveDL: (bunkId: string) => void
+  onMarkPresent: (bunkId: string) => void
+  onRemovePresent: (bunkId: string) => void
   onUpdateNote: (bunkId: string, note: string) => void
 }
 
-const CourseCard = ({ course, isEditMode, onEdit, onAddBunk, onMarkDL, onRemoveDL, onUpdateNote }: CourseCardProps) => {
+const CourseCard = ({ course, isEditMode, onEdit, onAddBunk, onMarkDL, onRemoveDL, onMarkPresent, onRemovePresent, onUpdateNote }: CourseCardProps) => {
   const [expanded, setExpanded] = useState(false)
   const [showTotal, setShowTotal] = useState(false)
   const colorScheme = useColorScheme()
@@ -156,6 +79,14 @@ const CourseCard = ({ course, isEditMode, onEdit, onAddBunk, onMarkDL, onRemoveD
                   </Text>
                 </View>
               )}
+              {stats.markedPresentCount > 0 && (
+                <View style={styles.dlCount}>
+                  <Ionicons name="checkmark-circle" size={10} color={Colors.status.success} />
+                  <Text style={[styles.dlCountText, { color: Colors.status.success }]}>
+                    {stats.markedPresentCount}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -198,12 +129,13 @@ const CourseCard = ({ course, isEditMode, onEdit, onAddBunk, onMarkDL, onRemoveD
           {pastBunks.length > 0 ? (
             <View style={styles.bunksList}>
               {pastBunks.map((bunk) => (
-                <BunkItem
+                <SwipeableBunkItem
                   key={bunk.id}
                   bunk={bunk}
-                  theme={theme}
                   onMarkDL={() => onMarkDL(bunk.id)}
                   onRemoveDL={() => onRemoveDL(bunk.id)}
+                  onMarkPresent={() => onMarkPresent(bunk.id)}
+                  onRemovePresent={() => onRemovePresent(bunk.id)}
                   onUpdateNote={(note) => onUpdateNote(bunk.id, note)}
                 />
               ))}
@@ -219,6 +151,13 @@ const CourseCard = ({ course, isEditMode, onEdit, onAddBunk, onMarkDL, onRemoveD
             <Ionicons name="add-circle-outline" size={16} color={theme.textSecondary} />
             <Text style={[styles.addBunkText, { color: theme.textSecondary }]}>Add Bunk</Text>
           </Pressable>
+
+          {/* swipe hint */}
+          {pastBunks.length > 0 && (
+            <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+              Swipe left = Present · Swipe right = DL
+            </Text>
+          )}
         </View>
       )}
     </GradientCard>
@@ -230,13 +169,14 @@ export default function BunksScreen() {
   const isDark = colorScheme === 'dark'
   const theme = isDark ? Colors.dark : Colors.light
 
-  const { courses, syncFromLms, updateCourseConfig, addBunk, markAsDutyLeave, removeDutyLeave, updateBunkNote } = useBunkStore()
+  const { courses, syncFromLms, updateCourseConfig, addBunk, markAsDutyLeave, removeDutyLeave, markAsPresent, removePresenceCorrection, updateBunkNote } = useBunkStore()
   const { courses: attendanceCourses, isLoading, fetchAttendance } = useAttendanceStore()
 
   const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
   const [addBunkCourse, setAddBunkCourse] = useState<CourseBunkData | null>(null)
   const [showDLModal, setShowDLModal] = useState(false)
   const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
+  const [presencePromptBunk, setPresencePromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
 
   const allDutyLeaves = useMemo(() => selectAllDutyLeaves(courses), [courses])
@@ -272,6 +212,8 @@ export default function BunksScreen() {
         note,
         isDutyLeave: false,
         dutyLeaveNote: '',
+        isMarkedPresent: false,
+        presenceNote: '',
       })
     }
   }
@@ -291,6 +233,24 @@ export default function BunksScreen() {
     Alert.alert('Remove Duty Leave', 'This will count as a regular bunk again.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => removeDutyLeave(courseId, bunkId) },
+    ])
+  }
+
+  const handleMarkPresent = (courseId: string, bunkId: string) => {
+    setPresencePromptBunk({ courseId, bunkId })
+  }
+
+  const handleConfirmPresence = (note: string) => {
+    if (presencePromptBunk) {
+      markAsPresent(presencePromptBunk.courseId, presencePromptBunk.bunkId, note)
+      setPresencePromptBunk(null)
+    }
+  }
+
+  const handleRemovePresent = (courseId: string, bunkId: string) => {
+    Alert.alert('Remove Presence Mark', 'This will count as an absence again.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removePresenceCorrection(courseId, bunkId) },
     ])
   }
 
@@ -333,60 +293,70 @@ export default function BunksScreen() {
   }
 
   return (
-    <Container>
-      <FlatList
-        data={courses}
-        keyExtractor={(item) => item.courseId}
-        renderItem={({ item }) => (
-          <CourseCard
-            course={item}
-            isEditMode={isEditMode}
-            onEdit={() => {
-              setEditCourse(item)
-              setIsEditMode(false)
-            }}
-            onAddBunk={() => setAddBunkCourse(item)}
-            onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
-            onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
-            onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
-          />
-        )}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={theme.text} />
-        }
-      />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Container>
+        <FlatList
+          data={courses}
+          keyExtractor={(item) => item.courseId}
+          renderItem={({ item }) => (
+            <CourseCard
+              course={item}
+              isEditMode={isEditMode}
+              onEdit={() => {
+                setEditCourse(item)
+                setIsEditMode(false)
+              }}
+              onAddBunk={() => setAddBunkCourse(item)}
+              onMarkDL={(bunkId) => handleMarkDL(item.courseId, bunkId)}
+              onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
+              onMarkPresent={(bunkId) => handleMarkPresent(item.courseId, bunkId)}
+              onRemovePresent={(bunkId) => handleRemovePresent(item.courseId, bunkId)}
+              onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
+            />
+          )}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={theme.text} />
+          }
+        />
 
-      <CourseEditModal
-        visible={!!editCourse}
-        course={editCourse}
-        onClose={() => setEditCourse(null)}
-        onSave={handleSaveConfig}
-      />
+        <CourseEditModal
+          visible={!!editCourse}
+          course={editCourse}
+          onClose={() => setEditCourse(null)}
+          onSave={handleSaveConfig}
+        />
 
-      <DutyLeaveModal
-        visible={showDLModal}
-        dutyLeaves={allDutyLeaves}
-        onClose={() => setShowDLModal(false)}
-        onRemove={handleRemoveDL}
-      />
+        <DutyLeaveModal
+          visible={showDLModal}
+          dutyLeaves={allDutyLeaves}
+          onClose={() => setShowDLModal(false)}
+          onRemove={handleRemoveDL}
+        />
 
-      <DLInputModal
-        visible={!!dlPromptBunk}
-        onClose={() => setDlPromptBunk(null)}
-        onConfirm={handleConfirmDL}
-      />
+        <DLInputModal
+          visible={!!dlPromptBunk}
+          onClose={() => setDlPromptBunk(null)}
+          onConfirm={handleConfirmDL}
+        />
 
-      <AddBunkModal
-        visible={!!addBunkCourse}
-        courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
-        onClose={() => setAddBunkCourse(null)}
-        onAdd={handleAddBunk}
-      />
-    </Container>
+        <PresenceInputModal
+          visible={!!presencePromptBunk}
+          onClose={() => setPresencePromptBunk(null)}
+          onConfirm={handleConfirmPresence}
+        />
+
+        <AddBunkModal
+          visible={!!addBunkCourse}
+          courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
+          onClose={() => setAddBunkCourse(null)}
+          onAdd={handleAddBunk}
+        />
+      </Container>
+    </GestureHandlerRootView>
   )
 }
 
@@ -534,73 +504,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
 
-  // bunk item
-  bunkItem: {
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
-  bunkMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  sourceTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  sourceText: {
-    color: Colors.white,
-    fontSize: 9,
-    fontWeight: '600',
-  },
-  bunkInfo: {
-    flex: 1,
-  },
-  bunkDate: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  bunkTime: {
-    fontSize: 11,
-  },
-  dlBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  dlText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  markDlBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  markDlText: {
-    fontSize: 10,
-  },
-  noteSection: {
-    marginTop: Spacing.sm,
-  },
-  noteInput: {
-    fontSize: 13,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    padding: Spacing.sm,
-    minHeight: 36,
-  },
-  dlNote: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
   addBunkBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -614,5 +517,11 @@ const styles = StyleSheet.create({
   },
   addBunkText: {
     fontSize: 13,
+  },
+  swipeHint: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    opacity: 0.6,
   },
 })
