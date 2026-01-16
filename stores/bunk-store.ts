@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme'
 import type { BunkRecord, BunkState, CourseBunkData, CourseConfig, DutyLeaveInfo } from '@/types'
+import { extractCourseCode, extractCourseName } from '@/utils/course-name'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { useAttendanceStore } from './attendance-store'
@@ -123,11 +124,13 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           // auto-assign color for new courses based on index
           const courseIndex = attendanceCourses.findIndex(c => c.courseId === course.courseId)
           const autoColor = Colors.courseColors[courseIndex % Colors.courseColors.length]
+          const extractedName = extractCourseName(course.courseName)
+          const extractedCode = extractCourseCode(course.courseName)
 
           return {
             courseId: course.courseId,
             courseName: course.courseName,
-            config: { credits: 3, alias: course.courseName, color: autoColor },
+            config: { credits: 3, alias: extractedName, courseCode: extractedCode, color: autoColor },
             bunks: lmsBunks,
             isConfigured: false,
           }
@@ -159,11 +162,13 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           // auto-assign color based on index
           const courseIndex = attendanceCourses.findIndex(c => c.courseId === course.courseId)
           const autoColor = Colors.courseColors[courseIndex % Colors.courseColors.length]
+          const extractedName = extractCourseName(course.courseName)
+          const extractedCode = extractCourseCode(course.courseName)
 
           return {
             courseId: course.courseId,
             courseName: course.courseName,
-            config: { credits: 3, alias: course.courseName, color: autoColor },
+            config: { credits: 3, alias: extractedName, courseCode: extractedCode, color: autoColor },
             bunks: lmsBunks,
             isConfigured: false,
           }

@@ -226,6 +226,7 @@ export interface BunkRecord {
 export interface CourseConfig {
   credits: number
   alias: string
+  courseCode: string
   color: string
 }
 

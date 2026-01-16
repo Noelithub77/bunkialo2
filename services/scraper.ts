@@ -1,12 +1,12 @@
 import type {
-  AttendanceRecord,
-  AttendanceStatus,
-  Course,
-  CourseAttendance,
-  MoodleAjaxRequest,
-  MoodleAjaxResponse,
-  MoodleCourseApiResponse,
-  MoodleCourseTimelineData
+    AttendanceRecord,
+    AttendanceStatus,
+    Course,
+    CourseAttendance,
+    MoodleAjaxRequest,
+    MoodleAjaxResponse,
+    MoodleCourseApiResponse,
+    MoodleCourseTimelineData
 } from '@/types'
 import { debug } from '@/utils/debug'
 import { getAttr, getText, parseHtml, querySelectorAll } from '@/utils/html-parser'

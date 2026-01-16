@@ -4,6 +4,7 @@ import { CalendarTheme, Colors, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useBunkStore } from '@/stores/bunk-store'
 import type { AttendanceRecord, AttendanceStatus, BunkRecord, CourseAttendance, MarkedDates, SessionType } from '@/types'
+import { extractCourseName } from '@/utils/course-name'
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
@@ -138,7 +139,7 @@ export function AttendanceCard({ course, onMarkPresent, onMarkDL }: AttendanceCa
     }
     return map
   }, [bunkCourse])
-  const courseAlias = bunkCourse?.config?.alias || course.courseName
+  const courseAlias = bunkCourse?.config?.alias || extractCourseName(course.courseName)
   const courseColor = bunkCourse?.config?.color
 
   // filter to past sessions only
