@@ -4,6 +4,7 @@ import type { Faculty } from '@/types'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import * as Linking from 'expo-linking'
+import { memo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 interface FacultyCardProps {
@@ -11,7 +12,7 @@ interface FacultyCardProps {
   onPress: () => void
 }
 
-export function FacultyCard({ faculty, onPress }: FacultyCardProps) {
+export const FacultyCard = memo(function FacultyCard({ faculty, onPress }: FacultyCardProps) {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
   const theme = isDark ? Colors.dark : Colors.light
@@ -102,7 +103,7 @@ export function FacultyCard({ faculty, onPress }: FacultyCardProps) {
       </View>
     </Pressable>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: {

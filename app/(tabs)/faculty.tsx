@@ -9,14 +9,13 @@ import { router } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FlatList,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
-
-const DEBOUNCE_MS = 150
 
 export default function FacultyScreen() {
   const colorScheme = useColorScheme()
@@ -34,181 +33,173 @@ export default function FacultyScreen() {
   } = useFacultyStore()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<TextInput>(null)
 
   useEffect(() => {
-    if (faculties.length === 0) {
-      loadFaculty()
-    }
+    if (faculties.length === 0) loadFaculty()
   }, [])
 
-  // debounced search
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(searchQuery)
-    }, DEBOUNCE_MS)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [searchQuery])
-
+  // instant search - no debounce needed for 136 items
   const searchResults = useMemo(() => {
-    if (!debouncedQuery.trim()) return []
-    return searchFaculty(faculties, debouncedQuery)
-  }, [faculties, debouncedQuery])
+    if (!searchQuery.trim()) return []
+    return searchFaculty(searchQuery)
+  }, [searchQuery])
 
   const topFaculty = useMemo(() => {
     return getTopFaculty(faculties, topFacultyIds)
   }, [faculties, topFacultyIds])
 
   const handleFacultyPress = useCallback((faculty: Faculty) => {
-    if (searchQuery.trim()) {
-      addRecentSearch(searchQuery.trim())
-    }
-    router.push({
-      pathname: '/faculty/[id]',
-      params: { id: faculty.id },
-    })
+    if (searchQuery.trim()) addRecentSearch(searchQuery.trim())
+    Keyboard.dismiss()
+    router.push({ pathname: '/faculty/[id]', params: { id: faculty.id } })
   }, [searchQuery, addRecentSearch])
 
-  const handleRecentSearchPress = (query: string) => {
+  const handleRecentSearchPress = useCallback((query: string) => {
     setSearchQuery(query)
-    setDebouncedQuery(query) // instant update for recent searches
-  }
+    inputRef.current?.focus()
+  }, [])
 
-  const isSearching = debouncedQuery.trim().length >= 2
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('')
+    inputRef.current?.focus()
+  }, [])
+
+  const handleSubmit = useCallback(() => {
+    Keyboard.dismiss()
+  }, [])
+
+  const isSearching = searchQuery.trim().length > 0
   const showRecentSearches = !isSearching && recentSearches.length > 0
   const showTopFaculty = !isSearching && topFaculty.length > 0
-
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <Text style={[styles.screenTitle, { color: theme.text }]}>Faculty</Text>
-
-      {/* search box */}
-      <View
-        style={[
-          styles.searchBox,
-          {
-            backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
-            borderColor: isSearchFocused ? theme.text : 'transparent',
-          },
-        ]}
-      >
-        <Ionicons name="search" size={18} color={theme.textSecondary} />
-        <TextInput
-          style={[styles.searchInput, { color: theme.text }]}
-          placeholder="Search by name, room, or expertise..."
-          placeholderTextColor={theme.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          returnKeyType="search"
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* recent searches */}
-      {showRecentSearches && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-              Recent Searches
-            </Text>
-            <Pressable onPress={clearRecentSearches} hitSlop={8}>
-              <Text style={[styles.clearBtn, { color: Colors.status.danger }]}>Clear</Text>
-            </Pressable>
-          </View>
-          <View style={styles.recentList}>
-            {recentSearches.map((query) => (
-              <Pressable
-                key={query}
-                style={[styles.recentChip, { backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] }]}
-                onPress={() => handleRecentSearchPress(query)}
-              >
-                <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
-                <Text style={[styles.recentText, { color: theme.text }]}>{query}</Text>
-                <Pressable
-                  onPress={() => removeRecentSearch(query)}
-                  hitSlop={8}
-                  style={styles.removeBtn}
-                >
-                  <Ionicons name="close" size={14} color={theme.textSecondary} />
-                </Pressable>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* top faculty label */}
-      {showTopFaculty && !showRecentSearches && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-            Top Faculty
-          </Text>
-        </View>
-      )}
-
-      {/* search results label */}
-      {isSearching && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-            {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
-          </Text>
-        </View>
-      )}
-    </View>
-  )
-
-  const renderEmpty = () => {
-    if (isSearching && searchResults.length === 0) {
-      return (
-        <View style={styles.empty}>
-          <Ionicons name="search-outline" size={48} color={theme.textSecondary} />
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            No faculty found for "{debouncedQuery}"
-          </Text>
-        </View>
-      )
-    }
-    return null
-  }
-
   const displayData = isSearching ? searchResults : topFaculty
+
+  const renderItem = useCallback(({ item }: { item: Faculty }) => (
+    <FacultyCard faculty={item} onPress={() => handleFacultyPress(item)} />
+  ), [handleFacultyPress])
+
+  const keyExtractor = useCallback((item: Faculty) => item.id, [])
+
+  const ItemSeparator = useCallback(() => <View style={styles.separator} />, [])
 
   return (
     <Container>
+      {/* fixed search header - outside FlatList to prevent keyboard dismiss */}
+      <View style={styles.header}>
+        <Text style={[styles.screenTitle, { color: theme.text }]}>Faculty</Text>
+
+        <View
+          style={[
+            styles.searchBox,
+            {
+              backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
+              borderColor: isSearchFocused ? theme.text : 'transparent',
+            },
+          ]}
+        >
+          <Ionicons name="search" size={18} color={theme.textSecondary} />
+          <TextInput
+            ref={inputRef}
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search by name, room, or expertise..."
+            placeholderTextColor={theme.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            onSubmitEditing={handleSubmit}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={handleClearSearch} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* recent searches */}
+        {showRecentSearches && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                Recent Searches
+              </Text>
+              <Pressable onPress={clearRecentSearches} hitSlop={8}>
+                <Text style={[styles.clearBtn, { color: Colors.status.danger }]}>Clear</Text>
+              </Pressable>
+            </View>
+            <View style={styles.recentList}>
+              {recentSearches.map((query) => (
+                <Pressable
+                  key={query}
+                  style={[styles.recentChip, { backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] }]}
+                  onPress={() => handleRecentSearchPress(query)}
+                >
+                  <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
+                  <Text style={[styles.recentText, { color: theme.text }]}>{query}</Text>
+                  <Pressable
+                    onPress={() => removeRecentSearch(query)}
+                    hitSlop={8}
+                    style={styles.removeBtn}
+                  >
+                    <Ionicons name="close" size={14} color={theme.textSecondary} />
+                  </Pressable>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* section labels */}
+        {showTopFaculty && !showRecentSearches && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+              Top Faculty
+            </Text>
+          </View>
+        )}
+
+        {isSearching && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* results list */}
       <FlatList
         data={displayData}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <FacultyCard faculty={item} onPress={() => handleFacultyPress(item)} />
-        )}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        keyboardShouldPersistTaps="handled"
+        ItemSeparatorComponent={ItemSeparator}
+        keyboardShouldPersistTaps="always"
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={15}
+        windowSize={10}
+        ListEmptyComponent={
+          isSearching && searchResults.length === 0 ? (
+            <View style={styles.empty}>
+              <Ionicons name="search-outline" size={48} color={theme.textSecondary} />
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                No faculty found for "{searchQuery}"
+              </Text>
+            </View>
+          ) : null
+        }
       />
     </Container>
   )
 }
 
 const styles = StyleSheet.create({
-  list: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  headerContainer: {
-    marginBottom: Spacing.md,
+  header: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
   },
   screenTitle: {
     fontSize: 28,
@@ -267,6 +258,10 @@ const styles = StyleSheet.create({
   },
   removeBtn: {
     padding: 2,
+  },
+  list: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxl,
   },
   separator: {
     height: Spacing.sm,

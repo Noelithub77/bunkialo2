@@ -8,17 +8,20 @@ import { zustandStorage } from './storage'
 import { faculties as facultyList, topFacultyIds as topIds } from '@/data/faculty'
 
 // fuse.js search config
+const SEARCH_KEYS = [
+  { name: 'name', weight: 2 },
+  { name: 'designation', weight: 1 },
+  { name: 'contact.room', weight: 1.5 },
+  { name: 'contact.email', weight: 0.8 },
+  { name: 'areas', weight: 1 },
+]
+
 const FUSE_OPTIONS: IFuseOptions<Faculty> = {
-  keys: [
-    { name: 'name', weight: 2 },
-    { name: 'designation', weight: 1 },
-    { name: 'contact.room', weight: 1.5 },
-    { name: 'contact.email', weight: 0.8 },
-    { name: 'areas', weight: 1 },
-  ],
+  keys: SEARCH_KEYS,
   threshold: 0.4,
   includeScore: true,
-  minMatchCharLength: 2,
+  minMatchCharLength: 1,
+  ignoreLocation: true, // search anywhere in string
 }
 
 const MAX_RECENT_SEARCHES = 10
@@ -75,30 +78,18 @@ export const useFacultyStore = create<FacultyState & FacultyActions>()(
   )
 )
 
-// cached fuse instance
-let fuseInstance: Fuse<Faculty> | null = null
-let cachedLength = 0
+// pre-built fuse index for instant search
+const facultyIndex = Fuse.createIndex(SEARCH_KEYS, facultyList)
+const fuseInstance = new Fuse(facultyList, FUSE_OPTIONS, facultyIndex)
 
-// get or create fuse instance
-const getFuseInstance = (faculties: Faculty[]): Fuse<Faculty> => {
-  if (!fuseInstance || cachedLength !== faculties.length) {
-    fuseInstance = new Fuse(faculties, FUSE_OPTIONS)
-    cachedLength = faculties.length
-  }
-  return fuseInstance
-}
-
-// fuzzy search faculty
-export const searchFaculty = (faculties: Faculty[], query: string): Faculty[] => {
+// fuzzy search - instant, no minimum chars
+export const searchFaculty = (query: string): Faculty[] => {
   const q = query.trim()
-  if (!q || q.length < 2) return []
-
-  const fuse = getFuseInstance(faculties)
-  const results = fuse.search(q, { limit: 30 })
-  return results.map((r) => r.item)
+  if (!q) return []
+  return fuseInstance.search(q, { limit: 30 }).map((r) => r.item)
 }
 
-// get top faculty
+// get top faculty by ids
 export const getTopFaculty = (faculties: Faculty[], topIds: string[]): Faculty[] => {
   return topIds
     .map((id) => faculties.find((f) => f.id === id))
