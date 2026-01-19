@@ -1,16 +1,22 @@
-import { TextInput, StyleSheet, View, Text, TextInputProps } from 'react-native'
-import { Colors, Radius, Spacing } from '@/constants/theme'
-import { useColorScheme } from '@/hooks/use-color-scheme'
+import {
+  TextInput,
+  StyleSheet,
+  View,
+  Text,
+  TextInputProps,
+} from "react-native";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface InputProps extends TextInputProps {
-  label?: string
-  error?: string
+  label?: string;
+  error?: string;
 }
 
 export function Input({ label, error, style, ...props }: InputProps) {
-  const colorScheme = useColorScheme()
-  const isDark = colorScheme === 'dark'
-  const theme = isDark ? Colors.dark : Colors.light
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
 
   return (
     <View style={styles.container}>
@@ -32,11 +38,9 @@ export function Input({ label, error, style, ...props }: InputProps) {
         placeholderTextColor={theme.textSecondary}
         {...props}
       />
-      {error && (
-        <Text style={styles.error}>{error}</Text>
-      )}
+      {error && <Text style={styles.error}>{error}</Text>}
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -45,7 +49,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: Spacing.xs,
   },
   input: {
@@ -60,4 +64,4 @@ const styles = StyleSheet.create({
     color: Colors.status.danger,
     marginLeft: Spacing.xs,
   },
-})
+});

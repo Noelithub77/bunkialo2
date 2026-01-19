@@ -160,16 +160,16 @@ export const useBunkStore = create<BunkState & BunkActions>()(
               const autoCredits = findCreditsByCode(extractedCode);
               const updatedConfig: CourseConfig = existing.config
                 ? {
-                  ...existing.config,
-                  alias: extractedName,
-                  courseCode: extractedCode,
-                }
+                    ...existing.config,
+                    alias: extractedName,
+                    courseCode: extractedCode,
+                  }
                 : {
-                  credits: autoCredits ?? 3,
-                  alias: extractedName,
-                  courseCode: extractedCode,
-                  color: Colors.courseColors[0],
-                };
+                    credits: autoCredits ?? 3,
+                    alias: extractedName,
+                    courseCode: extractedCode,
+                    color: Colors.courseColors[0],
+                  };
 
               return {
                 courseId: course.courseId,
@@ -285,11 +285,11 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId ? { ...b, note } : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId ? { ...b, note } : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -300,13 +300,13 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isDutyLeave: true, dutyLeaveNote: note }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isDutyLeave: true, dutyLeaveNote: note }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -317,13 +317,13 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isDutyLeave: false, dutyLeaveNote: "" }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isDutyLeave: false, dutyLeaveNote: "" }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -334,13 +334,13 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isMarkedPresent: true, presenceNote: note }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isMarkedPresent: true, presenceNote: note }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -351,13 +351,13 @@ export const useBunkStore = create<BunkState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isMarkedPresent: false, presenceNote: "" }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isMarkedPresent: false, presenceNote: "" }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));

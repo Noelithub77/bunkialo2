@@ -1,42 +1,48 @@
-import { Button } from '@/components/ui/button'
-import { Colors, Radius, Spacing } from '@/constants/theme'
-import { useColorScheme } from '@/hooks/use-color-scheme'
-import { Ionicons } from '@expo/vector-icons'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Button } from "@/components/ui/button";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Ionicons } from "@expo/vector-icons";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
-type ConfirmVariant = 'default' | 'destructive'
+type ConfirmVariant = "default" | "destructive";
 
 interface ConfirmModalProps {
-  visible: boolean
-  title: string
-  message: string
-  confirmText?: string
-  cancelText?: string
-  variant?: ConfirmVariant
-  icon?: keyof typeof Ionicons.glyphMap
-  onCancel: () => void
-  onConfirm: () => void
+  visible: boolean;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: ConfirmVariant;
+  icon?: keyof typeof Ionicons.glyphMap;
+  onCancel: () => void;
+  onConfirm: () => void;
 }
 
 export function ConfirmModal({
   visible,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'default',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  variant = "default",
   icon,
   onCancel,
   onConfirm,
 }: ConfirmModalProps) {
-  const colorScheme = useColorScheme()
-  const isDark = colorScheme === 'dark'
-  const theme = isDark ? Colors.dark : Colors.light
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
 
-  const iconColor = variant === 'destructive' ? Colors.status.danger : Colors.status.info
+  const iconColor =
+    variant === "destructive" ? Colors.status.danger : Colors.status.info;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onCancel} />
         <View style={[styles.modal, { backgroundColor: theme.background }]}>
@@ -49,42 +55,49 @@ export function ConfirmModal({
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
           </View>
 
-          <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
+          <Text style={[styles.message, { color: theme.textSecondary }]}>
+            {message}
+          </Text>
 
           <View style={styles.actions}>
-            <Button title={cancelText} variant="secondary" onPress={onCancel} style={styles.btn} />
+            <Button
+              title={cancelText}
+              variant="secondary"
+              onPress={onCancel}
+              style={styles.btn}
+            />
             <Button
               title={confirmText}
               onPress={onConfirm}
               style={styles.btn}
-              variant={variant === 'destructive' ? 'danger' : 'primary'}
+              variant={variant === "destructive" ? "danger" : "primary"}
             />
           </View>
         </View>
       </View>
     </Modal>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modal: {
-    width: '90%',
+    width: "90%",
     maxWidth: 380,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
@@ -92,12 +105,12 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   message: {
@@ -105,11 +118,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
     marginTop: Spacing.lg,
   },
   btn: {
     flex: 1,
   },
-})
+});

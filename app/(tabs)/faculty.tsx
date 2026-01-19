@@ -1,12 +1,16 @@
-import { FacultyCard } from '@/components/faculty-card'
-import { Container } from '@/components/ui/container'
-import { Colors, Radius, Spacing } from '@/constants/theme'
-import { useColorScheme } from '@/hooks/use-color-scheme'
-import { getTopFaculty, searchFaculty, useFacultyStore } from '@/stores/faculty-store'
-import type { Faculty } from '@/types'
-import { Ionicons } from '@expo/vector-icons'
-import { router } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FacultyCard } from "@/components/faculty-card";
+import { Container } from "@/components/ui/container";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  getTopFaculty,
+  searchFaculty,
+  useFacultyStore,
+} from "@/stores/faculty-store";
+import type { Faculty } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Keyboard,
@@ -15,12 +19,12 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
+} from "react-native";
 
 export default function FacultyScreen() {
-  const colorScheme = useColorScheme()
-  const isDark = colorScheme === 'dark'
-  const theme = isDark ? Colors.dark : Colors.light
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
 
   const {
     faculties,
@@ -30,58 +34,67 @@ export default function FacultyScreen() {
     addRecentSearch,
     removeRecentSearch,
     clearRecentSearches,
-  } = useFacultyStore()
+  } = useFacultyStore();
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const inputRef = useRef<TextInput>(null)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    if (faculties.length === 0) loadFaculty()
-  }, [])
+    if (faculties.length === 0) loadFaculty();
+  }, []);
 
   // instant search - no debounce needed for 136 items
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return []
-    return searchFaculty(searchQuery)
-  }, [searchQuery])
+    if (!searchQuery.trim()) return [];
+    return searchFaculty(searchQuery);
+  }, [searchQuery]);
 
   const topFaculty = useMemo(() => {
-    return getTopFaculty(faculties, topFacultyIds)
-  }, [faculties, topFacultyIds])
+    return getTopFaculty(faculties, topFacultyIds);
+  }, [faculties, topFacultyIds]);
 
-  const handleFacultyPress = useCallback((faculty: Faculty) => {
-    if (searchQuery.trim()) addRecentSearch(searchQuery.trim())
-    Keyboard.dismiss()
-    router.push({ pathname: '/faculty/[id]', params: { id: faculty.id } })
-  }, [searchQuery, addRecentSearch])
+  const handleFacultyPress = useCallback(
+    (faculty: Faculty) => {
+      if (searchQuery.trim()) addRecentSearch(searchQuery.trim());
+      Keyboard.dismiss();
+      router.push({ pathname: "/faculty/[id]", params: { id: faculty.id } });
+    },
+    [searchQuery, addRecentSearch],
+  );
 
   const handleRecentSearchPress = useCallback((query: string) => {
-    setSearchQuery(query)
-    inputRef.current?.focus()
-  }, [])
+    setSearchQuery(query);
+    inputRef.current?.focus();
+  }, []);
 
   const handleClearSearch = useCallback(() => {
-    setSearchQuery('')
-    inputRef.current?.focus()
-  }, [])
+    setSearchQuery("");
+    inputRef.current?.focus();
+  }, []);
 
   const handleSubmit = useCallback(() => {
-    Keyboard.dismiss()
-  }, [])
+    Keyboard.dismiss();
+  }, []);
 
-  const isSearching = searchQuery.trim().length > 0
-  const showRecentSearches = !isSearching && recentSearches.length > 0
-  const showTopFaculty = !isSearching && topFaculty.length > 0
-  const displayData = isSearching ? searchResults : topFaculty
+  const isSearching = searchQuery.trim().length > 0;
+  const showRecentSearches = !isSearching && recentSearches.length > 0;
+  const showTopFaculty = !isSearching && topFaculty.length > 0;
+  const displayData = isSearching ? searchResults : topFaculty;
 
-  const renderItem = useCallback(({ item }: { item: Faculty }) => (
-    <FacultyCard faculty={item} onPress={() => handleFacultyPress(item)} />
-  ), [handleFacultyPress])
+  const renderItem = useCallback(
+    ({ item }: { item: Faculty }) => (
+      <FacultyCard faculty={item} onPress={() => handleFacultyPress(item)} />
+    ),
+    [handleFacultyPress],
+  );
 
-  const keyExtractor = useCallback((item: Faculty) => item.id, [])
+  const keyExtractor = useCallback((item: Faculty) => item.id, []);
 
-  const ItemSeparator = useCallback(() => <View style={styles.separator} />, [])
+  const ItemSeparator = useCallback(
+    () => <View style={styles.separator} />,
+    [],
+  );
 
   return (
     <Container>
@@ -94,7 +107,7 @@ export default function FacultyScreen() {
             styles.searchBox,
             {
               backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
-              borderColor: isSearchFocused ? theme.text : 'transparent',
+              borderColor: isSearchFocused ? theme.text : "transparent",
             },
           ]}
         >
@@ -114,7 +127,11 @@ export default function FacultyScreen() {
           />
           {searchQuery.length > 0 && (
             <Pressable onPress={handleClearSearch} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={theme.textSecondary}
+              />
             </Pressable>
           )}
         </View>
@@ -123,28 +140,51 @@ export default function FacultyScreen() {
         {showRecentSearches && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+              <Text
+                style={[styles.sectionTitle, { color: theme.textSecondary }]}
+              >
                 Recent Searches
               </Text>
               <Pressable onPress={clearRecentSearches} hitSlop={8}>
-                <Text style={[styles.clearBtn, { color: Colors.status.danger }]}>Clear</Text>
+                <Text
+                  style={[styles.clearBtn, { color: Colors.status.danger }]}
+                >
+                  Clear
+                </Text>
               </Pressable>
             </View>
             <View style={styles.recentList}>
               {recentSearches.map((query) => (
                 <Pressable
                   key={query}
-                  style={[styles.recentChip, { backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] }]}
+                  style={[
+                    styles.recentChip,
+                    {
+                      backgroundColor: isDark
+                        ? Colors.gray[800]
+                        : Colors.gray[200],
+                    },
+                  ]}
                   onPress={() => handleRecentSearchPress(query)}
                 >
-                  <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
-                  <Text style={[styles.recentText, { color: theme.text }]}>{query}</Text>
+                  <Ionicons
+                    name="time-outline"
+                    size={14}
+                    color={theme.textSecondary}
+                  />
+                  <Text style={[styles.recentText, { color: theme.text }]}>
+                    {query}
+                  </Text>
                   <Pressable
                     onPress={() => removeRecentSearch(query)}
                     hitSlop={8}
                     style={styles.removeBtn}
                   >
-                    <Ionicons name="close" size={14} color={theme.textSecondary} />
+                    <Ionicons
+                      name="close"
+                      size={14}
+                      color={theme.textSecondary}
+                    />
                   </Pressable>
                 </Pressable>
               ))}
@@ -164,7 +204,8 @@ export default function FacultyScreen() {
         {isSearching && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+              {searchResults.length} result
+              {searchResults.length !== 1 ? "s" : ""} found
             </Text>
           </View>
         )}
@@ -184,7 +225,11 @@ export default function FacultyScreen() {
         ListEmptyComponent={
           isSearching && searchResults.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="search-outline" size={48} color={theme.textSecondary} />
+              <Ionicons
+                name="search-outline"
+                size={48}
+                color={theme.textSecondary}
+              />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 No faculty found for "{searchQuery}"
               </Text>
@@ -193,7 +238,7 @@ export default function FacultyScreen() {
         }
       />
     </Container>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -203,12 +248,12 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: Spacing.md,
   },
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     height: 44,
@@ -218,35 +263,35 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    height: '100%',
+    height: "100%",
   },
   section: {
     marginTop: Spacing.lg,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: "600",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   clearBtn: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   recentList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
   },
   recentChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingVertical: 6,
     paddingLeft: 10,
@@ -267,12 +312,12 @@ const styles = StyleSheet.create({
     height: Spacing.sm,
   },
   empty: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: Spacing.xxl,
     gap: Spacing.md,
   },
   emptyText: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
-})
+});

@@ -2,9 +2,9 @@ import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
 import {
-    formatTimeDisplay,
-    getDayName,
-    getNearbySlots,
+  formatTimeDisplay,
+  getDayName,
+  getNearbySlots,
 } from "@/stores/timetable-store";
 import type { TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,12 +12,12 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    StyleSheet,
-    Text,
-    View,
-    type ViewToken,
+  Dimensions,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+  type ViewToken,
 } from "react-native";
 
 interface UpNextCarouselProps {

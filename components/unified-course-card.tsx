@@ -5,13 +5,13 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getBaseUrl } from "@/services/baseurl";
 import { filterPastBunks, selectCourseStats } from "@/stores/bunk-store";
 import type {
-    AttendanceRecord,
-    AttendanceStatus,
-    BunkRecord,
-    CourseAttendance,
-    CourseBunkData,
-    MarkedDates,
-    SessionType,
+  AttendanceRecord,
+  AttendanceStatus,
+  BunkRecord,
+  CourseAttendance,
+  CourseBunkData,
+  MarkedDates,
+  SessionType,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
@@ -533,9 +533,13 @@ export function UnifiedCourseCard({
                     key={fakeBunk.id}
                     bunk={fakeBunk}
                     isUnknown
-                    onMarkDL={() => onConfirmUnknownAbsent(course.courseId, record)}
+                    onMarkDL={() =>
+                      onConfirmUnknownAbsent(course.courseId, record)
+                    }
                     onRemoveDL={() => {}}
-                    onMarkPresent={() => onConfirmUnknownPresent(course.courseId, record)}
+                    onMarkPresent={() =>
+                      onConfirmUnknownPresent(course.courseId, record)
+                    }
                     onRemovePresent={() => {}}
                     onUpdateNote={() => {}}
                   />

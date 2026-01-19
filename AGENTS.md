@@ -51,18 +51,56 @@ utils/debug.ts         # Debug logging
 
 ```typescript
 // Core
-type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused'
-interface AttendanceRecord { date, description, status, points, remarks }
-interface CourseAttendance { courseId, courseName, totalSessions, attended, percentage, records }
+type AttendanceStatus = "Present" | "Absent" | "Late" | "Excused";
+interface AttendanceRecord {
+  date;
+  description;
+  status;
+  points;
+  remarks;
+}
+interface CourseAttendance {
+  courseId;
+  courseName;
+  totalSessions;
+  attended;
+  percentage;
+  records;
+}
 
 // Dashboard
-interface TimelineEvent { id, name, activityname, timesort, overdue, url, course }
-interface DashboardLog { id, timestamp, message, type: 'info' | 'success' | 'error' }
-interface DashboardSettings { refreshIntervalMinutes, reminders: number[], notificationsEnabled }
+interface TimelineEvent {
+  id;
+  name;
+  activityname;
+  timesort;
+  overdue;
+  url;
+  course;
+}
+interface DashboardLog {
+  id;
+  timestamp;
+  message;
+  type: "info" | "success" | "error";
+}
+interface DashboardSettings {
+  refreshIntervalMinutes;
+  reminders: number[];
+  notificationsEnabled;
+}
 
 // Moodle API
-interface MoodleAjaxRequest { index, methodname, args }
-interface MoodleAjaxResponse<T> { error, exception?, data: T }
+interface MoodleAjaxRequest {
+  index;
+  methodname;
+  args;
+}
+interface MoodleAjaxResponse<T> {
+  error;
+  exception?;
+  data: T;
+}
 ```
 
 **Rule**: Never use `any`. Always import types from `types/index.ts`.
@@ -87,15 +125,15 @@ interface MoodleAjaxResponse<T> { error, exception?, data: T }
 
 ```typescript
 // services/background-tasks.ts
-startBackgroundRefresh() // Starts setInterval for sync
-scheduleAllEventNotifications() // schedules reminders before deadlines
+startBackgroundRefresh(); // Starts setInterval for sync
+scheduleAllEventNotifications(); // schedules reminders before deadlines
 ```
 
 ## Debug Logging
 
 ```typescript
-import { debug } from '@/utils/debug'
-debug.scraper('Dashboard refresh triggered', data)
+import { debug } from "@/utils/debug";
+debug.scraper("Dashboard refresh triggered", data);
 ```
 
 ## Constraints

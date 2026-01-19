@@ -1,11 +1,11 @@
 import type { Credentials, LoginFormData } from "@/types";
 import { debug } from "@/utils/debug";
 import {
-    getAttr,
-    hasMatch,
-    parseHtml,
-    querySelector,
-    querySelectorAll,
+  getAttr,
+  hasMatch,
+  parseHtml,
+  querySelector,
+  querySelectorAll,
 } from "@/utils/html-parser";
 import * as SecureStore from "expo-secure-store";
 import { api, clearCookies, getDebugInfo, updateBaseUrl } from "./api";

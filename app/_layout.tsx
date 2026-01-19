@@ -1,14 +1,18 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
-import { Stack, router } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
-import { useEffect } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import 'react-native-reanimated'
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { Stack, router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "react-native-reanimated";
 
-import { Colors } from '@/constants/theme'
-import { useColorScheme } from '@/hooks/use-color-scheme'
-import { useAuthStore } from '@/stores/auth-store'
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuthStore } from "@/stores/auth-store";
 
 // Custom dark theme with black background
 const CustomDarkTheme = {
@@ -19,7 +23,7 @@ const CustomDarkTheme = {
     card: Colors.gray[900],
     border: Colors.gray[800],
   },
-}
+};
 
 const CustomLightTheme = {
   ...DefaultTheme,
@@ -29,33 +33,41 @@ const CustomLightTheme = {
     card: Colors.white,
     border: Colors.gray[200],
   },
-}
+};
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme()
-  const { isLoggedIn, isLoading, checkAuth } = useAuthStore()
-  const isDark = colorScheme === 'dark'
+  const colorScheme = useColorScheme();
+  const { isLoggedIn, isLoading, checkAuth } = useAuthStore();
+  const isDark = colorScheme === "dark";
 
   useEffect(() => {
-    checkAuth()
-  }, [])
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     if (!isLoading) {
       if (isLoggedIn) {
-        router.replace('/(tabs)')
+        router.replace("/(tabs)");
       } else {
-        router.replace('/login')
+        router.replace("/login");
       }
     }
-  }, [isLoading, isLoggedIn])
+  }, [isLoading, isLoggedIn]);
 
   if (isLoading) {
     return (
-      <View style={[styles.loading, { backgroundColor: isDark ? Colors.black : Colors.white }]}>
-        <ActivityIndicator size="large" color={isDark ? Colors.white : Colors.black} />
+      <View
+        style={[
+          styles.loading,
+          { backgroundColor: isDark ? Colors.black : Colors.white },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? Colors.white : Colors.black}
+        />
       </View>
-    )
+    );
   }
 
   return (
@@ -67,16 +79,16 @@ export default function RootLayout() {
           <Stack.Screen name="faculty/[id]" />
           <Stack.Screen name="settings" />
         </Stack>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <StatusBar style={isDark ? "light" : "dark"} />
       </ThemeProvider>
     </GestureHandlerRootView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-})
+});

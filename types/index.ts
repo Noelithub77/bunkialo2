@@ -2,25 +2,30 @@
 // ATTENDANCE TYPES
 // ============================================================================
 
-export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused' | 'Unknown'
+export type AttendanceStatus =
+  | "Present"
+  | "Absent"
+  | "Late"
+  | "Excused"
+  | "Unknown";
 
 export interface AttendanceRecord {
-  date: string
-  description: string
-  status: AttendanceStatus
-  points: string
-  remarks: string
+  date: string;
+  description: string;
+  status: AttendanceStatus;
+  points: string;
+  remarks: string;
 }
 
 export interface CourseAttendance {
-  courseId: string
-  courseName: string
-  attendanceModuleId: string | null
-  totalSessions: number
-  attended: number
-  percentage: number
-  records: AttendanceRecord[]
-  lastUpdated: number
+  courseId: string;
+  courseName: string;
+  attendanceModuleId: string | null;
+  totalSessions: number;
+  attended: number;
+  percentage: number;
+  records: AttendanceRecord[];
+  lastUpdated: number;
 }
 
 // ============================================================================
@@ -28,47 +33,47 @@ export interface CourseAttendance {
 // ============================================================================
 
 export interface Course {
-  id: string
-  name: string
-  url: string
+  id: string;
+  name: string;
+  url: string;
 }
 
 // Moodle Course API Response (from core_course_get_enrolled_courses_by_timeline_classification)
 export interface MoodleCourseApiResponse {
-  id: number
-  fullname: string
-  shortname: string
-  idnumber: string
-  summary: string
-  summaryformat: number
-  startdate: number
-  enddate: number
-  visible: boolean
-  fullnamedisplay: string
-  viewurl: string
-  courseimage: string
-  progress: number | null
-  hasprogress: boolean
-  isfavourite: boolean
-  hidden: boolean
-  timeaccess: number | null
-  showshortname: boolean
-  coursecategory: string
+  id: number;
+  fullname: string;
+  shortname: string;
+  idnumber: string;
+  summary: string;
+  summaryformat: number;
+  startdate: number;
+  enddate: number;
+  visible: boolean;
+  fullnamedisplay: string;
+  viewurl: string;
+  courseimage: string;
+  progress: number | null;
+  hasprogress: boolean;
+  isfavourite: boolean;
+  hidden: boolean;
+  timeaccess: number | null;
+  showshortname: boolean;
+  coursecategory: string;
 }
 
 export interface MoodleCourseTimelineData {
-  courses: MoodleCourseApiResponse[]
-  nextoffset: number
+  courses: MoodleCourseApiResponse[];
+  nextoffset: number;
 }
 
 export interface MoodleAjaxResponse<T = unknown> {
-  error: boolean
+  error: boolean;
   exception?: {
-    errorcode: string
-    message: string
-    type: string
-  }
-  data: T
+    errorcode: string;
+    message: string;
+    type: string;
+  };
+  data: T;
 }
 
 // ============================================================================
@@ -76,18 +81,22 @@ export interface MoodleAjaxResponse<T = unknown> {
 // ============================================================================
 
 export interface MoodleAjaxRequest {
-  index: number
-  methodname: string
-  args: Record<string, unknown>
+  index: number;
+  methodname: string;
+  args: Record<string, unknown>;
 }
 
-export type MoodleTimelineClassification = 'inprogress' | 'past' | 'future' | 'all'
+export type MoodleTimelineClassification =
+  | "inprogress"
+  | "past"
+  | "future"
+  | "all";
 
 export interface MoodleCourseTimelineArgs {
-  offset: number
-  limit: number
-  classification: MoodleTimelineClassification
-  sort: 'fullname' | 'lastaccess' | 'shortname'
+  offset: number;
+  limit: number;
+  classification: MoodleTimelineClassification;
+  sort: "fullname" | "lastaccess" | "shortname";
 }
 
 // ============================================================================
@@ -95,15 +104,15 @@ export interface MoodleCourseTimelineArgs {
 // ============================================================================
 
 export interface Credentials {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }
 
 export interface AuthState {
-  isLoggedIn: boolean
-  isLoading: boolean
-  username: string | null
-  error: string | null
+  isLoggedIn: boolean;
+  isLoading: boolean;
+  username: string | null;
+  error: string | null;
 }
 
 // ============================================================================
@@ -111,10 +120,10 @@ export interface AuthState {
 // ============================================================================
 
 export interface AttendanceState {
-  courses: CourseAttendance[]
-  isLoading: boolean
-  lastSyncTime: number | null
-  error: string | null
+  courses: CourseAttendance[];
+  isLoading: boolean;
+  lastSyncTime: number | null;
+  error: string | null;
 }
 
 // ============================================================================
@@ -122,22 +131,22 @@ export interface AttendanceState {
 // ============================================================================
 
 export interface ApiResponse<T = unknown> {
-  data: T
-  status: number
-  statusText: string
-  headers: Record<string, string>
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
 }
 
 export interface LoginPageResponse {
-  html: string
-  logintoken: string | null
+  html: string;
+  logintoken: string | null;
 }
 
 export interface LoginFormData {
-  anchor: string
-  logintoken: string
-  username: string
-  password: string
+  anchor: string;
+  logintoken: string;
+  username: string;
+  password: string;
 }
 
 // ============================================================================
@@ -145,26 +154,26 @@ export interface LoginFormData {
 // ============================================================================
 
 export interface ParsedCourseLink {
-  id: string
-  name: string
-  href: string
+  id: string;
+  name: string;
+  href: string;
 }
 
 export interface ParsedAttendanceTable {
-  headers: string[]
-  rows: AttendanceRecord[]
+  headers: string[];
+  rows: AttendanceRecord[];
 }
 
 // ============================================================================
 // DEBUG TYPES
 // ============================================================================
 
-export type LogCategory = 'AUTH' | 'COOKIE' | 'SCRAPER' | 'API' | 'STORE'
+export type LogCategory = "AUTH" | "COOKIE" | "SCRAPER" | "API" | "STORE";
 
 export interface DebugInfo {
-  baseUrl: string
-  cookieCount: number
-  cookies: Record<string, string>
+  baseUrl: string;
+  cookieCount: number;
+  cookies: Record<string, string>;
 }
 
 // ============================================================================
@@ -172,86 +181,86 @@ export interface DebugInfo {
 // ============================================================================
 
 export interface CourseStats {
-  totalCourses: number
-  totalSessions: number
-  totalAttended: number
-  overallPercentage: number
+  totalCourses: number;
+  totalSessions: number;
+  totalAttended: number;
+  overallPercentage: number;
 }
 
 export interface AttendanceSummary {
-  courseId: string
-  courseName: string
-  percentage: number
-  attended: number
-  totalSessions: number
+  courseId: string;
+  courseName: string;
+  percentage: number;
+  attended: number;
+  totalSessions: number;
 }
 
 // ============================================================================
 // CALENDAR TYPES
 // ============================================================================
 
-export type SessionType = 'regular' | 'lab' | 'tutorial'
+export type SessionType = "regular" | "lab" | "tutorial";
 
 export interface CalendarDot {
-  key: string
-  color: string
+  key: string;
+  color: string;
 }
 
 export interface CalendarMarking {
-  dots: CalendarDot[]
-  selected?: boolean
+  dots: CalendarDot[];
+  selected?: boolean;
 }
 
-export type MarkedDates = Record<string, CalendarMarking>
+export type MarkedDates = Record<string, CalendarMarking>;
 
 // ============================================================================
 // BUNK TYPES
 // ============================================================================
 
-export type BunkSource = 'lms' | 'user'
+export type BunkSource = "lms" | "user";
 
 export interface BunkRecord {
-  id: string
-  date: string
-  description: string
-  timeSlot: string | null
-  note: string
-  source: BunkSource
-  isDutyLeave: boolean
-  dutyLeaveNote: string
-  isMarkedPresent: boolean
-  presenceNote: string
+  id: string;
+  date: string;
+  description: string;
+  timeSlot: string | null;
+  note: string;
+  source: BunkSource;
+  isDutyLeave: boolean;
+  dutyLeaveNote: string;
+  isMarkedPresent: boolean;
+  presenceNote: string;
 }
 
 export interface CourseConfig {
-  credits: number
-  alias: string
-  courseCode: string
-  color: string
+  credits: number;
+  alias: string;
+  courseCode: string;
+  color: string;
 }
 
 export interface CourseBunkData {
-  courseId: string
-  courseName: string
-  config: CourseConfig | null
-  bunks: BunkRecord[]
-  isConfigured: boolean
+  courseId: string;
+  courseName: string;
+  config: CourseConfig | null;
+  bunks: BunkRecord[];
+  isConfigured: boolean;
 }
 
 export interface BunkState {
-  courses: CourseBunkData[]
-  lastSyncTime: number | null
-  isLoading: boolean
-  error: string | null
+  courses: CourseBunkData[];
+  lastSyncTime: number | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 export interface DutyLeaveInfo {
-  courseId: string
-  courseName: string
-  bunkId: string
-  date: string
-  timeSlot: string | null
-  note: string
+  courseId: string;
+  courseName: string;
+  bunkId: string;
+  date: string;
+  timeSlot: string | null;
+  note: string;
 }
 
 // ============================================================================
@@ -259,76 +268,76 @@ export interface DutyLeaveInfo {
 // ============================================================================
 
 export interface TimelineCourse {
-  id: number
-  fullname: string
-  shortname: string
-  viewurl: string
+  id: number;
+  fullname: string;
+  shortname: string;
+  viewurl: string;
 }
 
 export interface TimelineEventAction {
-  name: string
-  url: string
-  actionable: boolean
+  name: string;
+  url: string;
+  actionable: boolean;
 }
 
 export interface TimelineEvent {
-  id: number
-  name: string
-  activityname: string
-  activitystr: string
-  modulename: string
-  instance: number
-  eventtype: string
-  timestart: number
-  timesort: number
-  overdue: boolean
-  course: TimelineCourse
-  action: TimelineEventAction
-  url: string
-  purpose: string
+  id: number;
+  name: string;
+  activityname: string;
+  activitystr: string;
+  modulename: string;
+  instance: number;
+  eventtype: string;
+  timestart: number;
+  timesort: number;
+  overdue: boolean;
+  course: TimelineCourse;
+  action: TimelineEventAction;
+  url: string;
+  purpose: string;
 }
 
 export interface DashboardState {
-  events: TimelineEvent[]
-  lastSyncTime: number | null
-  isLoading: boolean
-  error: string | null
-  logs: DashboardLog[]
+  events: TimelineEvent[];
+  lastSyncTime: number | null;
+  isLoading: boolean;
+  error: string | null;
+  logs: DashboardLog[];
 }
 
 export interface DashboardLog {
-  id: string
-  timestamp: number
-  message: string
-  type: 'info' | 'error' | 'success'
+  id: string;
+  timestamp: number;
+  message: string;
+  type: "info" | "error" | "success";
 }
 
 export interface DashboardSettings {
-  refreshIntervalMinutes: number
-  reminders: number[]
-  notificationsEnabled: boolean
+  refreshIntervalMinutes: number;
+  reminders: number[];
+  notificationsEnabled: boolean;
 }
 
 // ============================================================================
 // TIMETABLE TYPES
 // ============================================================================
 
-export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface TimetableSlot {
-  id: string
-  courseId: string
-  courseName: string
-  dayOfWeek: DayOfWeek
-  startTime: string // "10:00"
-  endTime: string // "10:55"
-  sessionType: SessionType
+  id: string;
+  courseId: string;
+  courseName: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string; // "10:00"
+  endTime: string; // "10:55"
+  sessionType: SessionType;
 }
 
 export interface TimetableState {
-  slots: TimetableSlot[]
-  lastGeneratedAt: number | null
-  isLoading: boolean
+  slots: TimetableSlot[];
+  lastGeneratedAt: number | null;
+  isLoading: boolean;
 }
 
 // ============================================================================
@@ -336,39 +345,38 @@ export interface TimetableState {
 // ============================================================================
 
 export interface FacultyContact {
-  phone: string | null
-  email: string | null
-  room: string | null
+  phone: string | null;
+  email: string | null;
+  room: string | null;
 }
 
 export interface FacultyPage {
-  text: string | null
-  link: string | null
+  text: string | null;
+  link: string | null;
 }
 
 export interface Faculty {
-  id: string
-  name: string
-  designation: string
-  additionalRole: string | null
-  qualification: string | null
-  imageUrl: string | null
-  areas: string[]
-  contact: FacultyContact
-  page: FacultyPage
+  id: string;
+  name: string;
+  designation: string;
+  additionalRole: string | null;
+  qualification: string | null;
+  imageUrl: string | null;
+  areas: string[];
+  contact: FacultyContact;
+  page: FacultyPage;
 }
 
 export interface FacultyData {
-  faculties: Faculty[]
-  topFacultyIds: string[]
-  lastUpdated: number
+  faculties: Faculty[];
+  topFacultyIds: string[];
+  lastUpdated: number;
 }
 
 export interface FacultyState {
-  faculties: Faculty[]
-  topFacultyIds: string[]
-  recentSearches: string[]
-  isLoading: boolean
-  error: string | null
+  faculties: Faculty[];
+  topFacultyIds: string[];
+  recentSearches: string[];
+  isLoading: boolean;
+  error: string | null;
 }
-

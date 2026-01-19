@@ -1,45 +1,49 @@
-import { Button } from '@/components/ui/button'
-import { Container } from '@/components/ui/container'
-import { Input } from '@/components/ui/input'
-import { Colors, Spacing } from '@/constants/theme'
-import { useColorScheme } from '@/hooks/use-color-scheme'
-import { useAuthStore } from '@/stores/auth-store'
-import { router } from 'expo-router'
-import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
+import { Button } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
+import { Input } from "@/components/ui/input";
+import { Colors, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuthStore } from "@/stores/auth-store";
+import { router } from "expo-router";
+import { useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function LoginScreen() {
-  const colorScheme = useColorScheme()
-  const isDark = colorScheme === 'dark'
-  const theme = isDark ? Colors.dark : Colors.light
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const { login, isLoading, error, setError } = useAuthStore()
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const { login, isLoading, error, setError } = useAuthStore();
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      setError('Please enter both username and password')
-      return
+      setError("Please enter both username and password");
+      return;
     }
 
-    const success = await login(username.trim(), password)
+    const success = await login(username.trim(), password);
     if (success) {
-      router.replace('/(tabs)')
+      router.replace("/(tabs)");
     }
-  }
+  };
 
   return (
     <Container>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>
-              Bunkialo
-            </Text>
+            <Text style={[styles.title, { color: theme.text }]}>Bunkialo</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
               IIIT Kottayam LMS Attendance
             </Text>
@@ -63,15 +67,9 @@ export default function LoginScreen() {
               secureTextEntry
             />
 
-            {error && (
-              <Text style={styles.error}>{error}</Text>
-            )}
+            {error && <Text style={styles.error}>{error}</Text>}
 
-            <Button
-              title="Sign In"
-              onPress={handleLogin}
-              loading={isLoading}
-            />
+            <Button title="Sign In" onPress={handleLogin} loading={isLoading} />
           </View>
 
           <Text style={[styles.footer, { color: theme.textSecondary }]}>
@@ -80,7 +78,7 @@ export default function LoginScreen() {
         </View>
       </KeyboardAvoidingView>
     </Container>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -90,15 +88,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: Spacing.lg,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: Spacing.xxl,
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -1,
   },
   subtitle: {
@@ -111,11 +109,11 @@ const styles = StyleSheet.create({
   error: {
     color: Colors.status.danger,
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
   footer: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: Spacing.xxl,
   },
-})
+});

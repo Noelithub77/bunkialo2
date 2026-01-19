@@ -1,9 +1,9 @@
 import { Colors } from "@/constants/theme";
 import type {
-    DayOfWeek,
-    SessionType,
-    TimetableSlot,
-    TimetableState,
+  DayOfWeek,
+  SessionType,
+  TimetableSlot,
+  TimetableState,
 } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
