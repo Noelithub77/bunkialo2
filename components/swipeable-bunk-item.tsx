@@ -17,6 +17,7 @@ const formatDate = (dateStr: string): string => {
 interface SwipeableBunkItemProps {
     bunk: BunkRecord
     showHint?: boolean
+    isUnknown?: boolean
     onMarkDL: () => void
     onRemoveDL: () => void
     onMarkPresent: () => void
@@ -30,6 +31,7 @@ const ACTION_WIDTH = 80
 export function SwipeableBunkItem({
     bunk,
     showHint = false,
+    isUnknown = false,
     onMarkDL,
     onRemoveDL,
     onMarkPresent,
@@ -54,7 +56,10 @@ export function SwipeableBunkItem({
     }
 
     const handleRightAction = () => {
-        if (bunk.isDutyLeave) {
+        if (isUnknown) {
+            // for unknown: right swipe = confirm as absent
+            onMarkDL()
+        } else if (bunk.isDutyLeave) {
             onRemoveDL()
         } else {
             onMarkDL()
@@ -105,11 +110,11 @@ export function SwipeableBunkItem({
                 </View>
             </Animated.View>
 
-            {/* right action (DL) - revealed on swipe right */}
+            {/* right action (DL or Absent for unknown) - revealed on swipe right */}
             <Animated.View style={[styles.action, styles.rightAction, rightActionStyle]}>
-                <View style={[styles.actionInner, { backgroundColor: isDL ? Colors.gray[600] : Colors.status.info }]}>
-                    <Ionicons name={isDL ? 'close' : 'briefcase'} size={20} color={Colors.white} />
-                    <Text style={styles.actionText}>{isDL ? 'Undo' : 'DL'}</Text>
+                <View style={[styles.actionInner, { backgroundColor: isUnknown ? Colors.status.danger : (isDL ? Colors.gray[600] : Colors.status.info) }]}>
+                    <Ionicons name={isUnknown ? 'close-circle' : (isDL ? 'close' : 'briefcase')} size={20} color={Colors.white} />
+                    <Text style={styles.actionText}>{isUnknown ? 'Absent' : (isDL ? 'Undo' : 'DL')}</Text>
                 </View>
             </Animated.View>
 

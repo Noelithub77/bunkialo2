@@ -7,6 +7,7 @@ import { TotalAbsenceCalendar } from '@/components/total-absence-calendar'
 import { Container } from '@/components/ui/container'
 import { GradientCard } from '@/components/ui/gradient-card'
 import { UnifiedCourseCard } from '@/components/unified-course-card'
+import { UnknownStatusModal } from '@/components/unknown-status-modal'
 import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useAttendanceStore } from '@/stores/attendance-store'
@@ -66,6 +67,7 @@ export default function AttendanceScreen() {
   const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
   const [addBunkCourse, setAddBunkCourse] = useState<CourseBunkData | null>(null)
   const [showDLModal, setShowDLModal] = useState(false)
+  const [showUnknownModal, setShowUnknownModal] = useState(false)
   const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
   const [presencePromptBunk, setPresencePromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -187,6 +189,21 @@ export default function AttendanceScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => removePresenceCorrection(courseId, bunkId) },
     ])
+  }
+
+  // Unknown status handlers
+  const handleShowUnknown = () => {
+    setShowUnknownModal(true)
+  }
+
+  const handleConfirmUnknownPresent = (record: AttendanceRecord) => {
+    // Unknown confirmed as present - no bunk to track
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  }
+
+  const handleConfirmUnknownAbsent = (record: AttendanceRecord) => {
+    // Unknown confirmed as absent - would need to add as bunk
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
   }
 
   const renderHeader = () => (
@@ -363,6 +380,9 @@ export default function AttendanceScreen() {
               onMarkPresent={(bunkId) => handleMarkPresentCourses(item.courseId, bunkId)}
               onRemovePresent={(bunkId) => handleRemovePresent(item.courseId, bunkId)}
               onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
+              onShowUnknown={handleShowUnknown}
+              onConfirmUnknownPresent={handleConfirmUnknownPresent}
+              onConfirmUnknownAbsent={handleConfirmUnknownAbsent}
             />
           )
         }}
@@ -411,6 +431,20 @@ export default function AttendanceScreen() {
         courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
         onClose={() => setAddBunkCourse(null)}
         onAdd={handleAddBunk}
+      />
+
+      <UnknownStatusModal
+        visible={showUnknownModal}
+        courses={courses}
+        onClose={() => setShowUnknownModal(false)}
+        onConfirmPresent={(courseId, record) => {
+          handleConfirmUnknownPresent(record)
+          setShowUnknownModal(false)
+        }}
+        onConfirmAbsent={(courseId, record) => {
+          handleConfirmUnknownAbsent(record)
+          setShowUnknownModal(false)
+        }}
       />
     </Container>
   )
