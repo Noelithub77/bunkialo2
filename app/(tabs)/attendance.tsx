@@ -1,5 +1,6 @@
 import { AddBunkModal } from '@/components/add-bunk-modal'
 import { CourseEditModal } from '@/components/course-edit-modal'
+import { ConfirmModal } from '@/components/confirm-modal'
 import { DLInputModal } from '@/components/dl-input-modal'
 import { DutyLeaveModal } from '@/components/duty-leave-modal'
 import { PresenceInputModal } from '@/components/presence-input-modal'
@@ -17,9 +18,14 @@ import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 type TabType = 'courses' | 'absences'
+type ConfirmDialogState =
+  | { type: 'removeDL'; courseId: string; bunkId: string }
+  | { type: 'removePresent'; courseId: string; bunkId: string }
+  | { type: 'confirmUnknownAbsent'; courseId: string; record: AttendanceRecord }
+  | null
 
 const formatSyncTime = (timestamp: number | null): string => {
   if (!timestamp) return ''
@@ -80,6 +86,7 @@ export default function AttendanceScreen() {
   const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
   const [presencePromptBunk, setPresencePromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null)
 
   const allDutyLeaves = useMemo(() => selectAllDutyLeaves(bunkCourses), [bunkCourses])
 
@@ -191,10 +198,7 @@ export default function AttendanceScreen() {
 
   const handleMarkDLAbsences = (courseId: string, record: AttendanceRecord) => {
     if (record.status === 'Unknown') {
-      Alert.alert('Confirm Absent', 'This will add a bunk for this session.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', style: 'destructive', onPress: () => applyUnknownAbsent(courseId, record) },
-      ])
+      setConfirmDialog({ type: 'confirmUnknownAbsent', courseId, record })
       return
     }
     setPendingDL({ courseId, record })
@@ -244,10 +248,7 @@ export default function AttendanceScreen() {
   }
 
   const handleRemoveDL = (courseId: string, bunkId: string) => {
-    Alert.alert('Remove Duty Leave', 'This will count as a regular bunk again.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeDutyLeave(courseId, bunkId) },
-    ])
+    setConfirmDialog({ type: 'removeDL', courseId, bunkId })
   }
 
   const handleMarkPresentCourses = (courseId: string, bunkId: string) => {
@@ -267,10 +268,7 @@ export default function AttendanceScreen() {
   }
 
   const handleRemovePresent = (courseId: string, bunkId: string) => {
-    Alert.alert('Remove Presence Mark', 'This will count as an absence again.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removePresenceCorrection(courseId, bunkId) },
-    ])
+    setConfirmDialog({ type: 'removePresent', courseId, bunkId })
   }
 
   // Unknown status handlers
@@ -283,10 +281,7 @@ export default function AttendanceScreen() {
   }
 
   const handleConfirmUnknownAbsent = (courseId: string, record: AttendanceRecord) => {
-    Alert.alert('Confirm Absent', 'This will add a bunk for this session.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', style: 'destructive', onPress: () => applyUnknownAbsent(courseId, record) },
-    ])
+    setConfirmDialog({ type: 'confirmUnknownAbsent', courseId, record })
   }
 
   const renderHeader = () => (
@@ -534,6 +529,39 @@ export default function AttendanceScreen() {
         onConfirmAbsent={(courseId, record) => {
           handleConfirmUnknownAbsent(courseId, record)
           setShowUnknownModal(false)
+        }}
+      />
+
+      <ConfirmModal
+        visible={confirmDialog !== null}
+        title={
+          confirmDialog?.type === 'removeDL'
+            ? 'Remove Duty Leave'
+            : confirmDialog?.type === 'removePresent'
+              ? 'Remove Presence Mark'
+              : 'Confirm Absent'
+        }
+        message={
+          confirmDialog?.type === 'removeDL'
+            ? 'This will count as a regular bunk again.'
+            : confirmDialog?.type === 'removePresent'
+              ? 'This will count as an absence again.'
+              : 'This will add a bunk for this session.'
+        }
+        confirmText={confirmDialog?.type === 'confirmUnknownAbsent' ? 'Confirm' : 'Remove'}
+        variant="destructive"
+        icon="warning"
+        onCancel={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          if (!confirmDialog) return
+          if (confirmDialog.type === 'removeDL') {
+            removeDutyLeave(confirmDialog.courseId, confirmDialog.bunkId)
+          } else if (confirmDialog.type === 'removePresent') {
+            removePresenceCorrection(confirmDialog.courseId, confirmDialog.bunkId)
+          } else {
+            applyUnknownAbsent(confirmDialog.courseId, confirmDialog.record)
+          }
+          setConfirmDialog(null)
         }}
       />
     </Container>

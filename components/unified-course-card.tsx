@@ -282,15 +282,6 @@ export function UnifiedCourseCard({
     [displayRecords],
   );
 
-  // bunks for selected date
-  const selectedBunks = useMemo((): BunkRecord[] => {
-    if (!selectedDate || !bunkData) return [];
-    return pastBunks.filter((bunk) => {
-      const { date } = parseDateString(bunk.date);
-      return date === selectedDate;
-    });
-  }, [selectedDate, pastBunks, bunkData]);
-
   // Unknown records for selected date
   const selectedUnknown = useMemo((): AttendanceRecord[] => {
     if (!selectedDate) return [];

@@ -1,6 +1,6 @@
 import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Colors, Gradients, Radius, Spacing } from '@/constants/theme'
+import { Colors, Gradients, Radius } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 
 interface ButtonProps {
