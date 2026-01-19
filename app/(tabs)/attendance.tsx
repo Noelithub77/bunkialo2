@@ -409,25 +409,23 @@ export default function AttendanceScreen() {
                   color={isEditMode ? Colors.white : theme.textSecondary}
                 />
               </Pressable>
-              <Pressable
-                onPress={() => setShowDLModal(true)}
-                style={styles.dlButton}
-              >
-                <Ionicons
-                  name="briefcase-outline"
-                  size={20}
-                  color={Colors.status.info}
-                />
-                {allDutyLeaves.length > 0 && (
-                  <View style={styles.dlBadgeSmall}>
-                    <Text style={styles.dlBadgeText}>
-                      {allDutyLeaves.length}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
             </>
           )}
+          <Pressable
+            onPress={() => setShowDLModal(true)}
+            style={styles.dlButton}
+          >
+            <Ionicons
+              name="briefcase-outline"
+              size={20}
+              color={Colors.status.info}
+            />
+            {allDutyLeaves.length > 0 && (
+              <View style={styles.dlBadgeSmall}>
+                <Text style={styles.dlBadgeText}>{allDutyLeaves.length}</Text>
+              </View>
+            )}
+          </Pressable>
           <Pressable
             onPress={() => router.push("/settings")}
             style={styles.settingsButton}
@@ -566,6 +564,13 @@ export default function AttendanceScreen() {
           visible={!!pendingDL}
           onClose={() => setPendingDL(null)}
           onConfirm={handleConfirmDLAbsences}
+        />
+
+        <DutyLeaveModal
+          visible={showDLModal}
+          dutyLeaves={allDutyLeaves}
+          onClose={() => setShowDLModal(false)}
+          onRemove={handleRemoveDL}
         />
       </Container>
     );
