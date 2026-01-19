@@ -5,7 +5,7 @@ import { getBaseUrl as getBaseUrlFromStore } from "./baseurl";
 import { cookieStore } from "./cookie-store";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
-let currentBaseUrl = getBaseUrlFromStore();
+let currentBaseUrl = DEFAULT_BASE_URL; // lazy init to avoid circular dep
 
 // Re-auth state
 let isReauthenticating = false;
