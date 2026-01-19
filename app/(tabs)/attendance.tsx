@@ -1,19 +1,22 @@
-import { AttendanceCard } from '@/components/attendance-card'
+import { AddBunkModal } from '@/components/add-bunk-modal'
+import { CourseEditModal } from '@/components/course-edit-modal'
 import { DLInputModal } from '@/components/dl-input-modal'
+import { DutyLeaveModal } from '@/components/duty-leave-modal'
 import { PresenceInputModal } from '@/components/presence-input-modal'
 import { TotalAbsenceCalendar } from '@/components/total-absence-calendar'
 import { Container } from '@/components/ui/container'
 import { GradientCard } from '@/components/ui/gradient-card'
+import { UnifiedCourseCard } from '@/components/unified-course-card'
 import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useAttendanceStore } from '@/stores/attendance-store'
-import { useBunkStore } from '@/stores/bunk-store'
-import type { AttendanceRecord } from '@/types'
+import { getDisplayName, selectAllDutyLeaves, useBunkStore } from '@/stores/bunk-store'
+import type { AttendanceRecord, CourseBunkData, CourseConfig } from '@/types'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 type TabType = 'courses' | 'absences'
 
@@ -40,12 +43,34 @@ export default function AttendanceScreen() {
   const theme = isDark ? Colors.dark : Colors.light
 
   const { courses, isLoading, lastSyncTime, fetchAttendance } = useAttendanceStore()
-  const { courses: bunkCourses, markAsDutyLeave, markAsPresent, syncFromLms } = useBunkStore()
+  const {
+    courses: bunkCourses,
+    syncFromLms,
+    updateCourseConfig,
+    addBunk,
+    markAsDutyLeave,
+    removeDutyLeave,
+    markAsPresent,
+    removePresenceCorrection,
+    updateBunkNote,
+  } = useBunkStore()
 
   const [activeTab, setActiveTab] = useState<TabType>('absences')
   const [showTooltip, setShowTooltip] = useState(false)
+
+  // modals for "All Bunks" tab
   const [pendingDL, setPendingDL] = useState<{ courseId: string; record: AttendanceRecord } | null>(null)
   const [pendingPresent, setPendingPresent] = useState<{ courseId: string; record: AttendanceRecord } | null>(null)
+
+  // modals for "Courses" tab
+  const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
+  const [addBunkCourse, setAddBunkCourse] = useState<CourseBunkData | null>(null)
+  const [showDLModal, setShowDLModal] = useState(false)
+  const [dlPromptBunk, setDlPromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
+  const [presencePromptBunk, setPresencePromptBunk] = useState<{ courseId: string; bunkId: string } | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+
+  const allDutyLeaves = useMemo(() => selectAllDutyLeaves(bunkCourses), [bunkCourses])
 
   useEffect(() => {
     if (courses.length === 0) {
@@ -68,11 +93,7 @@ export default function AttendanceScreen() {
     setActiveTab(tab)
   }
 
-  // swipe action handlers
-  const handleMarkPresent = (courseId: string, record: AttendanceRecord) => {
-    setPendingPresent({ courseId, record })
-  }
-
+  // "All Bunks" tab handlers
   const findBunkId = useCallback((courseId: string, record: AttendanceRecord): string | null => {
     const course = bunkCourses.find((item) => item.courseId === courseId)
     if (!course) return null
@@ -80,7 +101,11 @@ export default function AttendanceScreen() {
     return bunk ? bunk.id : null
   }, [bunkCourses])
 
-  const handleConfirmPresent = (note: string) => {
+  const handleMarkPresentAbsences = (courseId: string, record: AttendanceRecord) => {
+    setPendingPresent({ courseId, record })
+  }
+
+  const handleConfirmPresentAbsences = (note: string) => {
     if (!pendingPresent) return
     const bunkId = findBunkId(pendingPresent.courseId, pendingPresent.record)
     if (!bunkId) {
@@ -92,11 +117,11 @@ export default function AttendanceScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
   }
 
-  const handleMarkDL = (courseId: string, record: AttendanceRecord) => {
+  const handleMarkDLAbsences = (courseId: string, record: AttendanceRecord) => {
     setPendingDL({ courseId, record })
   }
 
-  const handleConfirmDL = (note: string) => {
+  const handleConfirmDLAbsences = (note: string) => {
     if (!pendingDL) return
     const bunkId = findBunkId(pendingDL.courseId, pendingDL.record)
     if (!bunkId) {
@@ -106,6 +131,62 @@ export default function AttendanceScreen() {
     markAsDutyLeave(pendingDL.courseId, bunkId, note)
     setPendingDL(null)
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  }
+
+  // "Courses" tab handlers
+  const handleSaveConfig = (courseId: string, config: CourseConfig) => {
+    updateCourseConfig(courseId, config)
+  }
+
+  const handleAddBunk = (date: string, timeSlot: string, note: string) => {
+    if (addBunkCourse) {
+      addBunk(addBunkCourse.courseId, {
+        date,
+        description: 'Manual entry',
+        timeSlot,
+        note,
+        isDutyLeave: false,
+        dutyLeaveNote: '',
+        isMarkedPresent: false,
+        presenceNote: '',
+      })
+    }
+  }
+
+  const handleMarkDLCourses = (courseId: string, bunkId: string) => {
+    setDlPromptBunk({ courseId, bunkId })
+  }
+
+  const handleConfirmDLCourses = (note: string) => {
+    if (dlPromptBunk) {
+      markAsDutyLeave(dlPromptBunk.courseId, dlPromptBunk.bunkId, note)
+      setDlPromptBunk(null)
+    }
+  }
+
+  const handleRemoveDL = (courseId: string, bunkId: string) => {
+    Alert.alert('Remove Duty Leave', 'This will count as a regular bunk again.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removeDutyLeave(courseId, bunkId) },
+    ])
+  }
+
+  const handleMarkPresentCourses = (courseId: string, bunkId: string) => {
+    setPresencePromptBunk({ courseId, bunkId })
+  }
+
+  const handleConfirmPresenceCourses = (note: string) => {
+    if (presencePromptBunk) {
+      markAsPresent(presencePromptBunk.courseId, presencePromptBunk.bunkId, note)
+      setPresencePromptBunk(null)
+    }
+  }
+
+  const handleRemovePresent = (courseId: string, bunkId: string) => {
+    Alert.alert('Remove Presence Mark', 'This will count as an absence again.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removePresenceCorrection(courseId, bunkId) },
+    ])
   }
 
   const renderHeader = () => (
@@ -130,6 +211,24 @@ export default function AttendanceScreen() {
                 </View>
               )}
             </Pressable>
+          )}
+          {activeTab === 'courses' && (
+            <>
+              <Pressable
+                onPress={() => setIsEditMode(!isEditMode)}
+                style={[styles.editModeBtn, isEditMode && styles.editModeBtnActive, !isEditMode && { backgroundColor: theme.backgroundSecondary }]}
+              >
+                <Ionicons name="pencil" size={18} color={isEditMode ? Colors.white : theme.textSecondary} />
+              </Pressable>
+              <Pressable onPress={() => setShowDLModal(true)} style={styles.dlButton}>
+                <Ionicons name="briefcase-outline" size={20} color={Colors.status.info} />
+                {allDutyLeaves.length > 0 && (
+                  <View style={styles.dlBadgeSmall}>
+                    <Text style={styles.dlBadgeText}>{allDutyLeaves.length}</Text>
+                  </View>
+                )}
+              </Pressable>
+            </>
           )}
           <Pressable onPress={() => router.push('/settings')} style={styles.settingsButton}>
             <Ionicons name="settings-outline" size={20} color={theme.textSecondary} />
@@ -200,7 +299,7 @@ export default function AttendanceScreen() {
     )
   }
 
-  // absences tab content
+  // "All Bunks" tab content
   if (activeTab === 'absences') {
     return (
       <Container>
@@ -218,38 +317,55 @@ export default function AttendanceScreen() {
         >
           {renderHeader()}
           <GradientCard>
-            <TotalAbsenceCalendar onMarkPresent={handleMarkPresent} onMarkDL={handleMarkDL} />
+            <TotalAbsenceCalendar onMarkPresent={handleMarkPresentAbsences} onMarkDL={handleMarkDLAbsences} />
           </GradientCard>
         </ScrollView>
 
         <PresenceInputModal
           visible={!!pendingPresent}
           onClose={() => setPendingPresent(null)}
-          onConfirm={handleConfirmPresent}
+          onConfirm={handleConfirmPresentAbsences}
         />
 
         <DLInputModal
           visible={!!pendingDL}
           onClose={() => setPendingDL(null)}
-          onConfirm={handleConfirmDL}
+          onConfirm={handleConfirmDLAbsences}
         />
       </Container>
     )
   }
 
-  // courses tab content
+  // "Courses" tab content
   return (
     <Container>
       <FlatList
         data={courses}
         keyExtractor={(item) => item.courseId}
-        renderItem={({ item }) => (
-          <AttendanceCard
-            course={item}
-            onMarkPresent={(record) => handleMarkPresent(item.courseId, record)}
-            onMarkDL={(record) => handleMarkDL(item.courseId, record)}
-          />
-        )}
+        renderItem={({ item }) => {
+          const bunkData = bunkCourses.find((c) => c.courseId === item.courseId)
+          return (
+            <UnifiedCourseCard
+              course={item}
+              bunkData={bunkData}
+              isEditMode={isEditMode}
+              onEdit={() => {
+                if (bunkData) {
+                  setEditCourse(bunkData)
+                  setIsEditMode(false)
+                }
+              }}
+              onAddBunk={() => {
+                if (bunkData) setAddBunkCourse(bunkData)
+              }}
+              onMarkDL={(bunkId) => handleMarkDLCourses(item.courseId, bunkId)}
+              onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
+              onMarkPresent={(bunkId) => handleMarkPresentCourses(item.courseId, bunkId)}
+              onRemovePresent={(bunkId) => handleRemovePresent(item.courseId, bunkId)}
+              onUpdateNote={(bunkId, note) => updateBunkNote(item.courseId, bunkId, note)}
+            />
+          )
+        }}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
@@ -264,16 +380,37 @@ export default function AttendanceScreen() {
         }
       />
 
-      <PresenceInputModal
-        visible={!!pendingPresent}
-        onClose={() => setPendingPresent(null)}
-        onConfirm={handleConfirmPresent}
+      <CourseEditModal
+        visible={!!editCourse}
+        course={editCourse}
+        onClose={() => setEditCourse(null)}
+        onSave={handleSaveConfig}
+      />
+
+      <DutyLeaveModal
+        visible={showDLModal}
+        dutyLeaves={allDutyLeaves}
+        onClose={() => setShowDLModal(false)}
+        onRemove={handleRemoveDL}
       />
 
       <DLInputModal
-        visible={!!pendingDL}
-        onClose={() => setPendingDL(null)}
-        onConfirm={handleConfirmDL}
+        visible={!!dlPromptBunk}
+        onClose={() => setDlPromptBunk(null)}
+        onConfirm={handleConfirmDLCourses}
+      />
+
+      <PresenceInputModal
+        visible={!!presencePromptBunk}
+        onClose={() => setPresencePromptBunk(null)}
+        onConfirm={handleConfirmPresenceCourses}
+      />
+
+      <AddBunkModal
+        visible={!!addBunkCourse}
+        courseName={addBunkCourse ? getDisplayName(addBunkCourse) : ''}
+        onClose={() => setAddBunkCourse(null)}
+        onAdd={handleAddBunk}
       />
     </Container>
   )
@@ -313,6 +450,35 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: Spacing.sm,
+  },
+  editModeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editModeBtnActive: {
+    backgroundColor: Colors.status.info,
+  },
+  dlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+  },
+  dlBadgeSmall: {
+    backgroundColor: Colors.status.info,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  dlBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '600',
   },
   tooltip: {
     position: 'absolute',
@@ -362,10 +528,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-  },
-  absencesContainer: {
-    flex: 1,
-    padding: Spacing.md,
   },
   scrollView: {
     flex: 1,

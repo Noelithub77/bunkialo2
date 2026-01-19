@@ -52,6 +52,7 @@ export function CourseEditModal({ visible, course, onClose, onSave }: CourseEdit
       onSave(course.courseId, {
         credits: creditNum,
         alias: alias.trim() || course.courseName,
+        courseCode: course.config?.courseCode || '',
         color: selectedColor,
       })
       onClose()
@@ -138,9 +139,6 @@ export function CourseEditModal({ visible, course, onClose, onSave }: CourseEdit
                   </Text>
                   <Text style={[styles.previewValue, { color: theme.text }]}>
                     {totalBunks}
-                  </Text>
-                  <Text style={[styles.formula, { color: theme.textSecondary }]}>
-                    (2 x {credits}) + 1
                   </Text>
                 </View>
               )}
