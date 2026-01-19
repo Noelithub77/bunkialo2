@@ -48,7 +48,9 @@ export function SwipeableBunkItem({
     const translateX = useSharedValue(0)
 
     const handleLeftAction = () => {
-        if (bunk.isMarkedPresent) {
+        if (isUnknown) {
+            onMarkPresent()
+        } else if (bunk.isMarkedPresent) {
             onRemovePresent()
         } else {
             onMarkPresent()
@@ -99,6 +101,7 @@ export function SwipeableBunkItem({
     const isPresent = bunk.isMarkedPresent
     const isDL = bunk.isDutyLeave
     const itemOpacity = isPresent ? 0.5 : 1
+    const rightHintColor = isUnknown ? Colors.status.danger : Colors.status.info
 
     return (
         <View style={[styles.container, { borderBottomColor: theme.border }]}>
@@ -121,7 +124,7 @@ export function SwipeableBunkItem({
             {/* main content */}
             <GestureDetector gesture={panGesture}>
                 <Animated.View style={[styles.content, { backgroundColor: theme.background }, animatedStyle]}>
-                    <Pressable onPress={() => setShowNote(!showNote)} style={{ opacity: itemOpacity }}>
+                    <Pressable onPress={() => { if (!isUnknown) setShowNote(!showNote) }} style={{ opacity: itemOpacity }}>
                         <View style={styles.row}>
                             {/* source tag */}
                             <View style={[styles.sourceTag, { backgroundColor: bunk.source === 'lms' ? Colors.status.info : Colors.status.warning }]}>
@@ -163,14 +166,14 @@ export function SwipeableBunkItem({
                             {!isPresent && !isDL && (
                                 <View style={styles.swipeHints}>
                                     <Ionicons name="chevron-back" size={12} color={Colors.status.success} />
-                                    <Ionicons name="chevron-forward" size={12} color={Colors.status.info} />
+                                    <Ionicons name="chevron-forward" size={12} color={rightHintColor} />
                                 </View>
                             )}
                         </View>
                     </Pressable>
 
                     {/* expanded note section */}
-                    {showNote && (
+                    {showNote && !isUnknown && (
                         <View style={styles.noteSection}>
                             {isPresent && bunk.presenceNote && (
                                 <Text style={[styles.noteDisplay, { color: Colors.status.success }]}>

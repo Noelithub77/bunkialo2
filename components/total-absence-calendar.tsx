@@ -38,6 +38,9 @@ const parseDateString = (dateStr: string): { date: string | null; time: string |
     return { date: `${year}-${month}-${day.padStart(2, '0')}`, time }
 }
 
+const buildRecordKey = (date: string, description: string): string =>
+    `${date.trim()}-${description.trim()}`
+
 interface TotalAbsenceCalendarProps {
     onMarkPresent?: (courseId: string, record: AttendanceRecord) => void
     onMarkDL?: (courseId: string, record: AttendanceRecord) => void
@@ -57,15 +60,28 @@ export function TotalAbsenceCalendar({ onMarkPresent, onMarkDL }: TotalAbsenceCa
     const { markedDates, absenceMap } = useMemo(() => {
         const marked: MarkedDates = {}
         const absMap = new Map<string, AbsenceInfo[]>()
+        const resolvedKeysByCourse = new Map<string, Set<string>>()
+
+        for (const course of bunkCourses) {
+            const keys = new Set<string>()
+            for (const bunk of course.bunks) {
+                keys.add(buildRecordKey(bunk.date, bunk.description))
+            }
+            resolvedKeysByCourse.set(course.courseId, keys)
+        }
 
         for (const course of attendanceCourses) {
             const bunkCourse = bunkCourses.find(c => c.courseId === course.courseId)
             const courseName = bunkCourse?.config?.alias || course.courseName
             const courseColor = bunkCourse?.config?.color || Colors.courseColors[0]
+            const resolvedKeys = resolvedKeysByCourse.get(course.courseId)
 
             for (const record of course.records) {
                 // only absences
                 if (record.status !== 'Absent' && record.status !== 'Unknown') continue
+                if (record.status === 'Unknown' && resolvedKeys?.has(buildRecordKey(record.date, record.description))) {
+                    continue
+                }
 
                 const { date, time } = parseDateString(record.date)
                 if (!date) continue
@@ -148,7 +164,7 @@ export function TotalAbsenceCalendar({ onMarkPresent, onMarkDL }: TotalAbsenceCa
                             {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </Text>
                         <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
-                            Swipe left = Present · Swipe right = DL
+                            Swipe left = Present · Swipe right = DL/Absent
                         </Text>
                         <ScrollView style={styles.scrollList} showsVerticalScrollIndicator={false}>
                             {selectedAbsences.map((absence, idx) => (

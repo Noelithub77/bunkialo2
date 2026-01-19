@@ -38,6 +38,14 @@ const formatSyncTime = (timestamp: number | null): string => {
   return `${day} ${month}`
 }
 
+const parseTimeSlot = (dateStr: string): string | null => {
+  const timeMatch = dateStr.match(/(\d{1,2}(?::\d{2})?(?:AM|PM)\s*-\s*\d{1,2}(?::\d{2})?(?:AM|PM))/i)
+  return timeMatch ? timeMatch[1] : null
+}
+
+const buildRecordKey = (date: string, description: string): string =>
+  `${date.trim()}-${description.trim()}`
+
 export default function AttendanceScreen() {
   const colorScheme = useColorScheme()
   const isDark = colorScheme === 'dark'
@@ -62,6 +70,7 @@ export default function AttendanceScreen() {
   // modals for "All Bunks" tab
   const [pendingDL, setPendingDL] = useState<{ courseId: string; record: AttendanceRecord } | null>(null)
   const [pendingPresent, setPendingPresent] = useState<{ courseId: string; record: AttendanceRecord } | null>(null)
+  const [pendingUnknownPresent, setPendingUnknownPresent] = useState<{ courseId: string; record: AttendanceRecord } | null>(null)
 
   // modals for "Courses" tab
   const [editCourse, setEditCourse] = useState<CourseBunkData | null>(null)
@@ -96,18 +105,79 @@ export default function AttendanceScreen() {
   }
 
   // "All Bunks" tab handlers
-  const findBunkId = useCallback((courseId: string, record: AttendanceRecord): string | null => {
+  const findMatchingBunk = useCallback((courseId: string, record: AttendanceRecord) => {
     const course = bunkCourses.find((item) => item.courseId === courseId)
     if (!course) return null
-    const bunk = course.bunks.find((item) => item.date === record.date && item.description === record.description)
-    return bunk ? bunk.id : null
+    const recordKey = buildRecordKey(record.date, record.description)
+    return course.bunks.find((item) => buildRecordKey(item.date, item.description) === recordKey) || null
   }, [bunkCourses])
 
+  const findBunkId = useCallback((courseId: string, record: AttendanceRecord): string | null => {
+    const bunk = findMatchingBunk(courseId, record)
+    return bunk ? bunk.id : null
+  }, [findMatchingBunk])
+
+  const applyUnknownPresent = useCallback((courseId: string, record: AttendanceRecord, note: string) => {
+    const existingBunk = findMatchingBunk(courseId, record)
+    if (existingBunk) {
+      if (existingBunk.isDutyLeave) {
+        removeDutyLeave(courseId, existingBunk.id)
+      }
+      markAsPresent(courseId, existingBunk.id, note)
+    } else {
+      addBunk(courseId, {
+        date: record.date,
+        description: record.description,
+        timeSlot: parseTimeSlot(record.date),
+        note: '',
+        isDutyLeave: false,
+        dutyLeaveNote: '',
+        isMarkedPresent: true,
+        presenceNote: note,
+      })
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  }, [addBunk, findMatchingBunk, markAsPresent, removeDutyLeave])
+
+  const applyUnknownAbsent = useCallback((courseId: string, record: AttendanceRecord) => {
+    const existingBunk = findMatchingBunk(courseId, record)
+    if (existingBunk) {
+      if (existingBunk.isMarkedPresent) {
+        removePresenceCorrection(courseId, existingBunk.id)
+      }
+      if (existingBunk.isDutyLeave) {
+        removeDutyLeave(courseId, existingBunk.id)
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      return
+    }
+    addBunk(courseId, {
+      date: record.date,
+      description: record.description,
+      timeSlot: parseTimeSlot(record.date),
+      note: '',
+      isDutyLeave: false,
+      dutyLeaveNote: '',
+      isMarkedPresent: false,
+      presenceNote: '',
+    })
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  }, [addBunk, findMatchingBunk, removeDutyLeave, removePresenceCorrection])
+
   const handleMarkPresentAbsences = (courseId: string, record: AttendanceRecord) => {
+    if (record.status === 'Unknown') {
+      setPendingUnknownPresent({ courseId, record })
+      return
+    }
     setPendingPresent({ courseId, record })
   }
 
   const handleConfirmPresentAbsences = (note: string) => {
+    if (pendingUnknownPresent) {
+      applyUnknownPresent(pendingUnknownPresent.courseId, pendingUnknownPresent.record, note)
+      setPendingUnknownPresent(null)
+      return
+    }
     if (!pendingPresent) return
     const bunkId = findBunkId(pendingPresent.courseId, pendingPresent.record)
     if (!bunkId) {
@@ -120,6 +190,13 @@ export default function AttendanceScreen() {
   }
 
   const handleMarkDLAbsences = (courseId: string, record: AttendanceRecord) => {
+    if (record.status === 'Unknown') {
+      Alert.alert('Confirm Absent', 'This will add a bunk for this session.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Confirm', style: 'destructive', onPress: () => applyUnknownAbsent(courseId, record) },
+      ])
+      return
+    }
     setPendingDL({ courseId, record })
   }
 
@@ -181,6 +258,11 @@ export default function AttendanceScreen() {
     if (presencePromptBunk) {
       markAsPresent(presencePromptBunk.courseId, presencePromptBunk.bunkId, note)
       setPresencePromptBunk(null)
+      return
+    }
+    if (pendingUnknownPresent) {
+      applyUnknownPresent(pendingUnknownPresent.courseId, pendingUnknownPresent.record, note)
+      setPendingUnknownPresent(null)
     }
   }
 
@@ -192,18 +274,19 @@ export default function AttendanceScreen() {
   }
 
   // Unknown status handlers
-  const handleShowUnknown = () => {
+  const handleShowUnknown = (_courseId: string) => {
     setShowUnknownModal(true)
   }
 
-  const handleConfirmUnknownPresent = (record: AttendanceRecord) => {
-    // Unknown confirmed as present - no bunk to track
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  const handleConfirmUnknownPresent = (courseId: string, record: AttendanceRecord) => {
+    setPendingUnknownPresent({ courseId, record })
   }
 
-  const handleConfirmUnknownAbsent = (record: AttendanceRecord) => {
-    // Unknown confirmed as absent - would need to add as bunk
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  const handleConfirmUnknownAbsent = (courseId: string, record: AttendanceRecord) => {
+    Alert.alert('Confirm Absent', 'This will add a bunk for this session.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', style: 'destructive', onPress: () => applyUnknownAbsent(courseId, record) },
+    ])
   }
 
   const renderHeader = () => (
@@ -339,8 +422,11 @@ export default function AttendanceScreen() {
         </ScrollView>
 
         <PresenceInputModal
-          visible={!!pendingPresent}
-          onClose={() => setPendingPresent(null)}
+          visible={!!pendingPresent || !!pendingUnknownPresent}
+          onClose={() => {
+            setPendingPresent(null)
+            setPendingUnknownPresent(null)
+          }}
           onConfirm={handleConfirmPresentAbsences}
         />
 
@@ -421,8 +507,11 @@ export default function AttendanceScreen() {
       />
 
       <PresenceInputModal
-        visible={!!presencePromptBunk}
-        onClose={() => setPresencePromptBunk(null)}
+        visible={!!presencePromptBunk || !!pendingUnknownPresent}
+        onClose={() => {
+          setPresencePromptBunk(null)
+          setPendingUnknownPresent(null)
+        }}
         onConfirm={handleConfirmPresenceCourses}
       />
 
@@ -436,13 +525,14 @@ export default function AttendanceScreen() {
       <UnknownStatusModal
         visible={showUnknownModal}
         courses={courses}
+        bunkCourses={bunkCourses}
         onClose={() => setShowUnknownModal(false)}
         onConfirmPresent={(courseId, record) => {
-          handleConfirmUnknownPresent(record)
+          handleConfirmUnknownPresent(courseId, record)
           setShowUnknownModal(false)
         }}
         onConfirmAbsent={(courseId, record) => {
-          handleConfirmUnknownAbsent(record)
+          handleConfirmUnknownAbsent(courseId, record)
           setShowUnknownModal(false)
         }}
       />

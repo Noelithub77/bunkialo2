@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Colors, Radius, Spacing } from '@/constants/theme'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import type { AttendanceRecord, CourseAttendance } from '@/types'
+import type { AttendanceRecord, CourseAttendance, CourseBunkData } from '@/types'
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo } from 'react'
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -9,6 +9,7 @@ import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native
 interface UnknownStatusModalProps {
     visible: boolean
     courses: CourseAttendance[]
+    bunkCourses?: CourseBunkData[]
     onClose: () => void
     onConfirmPresent: (courseId: string, record: AttendanceRecord) => void
     onConfirmAbsent: (courseId: string, record: AttendanceRecord) => void
@@ -33,6 +34,9 @@ const parseTime = (dateStr: string): string | null => {
     return timeMatch ? timeMatch[1] : null
 }
 
+const buildRecordKey = (date: string, description: string): string =>
+    `${date.trim()}-${description.trim()}`
+
 // filter past records
 const filterPast = (records: AttendanceRecord[]): AttendanceRecord[] => {
     const today = new Date()
@@ -55,6 +59,7 @@ const filterPast = (records: AttendanceRecord[]): AttendanceRecord[] => {
 export function UnknownStatusModal({
     visible,
     courses,
+    bunkCourses,
     onClose,
     onConfirmPresent,
     onConfirmAbsent,
@@ -64,15 +69,41 @@ export function UnknownStatusModal({
     const theme = isDark ? Colors.dark : Colors.light
 
     // collect all unknown entries
+    const resolvedKeysByCourse = useMemo(() => {
+        const map = new Map<string, Set<string>>()
+        if (!bunkCourses) return map
+        for (const course of bunkCourses) {
+            const keys = new Set<string>()
+            for (const bunk of course.bunks) {
+                keys.add(buildRecordKey(bunk.date, bunk.description))
+            }
+            map.set(course.courseId, keys)
+        }
+        return map
+    }, [bunkCourses])
+
+    const courseNameById = useMemo(() => {
+        const map = new Map<string, string>()
+        if (!bunkCourses) return map
+        for (const course of bunkCourses) {
+            map.set(course.courseId, course.config?.alias || course.courseName)
+        }
+        return map
+    }, [bunkCourses])
+
     const unknownEntries = useMemo((): UnknownEntry[] => {
         const entries: UnknownEntry[] = []
         for (const course of courses) {
             const pastRecords = filterPast(course.records)
             for (const record of pastRecords) {
                 if (record.status === 'Unknown') {
+                    const resolvedKeys = resolvedKeysByCourse.get(course.courseId)
+                    if (resolvedKeys?.has(buildRecordKey(record.date, record.description))) {
+                        continue
+                    }
                     entries.push({
                         courseId: course.courseId,
-                        courseName: course.courseName,
+                        courseName: courseNameById.get(course.courseId) || course.courseName,
                         record,
                     })
                 }
@@ -84,7 +115,7 @@ export function UnknownStatusModal({
             const dateB = b.record.date
             return dateB.localeCompare(dateA)
         })
-    }, [courses])
+    }, [courses, courseNameById, resolvedKeysByCourse])
 
     const renderItem = ({ item }: { item: UnknownEntry }) => {
         const time = parseTime(item.record.date)

@@ -63,6 +63,9 @@ const parseDateString = (dateStr: string): string | null => {
   return `${year}-${month}-${day.padStart(2, "0")}`;
 };
 
+const buildBunkKey = (date: string, description: string): string =>
+  `${date.trim()}-${description.trim()}`;
+
 // check if date is today or past
 const isPastOrToday = (dateStr: string): boolean => {
   const parsed = parseDateString(dateStr);
@@ -114,18 +117,29 @@ export const useBunkStore = create<BunkState & BunkActions>()(
 
             if (existing) {
               // merge: keep user bunks, update LMS bunks, preserve notes/DL status
+              const lmsKeys = new Set(
+                lmsBunks.map((b) => buildBunkKey(b.date, b.description)),
+              );
               const userBunks = existing.bunks.filter(
-                (b) => b.source === "user",
+                (b) =>
+                  b.source === "user" &&
+                  !lmsKeys.has(buildBunkKey(b.date, b.description)),
               );
 
               const mergedLmsBunks = lmsBunks.map((newBunk) => {
+                const bunkKey = buildBunkKey(newBunk.date, newBunk.description);
                 // find matching existing bunk by date+description
-                const oldBunk = existing.bunks.find(
-                  (b) =>
-                    b.source === "lms" &&
-                    b.date === newBunk.date &&
-                    b.description === newBunk.description,
-                );
+                const oldBunk =
+                  existing.bunks.find(
+                    (b) =>
+                      b.source === "lms" &&
+                      buildBunkKey(b.date, b.description) === bunkKey,
+                  ) ||
+                  existing.bunks.find(
+                    (b) =>
+                      b.source === "user" &&
+                      buildBunkKey(b.date, b.description) === bunkKey,
+                  );
                 if (oldBunk) {
                   return {
                     ...newBunk,

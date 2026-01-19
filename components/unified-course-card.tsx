@@ -31,8 +31,8 @@ interface UnifiedCourseCardProps {
   onRemovePresent: (bunkId: string) => void;
   onUpdateNote: (bunkId: string, note: string) => void;
   onShowUnknown: (courseId: string) => void;
-  onConfirmUnknownPresent: (record: AttendanceRecord) => void;
-  onConfirmUnknownAbsent: (record: AttendanceRecord) => void;
+  onConfirmUnknownPresent: (courseId: string, record: AttendanceRecord) => void;
+  onConfirmUnknownAbsent: (courseId: string, record: AttendanceRecord) => void;
 }
 
 // 80% threshold
@@ -103,6 +103,9 @@ const parseDateString = (
 
   return { date: `${year}-${month}-${day.padStart(2, "0")}`, time };
 };
+
+const buildRecordKey = (record: AttendanceRecord): string =>
+  `${record.date.trim()}-${record.description.trim()}`;
 
 // filter records up to today only
 const filterPastRecords = (records: AttendanceRecord[]): AttendanceRecord[] => {
@@ -223,7 +226,31 @@ export function UnifiedCourseCard({
   );
   const totalSessions = pastRecords.length;
   const attended = pastRecords.filter((r) => r.status === "Present").length;
-  const unknownCount = pastRecords.filter((r) => r.status === "Unknown").length;
+
+  const bunkKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!bunkData) return keys;
+    for (const bunk of bunkData.bunks) {
+      keys.add(`${bunk.date.trim()}-${bunk.description.trim()}`);
+    }
+    return keys;
+  }, [bunkData]);
+
+  const displayRecords = useMemo(
+    () =>
+      pastRecords.filter(
+        (record) =>
+          record.status !== "Unknown" || !bunkKeys.has(buildRecordKey(record)),
+      ),
+    [pastRecords, bunkKeys],
+  );
+
+  const unresolvedUnknown = useMemo(
+    () => displayRecords.filter((record) => record.status === "Unknown"),
+    [displayRecords],
+  );
+
+  const unknownCount = unresolvedUnknown.length;
   const percentage =
     totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
   const percentageColor = getPercentageColor(percentage);
@@ -247,12 +274,12 @@ export function UnifiedCourseCard({
 
   // calendar data - only Absent and Unknown
   const markedDates = useMemo(
-    () => buildMarkedDates(pastRecords, selectedDate),
-    [pastRecords, selectedDate],
+    () => buildMarkedDates(displayRecords, selectedDate),
+    [displayRecords, selectedDate],
   );
   const initialDate = useMemo(
-    () => getMostRecentDate(pastRecords),
-    [pastRecords],
+    () => getMostRecentDate(displayRecords),
+    [displayRecords],
   );
 
   // bunks for selected date
@@ -267,12 +294,11 @@ export function UnifiedCourseCard({
   // Unknown records for selected date
   const selectedUnknown = useMemo((): AttendanceRecord[] => {
     if (!selectedDate) return [];
-    return pastRecords.filter((r) => {
-      if (r.status !== "Unknown") return false;
-      const { date } = parseDateString(r.date);
+    return unresolvedUnknown.filter((record) => {
+      const { date } = parseDateString(record.date);
       return date === selectedDate;
     });
-  }, [selectedDate, pastRecords]);
+  }, [selectedDate, unresolvedUnknown]);
 
   const handleCardPress = () => {
     if (isEditMode) {
@@ -498,8 +524,9 @@ export function UnifiedCourseCard({
               </Text>
               {selectedUnknown.map((record, idx) => {
                 const { time } = parseDateString(record.date);
+                const recordKey = buildRecordKey(record);
                 const fakeBunk: BunkRecord = {
-                  id: `unknown-${idx}`,
+                  id: recordKey || `unknown-${idx}`,
                   date: record.date,
                   description: record.description,
                   timeSlot: time,
@@ -515,9 +542,9 @@ export function UnifiedCourseCard({
                     key={fakeBunk.id}
                     bunk={fakeBunk}
                     isUnknown
-                    onMarkDL={() => onConfirmUnknownAbsent(record)}
+                    onMarkDL={() => onConfirmUnknownAbsent(course.courseId, record)}
                     onRemoveDL={() => {}}
-                    onMarkPresent={() => onConfirmUnknownPresent(record)}
+                    onMarkPresent={() => onConfirmUnknownPresent(course.courseId, record)}
                     onRemovePresent={() => {}}
                     onUpdateNote={() => {}}
                   />

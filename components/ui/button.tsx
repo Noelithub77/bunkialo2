@@ -8,7 +8,7 @@ interface ButtonProps {
   onPress: () => void
   loading?: boolean
   disabled?: boolean
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   style?: ViewStyle
 }
 
@@ -62,6 +62,27 @@ export function Button({
           <Text style={[styles.secondaryText, { color: isDark ? Colors.white : Colors.black }]}>
             {title}
           </Text>
+        )}
+      </Pressable>
+    )
+  }
+
+  if (variant === 'danger') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          styles.danger,
+          pressed && styles.pressed,
+          isDisabled && styles.disabled,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={Colors.white} />
+        ) : (
+          <Text style={styles.text}>{title}</Text>
         )}
       </Pressable>
     )
@@ -136,5 +157,14 @@ const styles = StyleSheet.create({
   ghostText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  danger: {
+    height: 52,
+    borderRadius: Radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.status.danger,
+    borderWidth: 1,
+    borderColor: Colors.status.danger,
   },
 })

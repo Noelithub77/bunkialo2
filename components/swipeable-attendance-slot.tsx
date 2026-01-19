@@ -59,54 +59,22 @@ export function SwipeableAttendanceSlot({
     }
 
     const handleLeftAction = () => {
-        console.log('[SwipeableAttendanceSlot] Left action triggered', {
-            onMarkPresentType: typeof onMarkPresent
-        })
         triggerHaptic()
-        if (typeof onMarkPresent === 'function') {
-            onMarkPresent()
-        } else {
-            console.warn('[SwipeableAttendanceSlot] onMarkPresent is not a function!')
-        }
+        onMarkPresent()
     }
 
     const handleRightAction = () => {
-        console.log('[SwipeableAttendanceSlot] Right action triggered', {
-            onMarkDLType: typeof onMarkDL
-        })
         triggerHaptic()
-        if (typeof onMarkDL === 'function') {
-            onMarkDL()
-        } else {
-            console.warn('[SwipeableAttendanceSlot] onMarkDL is not a function!')
-        }
-    }
-
-    const logGestureStart = () => {
-        console.log('[SwipeableAttendanceSlot] Pan gesture started')
-    }
-
-    const logGestureEnd = (translationX: number) => {
-        console.log('[SwipeableAttendanceSlot] Pan gesture ended', {
-            translationX,
-            threshold: SWIPE_THRESHOLD,
-            willTriggerLeft: translationX < -SWIPE_THRESHOLD,
-            willTriggerRight: translationX > SWIPE_THRESHOLD
-        })
+        onMarkDL()
     }
 
     const panGesture = Gesture.Pan()
         .activeOffsetX([-10, 10])
         .failOffsetY([-15, 15])
-        .onStart(() => {
-            'worklet'
-            runOnJS(logGestureStart)()
-        })
         .onUpdate((e) => {
             translateX.value = Math.max(-ACTION_WIDTH, Math.min(ACTION_WIDTH, e.translationX))
         })
         .onEnd((e) => {
-            runOnJS(logGestureEnd)(e.translationX)
             if (e.translationX < -SWIPE_THRESHOLD) {
                 runOnJS(handleLeftAction)()
             } else if (e.translationX > SWIPE_THRESHOLD) {
@@ -131,6 +99,9 @@ export function SwipeableAttendanceSlot({
     const statusIcon = getStatusIcon(record.status)
     const isUnknown = record.status === 'Unknown'
     const isAbsent = record.status === 'Absent'
+    const rightActionLabel = isUnknown ? 'Absent' : 'DL'
+    const rightActionIcon = isUnknown ? 'close-circle' : 'briefcase'
+    const rightActionColor = isUnknown ? Colors.status.danger : Colors.status.info
 
     return (
         <View style={[styles.container, { borderBottomColor: theme.border }]}>
@@ -142,11 +113,11 @@ export function SwipeableAttendanceSlot({
                 </View>
             </Animated.View>
 
-            {/* right action (mark DL) */}
+            {/* right action (mark DL or Absent for Unknown) */}
             <Animated.View style={[styles.action, styles.rightAction, rightActionStyle]}>
-                <View style={[styles.actionInner, { backgroundColor: Colors.status.info }]}>
-                    <Ionicons name="briefcase" size={20} color={Colors.white} />
-                    <Text style={styles.actionText}>DL</Text>
+                <View style={[styles.actionInner, { backgroundColor: rightActionColor }]}>
+                    <Ionicons name={rightActionIcon} size={20} color={Colors.white} />
+                    <Text style={styles.actionText}>{rightActionLabel}</Text>
                 </View>
             </Animated.View>
 
@@ -178,7 +149,7 @@ export function SwipeableAttendanceSlot({
                             {(isAbsent || isUnknown) && (
                                 <View style={styles.swipeHints}>
                                     <Ionicons name="chevron-back" size={12} color={Colors.status.success} />
-                                    <Ionicons name="chevron-forward" size={12} color={Colors.status.info} />
+                                    <Ionicons name="chevron-forward" size={12} color={isUnknown ? Colors.status.danger : Colors.status.info} />
                                 </View>
                             )}
                         </View>
