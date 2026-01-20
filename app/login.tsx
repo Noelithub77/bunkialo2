@@ -51,7 +51,7 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <Input
-              label="Rollno."
+              label="username"
               placeholder="Enter your rollno."
               value={username}
               onChangeText={setUsername}

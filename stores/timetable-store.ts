@@ -1,9 +1,9 @@
 import { Colors } from "@/constants/theme";
 import type {
-  DayOfWeek,
-  SessionType,
-  TimetableSlot,
-  TimetableState,
+    DayOfWeek,
+    SessionType,
+    TimetableSlot,
+    TimetableState,
 } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -52,10 +52,34 @@ const parseSlotTime = (
   };
 };
 
-const getSessionType = (desc: string): SessionType => {
+// calculate duration between two times in minutes
+const calculateDuration = (startTime: string, endTime: string): number => {
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
+
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+
+  return endMinutes - startMinutes;
+};
+
+const getSessionType = (
+  desc: string,
+  startTime?: string,
+  endTime?: string,
+): SessionType => {
   const lower = desc.toLowerCase();
+  // first check description for explicit mentions
   if (lower.includes("lab")) return "lab";
   if (lower.includes("tutorial")) return "tutorial";
+
+  // auto-detect based on duration if times are provided
+  if (startTime && endTime) {
+    const duration = calculateDuration(startTime, endTime);
+    // 2-hour slots (typically 110-120 minutes) are labs
+    if (duration >= 110) return "lab";
+  }
+
   return "regular";
 };
 
@@ -105,7 +129,11 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
                 dayOfWeek: parsed.dayOfWeek,
                 startTime: parsed.startTime,
                 endTime: parsed.endTime,
-                sessionType: getSessionType(record.description),
+                sessionType: getSessionType(
+                  record.description,
+                  parsed.startTime,
+                  parsed.endTime,
+                ),
               });
             }
           }

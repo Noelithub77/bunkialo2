@@ -6,7 +6,7 @@
 
 **LMS**: `https://lmsug24.iiitkottayam.ac.in`
 
-**Key Features**: Secure auth, Dashboard with timeline, Attendance tracking, Background refresh, Local notifications, Offline cache.
+**Key Features**: Secure auth, Dashboard with timeline, Attendance tracking, Bunk management, Timetable generation, Mess menu, Background refresh, Local notifications, Offline cache.
 
 ## Tech Stack
 
@@ -25,9 +25,11 @@ app/                    # Expo Router screens
   ├── _layout.tsx      # Root layout, auth routing
   ├── login.tsx        # Login screen
   └── (tabs)/
-      ├── dashboard.tsx # Timeline & Overdue assignments (Default)
+      ├── index.tsx     # Dashboard - Timeline & Overdue assignments (Default)
       ├── attendance.tsx # Attendance list
-      └── bunks.tsx     # Bunk management
+      ├── bunks.tsx     # Bunk management
+      ├── timetable.tsx # Generated timetable from attendance
+      ├── mess.tsx      # Mess menu display
       └── _layout.tsx   # Tab navigator config
 
 services/              # Business logic (NO React)
@@ -35,16 +37,30 @@ services/              # Business logic (NO React)
   ├── auth.ts         # Login/logout
   ├── dashboard.ts     # Moodle Timeline/Events API
   ├── background-tasks.ts # Refresh & Notifications
-  └── scraper.ts      # Moodle API + HTML parsing
+  ├── scraper.ts      # Moodle API + HTML parsing
+  ├── baseurl.ts      # LMS base URL configuration
+  └── cookie-store.ts # Cookie management utilities
 
 stores/                # Zustand stores
   ├── auth-store.ts
   ├── attendance-store.ts
+  ├── bunk-store.ts
   ├── dashboard-store.ts # Events, logs, sync state
-  └── settings-store.ts  # Refresh interval, reminders
+  ├── settings-store.ts  # Refresh interval, reminders
+  ├── timetable-store.ts  # Generated timetable state
+  ├── faculty-store.ts    # Faculty directory state
+  └── storage.ts          # AsyncStorage wrapper
+
+data/                  # Static data
+  ├── mess.ts         # Mess menu data and helpers
+  ├── faculty.ts      # Faculty directory data
+  └── credits.ts      # Course credits data
 
 types/index.ts         # All TypeScript types
-utils/debug.ts         # Debug logging
+utils/                 # Utility functions
+  ├── debug.ts        # Debug logging
+  ├── html-parser.ts  # HTML parsing helpers
+  └── course-name.ts  # Course name utilities
 ```
 
 ## Key Types (`types/index.ts`)
@@ -90,6 +106,20 @@ interface DashboardSettings {
   notificationsEnabled;
 }
 
+// Mess Menu
+type MealType = "breakfast" | "lunch" | "snacks" | "dinner";
+interface Meal {
+  type: MealType;
+  name: string;
+  items: string[];
+  startTime: string;
+  endTime: string;
+}
+interface DayMenu {
+  day: number; // 0=Sun, 1=Mon, etc
+  meals: Meal[];
+}
+
 // Moodle API
 interface MoodleAjaxRequest {
   index;
@@ -121,6 +151,20 @@ interface MoodleAjaxResponse<T> {
 2. Scrape `/mod/attendance/view.php?id={id}&view=5` for user report.
 3. Parse metrics: Total Sessions, Attended, Percentage.
 
+### Timetable Generation
+
+1. Parse attendance records to extract day, time, and session type.
+2. Generate timetable slots from attendance data.
+3. Support for regular, lab, and tutorial sessions.
+4. **Auto-detection**: 2-hour slots (≥110 minutes) are automatically marked as labs, regardless of description.
+
+### Mess Menu
+
+1. Static menu data stored in `data/mess.ts`.
+2. Helper functions to get current/next meal based on time.
+3. Carousel display for upcoming meals with expandable items.
+4. Daily schedule view with timeline visualization.
+
 ## Background Tasks & Notifications
 
 ```typescript
@@ -141,7 +185,7 @@ debug.scraper("Dashboard refresh triggered", data);
 1. **No native modules** - Must work in Expo Go
 2. **No Node.js imports** - Use htmlparser2
 3. **No `any` types**
-4. **Initial Route** - `dashboard` is the default tab
+4. **Initial Route** - `index` (dashboard) is the default tab
 5. **Functional components only**
 
 ## Common Errors
