@@ -1,7 +1,7 @@
 import { debug } from "@/utils/debug";
 import type { AxiosRequestConfig } from "axios";
 import axios from "axios";
-import { getBaseUrl as getBaseUrlFromStore } from "./baseurl";
+import { getBaseUrl } from "./baseurl";
 import { cookieStore } from "./cookie-store";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
@@ -132,8 +132,8 @@ const performReauth = async (): Promise<boolean> => {
 };
 
 // Update base URL based on username
-export const updateBaseUrl = () => {
-  const newBaseUrl = getBaseUrlFromStore();
+export const updateBaseUrl = (username?: string) => {
+  const newBaseUrl = getBaseUrl(username);
   currentBaseUrl = newBaseUrl;
   api.defaults.baseURL = newBaseUrl;
   debug.api(`Base URL updated to: ${newBaseUrl}`);
@@ -155,3 +155,4 @@ export const getDebugInfo = () => ({
 });
 
 export { currentBaseUrl as BASE_URL };
+

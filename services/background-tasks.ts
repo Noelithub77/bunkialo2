@@ -2,20 +2,10 @@ import { useDashboardStore } from "@/stores/dashboard-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { TimelineEvent } from "@/types";
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 let refreshIntervalId: ReturnType<typeof setInterval> | null = null;
 const scheduledNotifications = new Map<string, string[]>();
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
-});
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -38,6 +28,16 @@ export const scheduleEventNotification = async (
 
   if (notificationTime <= now) return null;
 
+  // Ensure notification channel exists for Android
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "Default",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
   const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title: `${event.activityname}`,
@@ -59,6 +59,13 @@ export const scheduleAllEventNotifications = async (
 ): Promise<void> => {
   const settings = useSettingsStore.getState();
   if (!settings.notificationsEnabled) return;
+
+  // Request permissions before scheduling
+  const hasPermission = await requestNotificationPermissions();
+  if (!hasPermission) {
+    console.log("Notification permissions not granted");
+    return;
+  }
 
   await cancelAllScheduledNotifications();
 
@@ -96,6 +103,7 @@ export const startBackgroundRefresh = (): void => {
         await scheduleAllEventNotifications(upcomingEvents, reminders);
       }
     } catch (error) {
+      console.error("Background refresh failed:", error);
       dashboardStore.addLog("Background refresh failed", "error");
     }
   };

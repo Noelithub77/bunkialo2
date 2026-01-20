@@ -3,19 +3,21 @@ import { TimelineSection } from "@/components/timeline-section";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { startBackgroundRefresh } from "@/services/background-tasks";
 import { useDashboardStore } from "@/stores/dashboard-store";
+import { initializeNotifications } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  InteractionManager,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    InteractionManager,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 const formatSyncTime = (timestamp: number | null): string => {
@@ -55,6 +57,15 @@ export default function DashboardScreen() {
       fetchDashboard();
     });
   }, [hasHydrated, lastSyncTime, fetchDashboard]);
+
+  // Start background refresh for notifications
+  useEffect(() => {
+    if (hasHydrated) {
+      // Initialize notifications on first load
+      initializeNotifications();
+      startBackgroundRefresh();
+    }
+  }, [hasHydrated]);
 
   const handleRefresh = useCallback(() => {
     fetchDashboard();
@@ -110,7 +121,9 @@ export default function DashboardScreen() {
           <View style={styles.loading}>
             <ActivityIndicator size="large" color={theme.text} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              {isHydratingFromCache ? "Loading cached events..." : "Loading events..."}
+              {isHydratingFromCache
+                ? "Loading cached events..."
+                : "Loading events..."}
             </Text>
           </View>
         )}

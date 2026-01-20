@@ -9,8 +9,10 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useBunkStore } from "@/stores/bunk-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { requestNotificationPermissionsWithExplanation } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import * as Updates from "expo-updates";
 import { useState } from "react";
@@ -102,6 +104,7 @@ export default function SettingsScreen() {
 
   const [newReminder, setNewReminder] = useState("");
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isTestingNotification, setIsTestingNotification] = useState(false);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
@@ -184,6 +187,51 @@ export default function SettingsScreen() {
     await Updates.reloadAsync();
   };
 
+  const handleTestNotification = async () => {
+    setIsTestingNotification(true);
+    try {
+      // Request permissions with explanation
+      const hasPermission =
+        await requestNotificationPermissionsWithExplanation();
+      if (!hasPermission) {
+        setInfoModalContent({
+          title: "Permission Required",
+          message:
+            "Notifications are needed to remind you about upcoming assignments and deadlines. Please enable them in your device settings.",
+        });
+        setShowInfoModal(true);
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Test Notification",
+          body: "Notifications are working correctly!",
+          data: { test: true },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 2,
+        },
+      });
+
+      setInfoModalContent({
+        title: "Test Scheduled",
+        message: "A test notification will appear in 2 seconds.",
+      });
+      setShowInfoModal(true);
+    } catch (error) {
+      console.error("Test notification failed:", error);
+      setInfoModalContent({
+        title: "Error",
+        message: "Failed to send test notification.",
+      });
+      setShowInfoModal(true);
+    } finally {
+      setIsTestingNotification(false);
+    }
+  };
+
   return (
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -238,6 +286,14 @@ export default function SettingsScreen() {
                   thumbColor={Colors.white}
                 />
               }
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingRow
+              icon="checkmark-circle-outline"
+              label="Test Notification"
+              onPress={handleTestNotification}
+              loading={isTestingNotification}
+              theme={theme}
             />
           </View>
 

@@ -1,5 +1,3 @@
-import { useAuthStore } from "@/stores/auth-store";
-
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
 
 const getBaseUrlFromUsername = (username: string): string => {
@@ -11,8 +9,7 @@ const getBaseUrlFromUsername = (username: string): string => {
   return `https://lmsug${yearSuffix}.iiitkottayam.ac.in`;
 };
 
-export const getBaseUrl = (): string => {
-  const username = useAuthStore.getState().username;
+export const getBaseUrl = (username?: string): string => {
   if (!username) {
     return DEFAULT_BASE_URL;
   }
