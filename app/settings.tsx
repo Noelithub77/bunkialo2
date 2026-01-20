@@ -433,7 +433,9 @@ export default function SettingsScreen() {
           { label: "60 min", value: 60 },
         ]}
         onClose={() => setShowRefreshIntervalModal(false)}
-        onSelect={setRefreshInterval}
+        onSelect={(value) => {
+          if (typeof value === "number") setRefreshInterval(value);
+        }}
       />
 
       <ConfirmModal

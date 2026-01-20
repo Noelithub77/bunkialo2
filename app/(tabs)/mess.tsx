@@ -61,7 +61,7 @@ export default function MessScreen() {
           <Text
             style={[styles.sectionTitle, { color: theme.text, marginTop: 0 }]}
           >
-            Today's Menu
+            Today&apos;s Menu
           </Text>
           <MealDaySelector
             selectedDay={selectedDay}

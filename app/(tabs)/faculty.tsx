@@ -231,7 +231,7 @@ export default function FacultyScreen() {
                 color={theme.textSecondary}
               />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                No faculty found for "{searchQuery}"
+                No faculty found for &quot;{searchQuery}&quot;
               </Text>
             </View>
           ) : null
