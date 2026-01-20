@@ -1,8 +1,11 @@
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { getBaseUrl } from "@/services/baseurl";
+import { useAuthStore } from "@/stores/auth-store";
 import type { AttendanceRecord, AttendanceStatus } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -20,6 +23,7 @@ interface SwipeableAttendanceSlotProps {
   courseColor?: string;
   isDutyLeave?: boolean;
   isMarkedPresent?: boolean;
+  attendanceModuleId: string | null;
   onMarkPresent: () => void;
   onMarkDL: () => void;
 }
@@ -64,6 +68,7 @@ export function SwipeableAttendanceSlot({
   courseColor,
   isDutyLeave = false,
   isMarkedPresent = false,
+  attendanceModuleId,
   onMarkPresent,
   onMarkDL,
 }: SwipeableAttendanceSlotProps) {
@@ -86,6 +91,14 @@ export function SwipeableAttendanceSlot({
   const handleRightAction = () => {
     triggerHaptic();
     onMarkDL();
+  };
+
+  const handleOpenLms = () => {
+    if (attendanceModuleId) {
+      const username = useAuthStore.getState().username;
+      const url = `${getBaseUrl(username || undefined)}/mod/attendance/view.php?id=${attendanceModuleId}`;
+      Linking.openURL(url);
+    }
   };
 
   const panGesture = Gesture.Pan()
@@ -242,6 +255,24 @@ export function SwipeableAttendanceSlot({
                 </View>
               )}
 
+              {/* Open in LMS button */}
+              {attendanceModuleId && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleOpenLms();
+                  }}
+                  style={styles.lmsButton}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="open-outline"
+                    size={16}
+                    color={theme.textSecondary}
+                  />
+                </Pressable>
+              )}
+
               {/* swipe hints for absent/unknown */}
               {(isAbsent || isUnknown) && (
                 <View style={styles.swipeHints}>
@@ -361,5 +392,8 @@ const styles = StyleSheet.create({
   remarksText: {
     fontSize: 12,
     fontStyle: "italic",
+  },
+  lmsButton: {
+    padding: Spacing.xs,
   },
 });

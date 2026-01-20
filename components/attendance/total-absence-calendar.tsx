@@ -14,6 +14,7 @@ interface AbsenceInfo {
   courseId: string;
   courseName: string;
   courseColor: string;
+  attendanceModuleId: string | null;
   record: AttendanceRecord;
   timeSlot: string | null;
   isDutyLeave: boolean;
@@ -139,6 +140,7 @@ export function TotalAbsenceCalendar({
           courseId: course.courseId,
           courseName,
           courseColor,
+          attendanceModuleId: course.attendanceModuleId,
           record,
           timeSlot: time,
           isDutyLeave: matchingBunk?.isDutyLeave ?? false,
@@ -235,6 +237,7 @@ export function TotalAbsenceCalendar({
                     courseColor={absence.courseColor}
                     isDutyLeave={absence.isDutyLeave}
                     isMarkedPresent={absence.isMarkedPresent}
+                    attendanceModuleId={absence.attendanceModuleId}
                     onMarkPresent={() => {
                       if (absence.isMarkedPresent && absence.bunkId) {
                         onRemovePresent?.(absence.courseId, absence.bunkId);

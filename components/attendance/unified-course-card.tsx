@@ -533,6 +533,7 @@ export function UnifiedCourseCard({
                     key={fakeBunk.id}
                     bunk={fakeBunk}
                     isUnknown
+                    attendanceModuleId={course.attendanceModuleId}
                     onMarkDL={() =>
                       onConfirmUnknownAbsent(course.courseId, record)
                     }
@@ -558,6 +559,7 @@ export function UnifiedCourseCard({
                 <SwipeableBunkItem
                   key={bunk.id}
                   bunk={bunk}
+                  attendanceModuleId={course.attendanceModuleId}
                   onMarkDL={() => onMarkDL(bunk.id)}
                   onRemoveDL={() => onRemoveDL(bunk.id)}
                   onMarkPresent={() => onMarkPresent(bunk.id)}

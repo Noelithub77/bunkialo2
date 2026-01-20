@@ -1,7 +1,10 @@
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { getBaseUrl } from "@/services/baseurl";
+import { useAuthStore } from "@/stores/auth-store";
 import type { BunkRecord } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -24,6 +27,7 @@ interface SwipeableBunkItemProps {
   bunk: BunkRecord;
   showHint?: boolean;
   isUnknown?: boolean;
+  attendanceModuleId: string | null;
   onMarkDL: () => void;
   onRemoveDL: () => void;
   onMarkPresent: () => void;
@@ -38,6 +42,7 @@ export function SwipeableBunkItem({
   bunk,
   showHint = false,
   isUnknown = false,
+  attendanceModuleId,
   onMarkDL,
   onRemoveDL,
   onMarkPresent,
@@ -52,6 +57,14 @@ export function SwipeableBunkItem({
   const [noteText, setNoteText] = useState(bunk.note);
 
   const translateX = useSharedValue(0);
+
+  const handleOpenLms = () => {
+    if (attendanceModuleId) {
+      const username = useAuthStore.getState().username;
+      const url = `${getBaseUrl(username || undefined)}/mod/attendance/view.php?id=${attendanceModuleId}`;
+      Linking.openURL(url);
+    }
+  };
 
   const handleLeftAction = () => {
     if (isUnknown) {
@@ -255,6 +268,24 @@ export function SwipeableBunkItem({
                   </View>
                 )}
 
+              {/* Open in LMS button */}
+              {attendanceModuleId && !isUnknown && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleOpenLms();
+                  }}
+                  style={styles.lmsButton}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="open-outline"
+                    size={16}
+                    color={theme.textSecondary}
+                  />
+                </Pressable>
+              )}
+
               {/* swipe hints - show on unmarked items */}
               {!isPresent && !isDL && (
                 <View style={styles.swipeHints}>
@@ -410,5 +441,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     padding: Spacing.sm,
     minHeight: 36,
+  },
+  lmsButton: {
+    padding: Spacing.xs,
   },
 });
