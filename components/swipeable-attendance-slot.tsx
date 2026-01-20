@@ -18,6 +18,8 @@ interface SwipeableAttendanceSlotProps {
   record: AttendanceRecord;
   timeSlot: string | null;
   courseColor?: string;
+  isDutyLeave?: boolean;
+  isMarkedPresent?: boolean;
   onMarkPresent: () => void;
   onMarkDL: () => void;
 }
@@ -60,6 +62,8 @@ export function SwipeableAttendanceSlot({
   record,
   timeSlot,
   courseColor,
+  isDutyLeave = false,
+  isMarkedPresent = false,
   onMarkPresent,
   onMarkDL,
 }: SwipeableAttendanceSlotProps) {
@@ -118,11 +122,27 @@ export function SwipeableAttendanceSlot({
   const statusIcon = getStatusIcon(record.status);
   const isUnknown = record.status === "Unknown";
   const isAbsent = record.status === "Absent";
-  const rightActionLabel = isUnknown ? "Absent" : "DL";
-  const rightActionIcon = isUnknown ? "close-circle" : "briefcase";
+
+  // left action: Present or Undo Present
+  const leftActionLabel = isMarkedPresent ? "Undo" : "Present";
+  const leftActionIcon = isMarkedPresent ? "close" : "checkmark";
+  const leftActionColor = isMarkedPresent
+    ? Colors.gray[600]
+    : Colors.status.success;
+
+  // right action: DL/Absent or Undo DL
+  const rightActionLabel = isUnknown ? "Absent" : isDutyLeave ? "Undo" : "DL";
+  const rightActionIcon = isUnknown
+    ? "close-circle"
+    : isDutyLeave
+      ? "close"
+      : "briefcase";
   const rightActionColor = isUnknown
     ? Colors.status.danger
-    : Colors.status.info;
+    : isDutyLeave
+      ? Colors.gray[600]
+      : Colors.status.info;
+  const itemOpacity = isMarkedPresent ? 0.5 : 1;
 
   return (
     <View style={[styles.container, { borderBottomColor: theme.border }]}>
@@ -131,13 +151,10 @@ export function SwipeableAttendanceSlot({
         style={[styles.action, styles.leftAction, leftActionStyle]}
       >
         <View
-          style={[
-            styles.actionInner,
-            { backgroundColor: Colors.status.success },
-          ]}
+          style={[styles.actionInner, { backgroundColor: leftActionColor }]}
         >
-          <Ionicons name="checkmark" size={20} color={Colors.white} />
-          <Text style={styles.actionText}>Present</Text>
+          <Ionicons name={leftActionIcon} size={20} color={Colors.white} />
+          <Text style={styles.actionText}>{leftActionLabel}</Text>
         </View>
       </Animated.View>
 
@@ -162,7 +179,10 @@ export function SwipeableAttendanceSlot({
             animatedStyle,
           ]}
         >
-          <Pressable onPress={() => setIsExpanded(!isExpanded)}>
+          <Pressable
+            onPress={() => setIsExpanded(!isExpanded)}
+            style={{ opacity: itemOpacity }}
+          >
             <View style={styles.row}>
               {/* course color bar */}
               {courseColor && (
@@ -195,6 +215,32 @@ export function SwipeableAttendanceSlot({
                 />
                 <Text style={styles.statusText}>{record.status.charAt(0)}</Text>
               </View>
+
+              {/* DL badge */}
+              {isDutyLeave && (
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: Colors.status.info },
+                  ]}
+                >
+                  <Ionicons name="briefcase" size={10} color={Colors.white} />
+                  <Text style={styles.statusText}>DL</Text>
+                </View>
+              )}
+
+              {/* Present badge */}
+              {isMarkedPresent && (
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: Colors.status.success },
+                  ]}
+                >
+                  <Ionicons name="checkmark" size={10} color={Colors.white} />
+                  <Text style={styles.statusText}>P</Text>
+                </View>
+              )}
 
               {/* swipe hints for absent/unknown */}
               {(isAbsent || isUnknown) && (

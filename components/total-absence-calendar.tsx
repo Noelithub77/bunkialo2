@@ -16,6 +16,9 @@ interface AbsenceInfo {
   courseColor: string;
   record: AttendanceRecord;
   timeSlot: string | null;
+  isDutyLeave: boolean;
+  isMarkedPresent: boolean;
+  bunkId: string | null;
 }
 
 // parse date string
@@ -58,11 +61,15 @@ const buildRecordKey = (date: string, description: string): string =>
 interface TotalAbsenceCalendarProps {
   onMarkPresent?: (courseId: string, record: AttendanceRecord) => void;
   onMarkDL?: (courseId: string, record: AttendanceRecord) => void;
+  onRemoveDL?: (courseId: string, bunkId: string) => void;
+  onRemovePresent?: (courseId: string, bunkId: string) => void;
 }
 
 export function TotalAbsenceCalendar({
   onMarkPresent,
   onMarkDL,
+  onRemoveDL,
+  onRemovePresent,
 }: TotalAbsenceCalendarProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -124,12 +131,19 @@ export function TotalAbsenceCalendar({
         if (!absMap.has(date)) {
           absMap.set(date, []);
         }
+        const recordKey = buildRecordKey(record.date, record.description);
+        const matchingBunk = bunkCourse?.bunks.find(
+          (b) => buildRecordKey(b.date, b.description) === recordKey,
+        );
         absMap.get(date)!.push({
           courseId: course.courseId,
           courseName,
           courseColor,
           record,
           timeSlot: time,
+          isDutyLeave: matchingBunk?.isDutyLeave ?? false,
+          isMarkedPresent: matchingBunk?.isMarkedPresent ?? false,
+          bunkId: matchingBunk?.id ?? null,
         });
       }
     }
@@ -141,10 +155,12 @@ export function TotalAbsenceCalendar({
     ? absenceMap.get(selectedDate) || []
     : [];
 
-  // total absences count
+  // total absences count - exclude items marked as DL or Present
   const totalAbsences = useMemo(() => {
     let count = 0;
-    absenceMap.forEach((arr) => (count += arr.length));
+    absenceMap.forEach((arr) => {
+      count += arr.filter((a) => !a.isDutyLeave && !a.isMarkedPresent).length;
+    });
     return count;
   }, [absenceMap]);
 
@@ -217,12 +233,22 @@ export function TotalAbsenceCalendar({
                     record={absence.record}
                     timeSlot={absence.timeSlot}
                     courseColor={absence.courseColor}
-                    onMarkPresent={() =>
-                      onMarkPresent?.(absence.courseId, absence.record)
-                    }
-                    onMarkDL={() =>
-                      onMarkDL?.(absence.courseId, absence.record)
-                    }
+                    isDutyLeave={absence.isDutyLeave}
+                    isMarkedPresent={absence.isMarkedPresent}
+                    onMarkPresent={() => {
+                      if (absence.isMarkedPresent && absence.bunkId) {
+                        onRemovePresent?.(absence.courseId, absence.bunkId);
+                      } else {
+                        onMarkPresent?.(absence.courseId, absence.record);
+                      }
+                    }}
+                    onMarkDL={() => {
+                      if (absence.isDutyLeave && absence.bunkId) {
+                        onRemoveDL?.(absence.courseId, absence.bunkId);
+                      } else {
+                        onMarkDL?.(absence.courseId, absence.record);
+                      }
+                    }}
                   />
                 </View>
               ))}

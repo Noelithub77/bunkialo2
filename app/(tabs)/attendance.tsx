@@ -245,12 +245,27 @@ export default function AttendanceScreen() {
       return;
     }
     if (!pendingPresent) return;
-    const bunkId = findBunkId(pendingPresent.courseId, pendingPresent.record);
-    if (!bunkId) {
-      setPendingPresent(null);
-      return;
+    const existingBunk = findMatchingBunk(
+      pendingPresent.courseId,
+      pendingPresent.record,
+    );
+    if (existingBunk) {
+      if (existingBunk.isDutyLeave) {
+        removeDutyLeave(pendingPresent.courseId, existingBunk.id);
+      }
+      markAsPresent(pendingPresent.courseId, existingBunk.id, note);
+    } else {
+      addBunk(pendingPresent.courseId, {
+        date: pendingPresent.record.date,
+        description: pendingPresent.record.description,
+        timeSlot: parseTimeSlot(pendingPresent.record.date),
+        note: "",
+        isDutyLeave: false,
+        dutyLeaveNote: "",
+        isMarkedPresent: true,
+        presenceNote: note,
+      });
     }
-    markAsPresent(pendingPresent.courseId, bunkId, note);
     setPendingPresent(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -265,12 +280,24 @@ export default function AttendanceScreen() {
 
   const handleConfirmDLAbsences = (note: string) => {
     if (!pendingDL) return;
-    const bunkId = findBunkId(pendingDL.courseId, pendingDL.record);
-    if (!bunkId) {
-      setPendingDL(null);
-      return;
+    const existingBunk = findMatchingBunk(pendingDL.courseId, pendingDL.record);
+    if (existingBunk) {
+      if (existingBunk.isMarkedPresent) {
+        removePresenceCorrection(pendingDL.courseId, existingBunk.id);
+      }
+      markAsDutyLeave(pendingDL.courseId, existingBunk.id, note);
+    } else {
+      addBunk(pendingDL.courseId, {
+        date: pendingDL.record.date,
+        description: pendingDL.record.description,
+        timeSlot: parseTimeSlot(pendingDL.record.date),
+        note: "",
+        isDutyLeave: true,
+        dutyLeaveNote: note,
+        isMarkedPresent: false,
+        presenceNote: "",
+      });
     }
-    markAsDutyLeave(pendingDL.courseId, bunkId, note);
     setPendingDL(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -547,6 +574,8 @@ export default function AttendanceScreen() {
             <TotalAbsenceCalendar
               onMarkPresent={handleMarkPresentAbsences}
               onMarkDL={handleMarkDLAbsences}
+              onRemoveDL={removeDutyLeave}
+              onRemovePresent={removePresenceCorrection}
             />
           </GradientCard>
         </ScrollView>
@@ -571,6 +600,46 @@ export default function AttendanceScreen() {
           dutyLeaves={allDutyLeaves}
           onClose={() => setShowDLModal(false)}
           onRemove={handleRemoveDL}
+        />
+
+        <ConfirmModal
+          visible={confirmDialog !== null}
+          title={
+            confirmDialog?.type === "removeDL"
+              ? "Remove Duty Leave"
+              : confirmDialog?.type === "removePresent"
+                ? "Remove Presence Mark"
+                : "Confirm Absent"
+          }
+          message={
+            confirmDialog?.type === "removeDL"
+              ? "This will count as a regular bunk again."
+              : confirmDialog?.type === "removePresent"
+                ? "This will count as an absence again."
+                : "This will add a bunk for this session."
+          }
+          confirmText={
+            confirmDialog?.type === "confirmUnknownAbsent"
+              ? "Confirm"
+              : "Remove"
+          }
+          variant="destructive"
+          icon="warning"
+          onCancel={() => setConfirmDialog(null)}
+          onConfirm={() => {
+            if (!confirmDialog) return;
+            if (confirmDialog.type === "removeDL") {
+              removeDutyLeave(confirmDialog.courseId, confirmDialog.bunkId);
+            } else if (confirmDialog.type === "removePresent") {
+              removePresenceCorrection(
+                confirmDialog.courseId,
+                confirmDialog.bunkId,
+              );
+            } else {
+              applyUnknownAbsent(confirmDialog.courseId, confirmDialog.record);
+            }
+            setConfirmDialog(null);
+          }}
         />
       </Container>
     );

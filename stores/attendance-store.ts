@@ -4,18 +4,28 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { zustandStorage } from "./storage";
 
+interface AttendanceStoreState extends AttendanceState {
+  hasHydrated: boolean;
+}
+
 interface AttendanceActions {
   fetchAttendance: () => Promise<void>;
   clearAttendance: () => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
-export const useAttendanceStore = create<AttendanceState & AttendanceActions>()(
+export const useAttendanceStore = create<
+  AttendanceStoreState & AttendanceActions
+>()(
   persist(
     (set) => ({
       courses: [],
       isLoading: false,
       lastSyncTime: null,
       error: null,
+      hasHydrated: false,
+
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
       fetchAttendance: async () => {
         set({ isLoading: true, error: null });
@@ -46,6 +56,9 @@ export const useAttendanceStore = create<AttendanceState & AttendanceActions>()(
         courses: state.courses,
         lastSyncTime: state.lastSyncTime,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

@@ -13,6 +13,10 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
 import { zustandStorage } from "./storage";
 
+interface BunkStoreState extends BunkState {
+  hasHydrated: boolean;
+}
+
 interface BunkActions {
   syncFromLms: () => void;
   resetToLms: () => void;
@@ -24,6 +28,7 @@ interface BunkActions {
   markAsPresent: (courseId: string, bunkId: string, note: string) => void;
   removePresenceCorrection: (courseId: string, bunkId: string) => void;
   removeBunk: (courseId: string, bunkId: string) => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 const generateId = () =>
@@ -87,6 +92,9 @@ export const useBunkStore = create<BunkState & BunkActions>()(
       lastSyncTime: null,
       isLoading: false,
       error: null,
+      hasHydrated: false,
+
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
       // sync absences from attendance store (LMS data)
       syncFromLms: () => {
@@ -380,6 +388,9 @@ export const useBunkStore = create<BunkState & BunkActions>()(
         courses: state.courses,
         lastSyncTime: state.lastSyncTime,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

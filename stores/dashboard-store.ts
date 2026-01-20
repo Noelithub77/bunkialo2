@@ -1,4 +1,4 @@
-import { fetchOverdueEvents, fetchTimelineEvents } from "@/services/dashboard";
+import { fetchDashboardEvents } from "@/services/dashboard";
 import type { DashboardLog, DashboardState, TimelineEvent } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
@@ -7,10 +7,12 @@ import { createJSONStorage, persist } from "zustand/middleware";
 interface DashboardStore extends DashboardState {
   upcomingEvents: TimelineEvent[];
   overdueEvents: TimelineEvent[];
+  hasHydrated: boolean;
   fetchDashboard: () => Promise<void>;
   addLog: (message: string, type: DashboardLog["type"]) => void;
   clearLogs: () => void;
   clearDashboard: () => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 const generateLogId = () =>
@@ -26,6 +28,9 @@ export const useDashboardStore = create<DashboardStore>()(
       isLoading: false,
       error: null,
       logs: [],
+      hasHydrated: false,
+
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
       fetchDashboard: async () => {
         set({ isLoading: true, error: null });
@@ -34,10 +39,7 @@ export const useDashboardStore = create<DashboardStore>()(
         try {
           addLog("Starting dashboard sync...", "info");
 
-          const [upcoming, overdue] = await Promise.all([
-            fetchTimelineEvents(),
-            fetchOverdueEvents(),
-          ]);
+          const { upcoming, overdue } = await fetchDashboardEvents();
 
           const allEvents = [...overdue, ...upcoming];
 
@@ -94,6 +96,9 @@ export const useDashboardStore = create<DashboardStore>()(
         lastSyncTime: state.lastSyncTime,
         logs: state.logs,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );
