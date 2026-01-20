@@ -1,5 +1,5 @@
-import { EventCard } from "@/components/event-card";
-import { TimelineSection } from "@/components/timeline-section";
+import { EventCard } from "@/components/dashboard/event-card";
+import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -10,14 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    InteractionManager,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  InteractionManager,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const formatSyncTime = (timestamp: number | null): string => {

@@ -1,8 +1,8 @@
-import { DaySchedule } from "@/components/day-schedule";
-import { DaySelector } from "@/components/day-selector";
+import { DaySchedule } from "@/components/timetable/day-schedule";
+import { DaySelector } from "@/components/timetable/day-selector";
+import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
-import { UpNextCarousel } from "@/components/upnext-carousel";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
@@ -12,13 +12,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 export default function TimetableScreen() {

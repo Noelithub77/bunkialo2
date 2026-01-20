@@ -1,24 +1,24 @@
-import { FacultyCard } from "@/components/faculty-card";
+import { FacultyCard } from "@/components/faculty/faculty-card";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  getTopFaculty,
-  searchFaculty,
-  useFacultyStore,
+    getTopFaculty,
+    searchFaculty,
+    useFacultyStore,
 } from "@/stores/faculty-store";
 import type { Faculty } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  FlatList,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    FlatList,
+    Keyboard,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
 export default function FacultyScreen() {

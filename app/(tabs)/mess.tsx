@@ -1,16 +1,16 @@
-import { DayMeals } from "@/components/day-meals";
-import { MealCarousel } from "@/components/meal-carousel";
-import { MealDaySelector } from "@/components/meal-day-selector";
+import { DayMeals } from "@/components/mess/day-meals";
+import { MealCarousel } from "@/components/mess/meal-carousel";
+import { MealDaySelector } from "@/components/mess/meal-day-selector";
 import { Container } from "@/components/ui/container";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useState } from "react";
 import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 export default function MessScreen() {

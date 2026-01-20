@@ -1,6 +1,6 @@
-import { ConfirmModal } from "@/components/confirm-modal";
-import { LogsSection } from "@/components/logs-section";
-import { SelectionModal } from "@/components/selection-modal";
+import { ConfirmModal } from "@/components/modals/confirm-modal";
+import { SelectionModal } from "@/components/modals/selection-modal";
+import { LogsSection } from "@/components/shared/logs-section";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";

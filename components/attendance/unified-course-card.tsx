@@ -1,17 +1,17 @@
-import { SwipeableBunkItem } from "@/components/swipeable-bunk-item";
+import { SwipeableBunkItem } from "@/components/attendance/swipeable-bunk-item";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { CalendarTheme, Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getBaseUrl } from "@/services/baseurl";
 import { filterPastBunks, selectCourseStats } from "@/stores/bunk-store";
 import type {
-  AttendanceRecord,
-  AttendanceStatus,
-  BunkRecord,
-  CourseAttendance,
-  CourseBunkData,
-  MarkedDates,
-  SessionType,
+    AttendanceRecord,
+    AttendanceStatus,
+    BunkRecord,
+    CourseAttendance,
+    CourseBunkData,
+    MarkedDates,
+    SessionType,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";

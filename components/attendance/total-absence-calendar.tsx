@@ -1,4 +1,4 @@
-import { SwipeableAttendanceSlot } from "@/components/swipeable-attendance-slot";
+import { SwipeableAttendanceSlot } from "@/components/attendance/swipeable-attendance-slot";
 import { CalendarTheme, Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
