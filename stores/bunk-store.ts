@@ -85,7 +85,7 @@ export const filterPastBunks = (bunks: BunkRecord[]): BunkRecord[] => {
   return bunks.filter((b) => isPastOrToday(b.date));
 };
 
-export const useBunkStore = create<BunkState & BunkActions>()(
+export const useBunkStore = create<BunkStoreState & BunkActions>()(
   persist(
     (set, get) => ({
       courses: [],

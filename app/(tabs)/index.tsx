@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -42,20 +43,26 @@ export default function DashboardScreen() {
     isLoading,
     lastSyncTime,
     fetchDashboard,
+    hasHydrated,
   } = useDashboardStore();
   const [showOverdue, setShowOverdue] = useState(false);
 
   useEffect(() => {
-    if (upcomingEvents.length === 0 && overdueEvents.length === 0) {
+    if (!hasHydrated) return;
+    if (lastSyncTime !== null) return; // cache exists; refresh only on manual
+
+    InteractionManager.runAfterInteractions(() => {
       fetchDashboard();
-    }
-  }, []);
+    });
+  }, [hasHydrated, lastSyncTime, fetchDashboard]);
 
   const handleRefresh = useCallback(() => {
     fetchDashboard();
   }, [fetchDashboard]);
 
   const hasOverdue = overdueEvents.length > 0;
+  const isEmpty = upcomingEvents.length === 0 && overdueEvents.length === 0;
+  const isHydratingFromCache = !hasHydrated && isEmpty;
 
   return (
     <Container>
@@ -99,18 +106,14 @@ export default function DashboardScreen() {
         </View>
 
         {/* Loading */}
-        {isLoading &&
-          upcomingEvents.length === 0 &&
-          overdueEvents.length === 0 && (
-            <View style={styles.loading}>
-              <ActivityIndicator size="large" color={theme.text} />
-              <Text
-                style={[styles.loadingText, { color: theme.textSecondary }]}
-              >
-                Loading events...
-              </Text>
-            </View>
-          )}
+        {(isHydratingFromCache || (isLoading && isEmpty)) && (
+          <View style={styles.loading}>
+            <ActivityIndicator size="large" color={theme.text} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              {isHydratingFromCache ? "Loading cached events..." : "Loading events..."}
+            </Text>
+          </View>
+        )}
 
         {/* Overdue Section */}
         {hasOverdue && (
@@ -155,12 +158,14 @@ export default function DashboardScreen() {
         )}
 
         {/* Upcoming Timeline */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Upcoming
-          </Text>
-          <TimelineSection events={upcomingEvents} />
-        </View>
+        {!isHydratingFromCache && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Upcoming
+            </Text>
+            <TimelineSection events={upcomingEvents} />
+          </View>
+        )}
       </ScrollView>
     </Container>
   );

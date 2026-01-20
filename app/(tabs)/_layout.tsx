@@ -13,6 +13,8 @@ export default function TabLayout() {
     <Tabs
       initialRouteName="index"
       screenOptions={{
+        lazy: true,
+        lazyPreloadDistance: 0,
         tabBarActiveTintColor: theme.tabIconSelected,
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {

@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -72,8 +73,13 @@ export default function AttendanceScreen() {
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
 
-  const { courses, isLoading, lastSyncTime, fetchAttendance } =
-    useAttendanceStore();
+  const {
+    courses,
+    isLoading,
+    lastSyncTime,
+    fetchAttendance,
+    hasHydrated: isAttendanceHydrated,
+  } = useAttendanceStore();
   const {
     courses: bunkCourses,
     syncFromLms,
@@ -84,6 +90,7 @@ export default function AttendanceScreen() {
     markAsPresent,
     removePresenceCorrection,
     updateBunkNote,
+    hasHydrated: isBunkHydrated,
   } = useBunkStore();
 
   const [activeTab, setActiveTab] = useState<TabType>("absences");
@@ -127,16 +134,28 @@ export default function AttendanceScreen() {
   );
 
   useEffect(() => {
-    if (courses.length === 0) {
+    if (!isAttendanceHydrated) return;
+    if (lastSyncTime !== null) return; // cache exists; refresh only on manual
+
+    InteractionManager.runAfterInteractions(() => {
       fetchAttendance();
-    }
-  }, []);
+    });
+  }, [isAttendanceHydrated, lastSyncTime, fetchAttendance]);
 
   useEffect(() => {
-    if (courses.length > 0) {
+    if (!isAttendanceHydrated || !isBunkHydrated) return;
+    if (courses.length === 0) return;
+
+    InteractionManager.runAfterInteractions(() => {
       syncFromLms();
-    }
-  }, [courses, syncFromLms]);
+    });
+  }, [
+    isAttendanceHydrated,
+    isBunkHydrated,
+    lastSyncTime,
+    courses.length,
+    syncFromLms,
+  ]);
 
   const handleRefresh = useCallback(() => {
     fetchAttendance();
@@ -574,8 +593,12 @@ export default function AttendanceScreen() {
             <TotalAbsenceCalendar
               onMarkPresent={handleMarkPresentAbsences}
               onMarkDL={handleMarkDLAbsences}
-              onRemoveDL={removeDutyLeave}
-              onRemovePresent={removePresenceCorrection}
+              onRemoveDL={(courseId, bunkId) =>
+                setConfirmDialog({ type: "removeDL", courseId, bunkId })
+              }
+              onRemovePresent={(courseId, bunkId) =>
+                setConfirmDialog({ type: "removePresent", courseId, bunkId })
+              }
             />
           </GradientCard>
         </ScrollView>
