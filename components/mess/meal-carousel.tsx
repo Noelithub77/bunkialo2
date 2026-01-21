@@ -1,24 +1,22 @@
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import {
-    MEAL_COLORS,
-    MEAL_TIMES,
-    getNearbyMeals,
-    type Meal,
-    type MealType,
+  MEAL_TIMES,
+  getNearbyMeals,
+  type Meal,
+  type MealType,
 } from "@/data/mess";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    type ViewToken,
+  Dimensions,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewToken,
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -65,6 +63,16 @@ export function MealCarousel() {
     }, 2000);
   }, [initialIndex]);
 
+  // Initialize activeIndex to match initialIndex to prevent jitter
+  useEffect(() => {
+    setActiveIndex(initialIndex);
+    // Mark as initial scrolled after a short delay since onMomentumScrollEnd may not fire
+    const timer = setTimeout(() => {
+      setHasInitialScrolled(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [initialIndex]);
+
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       if (viewableItems.length > 0) {
@@ -109,7 +117,6 @@ export function MealCarousel() {
   };
 
   const renderCard = ({ item, index }: { item: Meal; index: number }) => {
-    const mealColor = MEAL_COLORS[item.type];
     const isCurrentlyActive =
       currentTime >= item.startTime && currentTime < item.endTime;
     const isFinished = currentTime >= item.endTime;
@@ -121,15 +128,10 @@ export function MealCarousel() {
       setExpandedMeal(isExpanded ? null : item.type);
     };
 
-    // find next meal
     const nextMealIndex = meals.findIndex((m) => currentTime < m.startTime);
     const isNextMeal = index === nextMealIndex && !isCurrentlyActive;
 
-    const gradientColors = isDark
-      ? ([mealColor + "50", mealColor + "25"] as const)
-      : ([mealColor + "40", mealColor + "15"] as const);
-
-    let statusColor = mealColor;
+    let statusColor = theme.text;
     let statusText = MEAL_TIMES[item.type].name;
     let borderColor: string | undefined;
     let cardOpacity = 1;
@@ -153,16 +155,14 @@ export function MealCarousel() {
         onPress={handlePress}
         style={[styles.cardWrapper, { width: CARD_WIDTH }]}
       >
-        <LinearGradient
-          colors={gradientColors}
+        <View
           style={[
             styles.card,
             !isActive && styles.cardInactive,
             borderColor && { borderColor, borderWidth: 2 },
             isFinished && { opacity: cardOpacity },
+            { backgroundColor: "#000000" },
           ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
         >
           {/* status row */}
           <View style={styles.statusRow}>
@@ -229,7 +229,7 @@ export function MealCarousel() {
               {item.items.slice(0, 4).join(", ")}...
             </Text>
           )}
-        </LinearGradient>
+        </View>
       </Pressable>
     );
   };

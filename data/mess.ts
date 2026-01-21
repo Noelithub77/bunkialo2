@@ -16,10 +16,10 @@ export interface DayMenu {
 }
 
 export const MEAL_COLORS: Record<MealType, string> = {
-  breakfast: "#62df15ff", // amber
-  lunch: "#1be7a3ff", // emerald
-  snacks: "#b16d07ff", // violet
-  dinner: "#6d20b0ff", // blue
+  breakfast: "#62df15", // green
+  lunch: "#1be7a3", // emerald
+  snacks: "#b16d07", // orange
+  dinner: "#6d20b0", // purple
 };
 
 export const MEAL_TIMES: Record<

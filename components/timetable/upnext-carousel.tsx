@@ -10,7 +10,7 @@ import type { TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -96,6 +96,16 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       });
     }, 2000);
   }, [nearbySlots.length, initialScrollIndex]);
+
+  // Initialize activeIndex to match initialScrollIndex to prevent jitter
+  useEffect(() => {
+    setActiveIndex(initialScrollIndex);
+    // Mark as initial scrolled after a short delay since onMomentumScrollEnd may not fire
+    const timer = setTimeout(() => {
+      setHasInitialScrolled(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [initialScrollIndex]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
