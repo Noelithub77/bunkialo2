@@ -1,5 +1,6 @@
 import { EventCard } from "@/components/dashboard/event-card";
 import { TimelineSection } from "@/components/dashboard/timeline-section";
+import { UpNextSection } from "@/components/dashboard/up-next-section";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -115,6 +116,9 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Up Next Section */}
+        <UpNextSection />
 
         {/* Loading */}
         {(isHydratingFromCache || (isLoading && isEmpty)) && (

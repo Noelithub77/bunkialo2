@@ -35,7 +35,8 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   const theme = isDark ? Colors.dark : Colors.light;
   const bunkCourses = useBunkStore((state) => state.courses);
   const flatListRef = useRef<FlatList>(null);
-  const [activeIndex, setActiveIndex] = useState(2); // center card
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
   const getCourseColor = (courseId: string): string => {
     const course = bunkCourses.find((c) => c.courseId === courseId);
@@ -103,8 +104,9 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
         if (newIndex !== activeIndex) {
           setActiveIndex(newIndex);
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          // reset timer on any scroll
-          resetSnapTimer();
+          if (hasInitialScrolled) {
+            resetSnapTimer();
+          }
         }
       }
     },
@@ -258,7 +260,13 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
           offset: (CARD_WIDTH + CARD_SPACING) * index,
           index,
         })}
-        onMomentumScrollEnd={resetSnapTimer}
+        onMomentumScrollEnd={() => {
+          if (!hasInitialScrolled) {
+            setHasInitialScrolled(true);
+          } else {
+            resetSnapTimer();
+          }
+        }}
       />
 
       {/* pagination dots */}

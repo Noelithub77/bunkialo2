@@ -1,10 +1,10 @@
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import {
-  MEAL_COLORS,
-  MEAL_TIMES,
-  getNearbyMeals,
-  type Meal,
-  type MealType,
+    MEAL_COLORS,
+    MEAL_TIMES,
+    getNearbyMeals,
+    type Meal,
+    type MealType,
 } from "@/data/mess";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,13 +12,13 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  Dimensions,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewToken,
+    Dimensions,
+    FlatList,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+    type ViewToken,
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -40,6 +40,7 @@ export function MealCarousel() {
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>(null);
+  const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
   const now = useMemo(() => new Date(), []);
   const { meals, initialIndex } = useMemo(() => getNearbyMeals(now), [now]);
@@ -71,7 +72,9 @@ export function MealCarousel() {
         if (newIndex !== activeIndex) {
           setActiveIndex(newIndex);
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          resetSnapTimer();
+          if (hasInitialScrolled) {
+            resetSnapTimer();
+          }
         }
       }
     },
@@ -252,7 +255,13 @@ export function MealCarousel() {
           offset: (CARD_WIDTH + CARD_SPACING) * index,
           index,
         })}
-        onMomentumScrollEnd={resetSnapTimer}
+        onMomentumScrollEnd={() => {
+          if (!hasInitialScrolled) {
+            setHasInitialScrolled(true);
+          } else {
+            resetSnapTimer();
+          }
+        }}
       />
 
       {/* pagination dots */}
