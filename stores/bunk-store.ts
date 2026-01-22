@@ -75,9 +75,8 @@ const buildBunkKey = (date: string, description: string): string =>
 const isPastOrToday = (dateStr: string): boolean => {
   const parsed = parseDateString(dateStr);
   if (!parsed) return false;
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  return new Date(parsed) <= today;
+  const now = new Date();
+  return new Date(parsed) <= now;
 };
 
 // filter bunks to past dates only
@@ -113,7 +112,7 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
               .map((r) => ({
                 id: generateId(),
                 date: r.date,
-                description: r.description,
+                description: r.date,
                 timeSlot: parseTimeSlot(r.date),
                 note: "",
                 source: "lms" as const,
@@ -227,7 +226,7 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
               .map((r) => ({
                 id: generateId(),
                 date: r.date,
-                description: r.description,
+                description: r.date,
                 timeSlot: parseTimeSlot(r.date),
                 note: "",
                 source: "lms" as const,

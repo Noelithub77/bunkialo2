@@ -200,7 +200,7 @@ export default function AttendanceScreen() {
       } else {
         addBunk(courseId, {
           date: record.date,
-          description: record.description,
+          description: record.date,
           timeSlot: parseTimeSlot(record.date),
           note: "",
           isDutyLeave: false,
@@ -229,7 +229,7 @@ export default function AttendanceScreen() {
       }
       addBunk(courseId, {
         date: record.date,
-        description: record.description,
+        description: record.date,
         timeSlot: parseTimeSlot(record.date),
         note: "",
         isDutyLeave: false,
