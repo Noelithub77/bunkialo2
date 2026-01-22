@@ -12,6 +12,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
 import { zustandStorage } from "./storage";
+import { getRandomCourseColor } from "./timetable-store";
 
 interface BunkStoreState extends BunkState {
   hasHydrated: boolean;
@@ -175,7 +176,7 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
                     credits: autoCredits ?? 3,
                     alias: extractedName,
                     courseCode: extractedCode,
-                    color: Colors.courseColors[0],
+                    color: getRandomCourseColor(),
                   };
 
               return {
