@@ -76,6 +76,29 @@ const parseTimeSlot = (dateStr: string): string | null => {
   return timeMatch ? timeMatch[1] : null;
 };
 
+const parseRecordDate = (dateStr: string): Date | null => {
+  const dateMatch = dateStr.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/);
+  if (!dateMatch) return null;
+  const months: Record<string, string> = {
+    jan: "01",
+    feb: "02",
+    mar: "03",
+    apr: "04",
+    may: "05",
+    jun: "06",
+    jul: "07",
+    aug: "08",
+    sep: "09",
+    oct: "10",
+    nov: "11",
+    dec: "12",
+  };
+  const [, day, monthStr, year] = dateMatch;
+  const month = months[monthStr.toLowerCase()];
+  if (!month) return null;
+  return new Date(`${year}-${month}-${day.padStart(2, "0")}`);
+};
+
 const buildRecordKey = (date: string, description: string): string =>
   `${date.trim()}-${description.trim()}`;
 
@@ -169,6 +192,35 @@ export default function AttendanceScreen() {
     () => selectAllDutyLeaves(bunkCourses),
     [bunkCourses],
   );
+
+  const unknownCount = useMemo(() => {
+    if (courses.length === 0) return 0;
+    const resolvedKeysByCourse = new Map<string, Set<string>>();
+    for (const course of bunkCourses) {
+      const keys = new Set<string>();
+      for (const bunk of course.bunks) {
+        keys.add(buildRecordKey(bunk.date, bunk.description));
+      }
+      resolvedKeysByCourse.set(course.courseId, keys);
+    }
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    let count = 0;
+    for (const course of courses) {
+      const resolvedKeys = resolvedKeysByCourse.get(course.courseId);
+      for (const record of course.records) {
+        if (record.status !== "Unknown") continue;
+        const recordDate = parseRecordDate(record.date);
+        if (!recordDate || recordDate > today) continue;
+        const recordKey = buildRecordKey(record.date, record.description);
+        if (resolvedKeys?.has(recordKey)) continue;
+        count += 1;
+      }
+    }
+    return count;
+  }, [bunkCourses, courses]);
 
   // auto slots for the course being edited (LMS-generated, non-manual)
   const autoSlotsForEditor = useMemo(() => {
@@ -267,7 +319,7 @@ export default function AttendanceScreen() {
       } else {
         addBunk(courseId, {
           date: record.date,
-          description: record.date,
+          description: record.description,
           timeSlot: parseTimeSlot(record.date),
           note: "",
           isDutyLeave: false,
@@ -296,7 +348,7 @@ export default function AttendanceScreen() {
       }
       addBunk(courseId, {
         date: record.date,
-        description: record.date,
+        description: record.description,
         timeSlot: parseTimeSlot(record.date),
         note: "",
         isDutyLeave: false,
@@ -586,6 +638,26 @@ export default function AttendanceScreen() {
             )}
           </Pressable>
           <Pressable
+            onPress={() => setShowUnknownModal(true)}
+            style={styles.dlButton}
+          >
+            <Ionicons
+              name="help-circle-outline"
+              size={20}
+              color={Colors.status.unknown}
+            />
+            {unknownCount > 0 && (
+              <View
+                style={[
+                  styles.dlBadgeSmall,
+                  { backgroundColor: Colors.status.unknown },
+                ]}
+              >
+                <Text style={styles.dlBadgeText}>{unknownCount}</Text>
+              </View>
+            )}
+          </Pressable>
+          <Pressable
             onPress={() => router.push("/settings")}
             style={styles.settingsButton}
           >
@@ -736,6 +808,21 @@ export default function AttendanceScreen() {
           dutyLeaves={allDutyLeaves}
           onClose={() => setShowDLModal(false)}
           onRemove={handleRemoveDL}
+        />
+
+        <UnknownStatusModal
+          visible={showUnknownModal}
+          courses={courses}
+          bunkCourses={bunkCourses}
+          onClose={() => setShowUnknownModal(false)}
+          onConfirmPresent={(courseId, record) => {
+            handleConfirmUnknownPresent(courseId, record);
+            setShowUnknownModal(false);
+          }}
+          onConfirmAbsent={(courseId, record) => {
+            handleConfirmUnknownAbsent(courseId, record);
+            setShowUnknownModal(false);
+          }}
         />
 
         <ConfirmModal
