@@ -28,6 +28,7 @@ import type {
   ManualSlotInput,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -82,6 +83,7 @@ export default function AttendanceScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const isFocused = useIsFocused();
 
   const {
     courses,
@@ -976,7 +978,7 @@ export default function AttendanceScreen() {
       />
 
       {/* FAB Speed Dial - Only render on Courses tab */}
-      {activeTab === "courses" && (
+      {isFocused && activeTab === "courses" && (
         <Portal>
           <FAB.Group
             open={showFabMenu}
