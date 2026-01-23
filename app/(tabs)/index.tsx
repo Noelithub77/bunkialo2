@@ -90,13 +90,13 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Dashboard</Text>
-          <View style={styles.headerRight}>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.title, { color: theme.text }]}>Dashboard</Text>
             {lastSyncTime && (
-              <View style={styles.syncRow}>
+              <View style={styles.syncPill}>
                 <Ionicons
                   name="refresh-outline"
-                  size={14}
+                  size={12}
                   color={theme.textSecondary}
                 />
                 <Text style={[styles.syncText, { color: theme.textSecondary }]}>
@@ -104,6 +104,8 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             )}
+          </View>
+          <View style={styles.headerRight}>
             <Pressable
               onPress={() => router.push("/settings")}
               style={styles.settingsBtn}
@@ -196,8 +198,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: Spacing.lg,
+  },
+  headerLeft: {
+    flexShrink: 1,
+    rowGap: 2,
   },
   title: {
     fontSize: 28,
@@ -208,13 +214,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
   },
-  syncRow: {
+  syncPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
   },
   syncText: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
   settingsBtn: {
     padding: Spacing.sm,

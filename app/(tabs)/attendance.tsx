@@ -111,17 +111,16 @@ export default function AttendanceScreen() {
             <Text style={[styles.screenTitle, { color: theme.text }]}>
               Attendance
             </Text>
-          </View>
-          <View style={styles.headerActions}>
             {lastSyncTime && (
               <Pressable
                 onPressIn={() => setShowTooltip(true)}
                 onPressOut={() => setShowTooltip(false)}
                 style={styles.headerRight}
+                hitSlop={8}
               >
                 <Ionicons
                   name="refresh-outline"
-                  size={14}
+                  size={12}
                   color={theme.textSecondary}
                 />
                 <Text style={[styles.syncTime, { color: theme.textSecondary }]}>
@@ -141,7 +140,8 @@ export default function AttendanceScreen() {
                 )}
               </Pressable>
             )}
-
+          </View>
+          <View style={styles.headerActions}>
             <Pressable
               onPress={() => openModal({ type: "duty-leave-list" })}
               style={styles.dlButton}
@@ -321,6 +321,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flexShrink: 1,
     minWidth: "40%",
+    rowGap: 2,
   },
   screenTitle: {
     fontSize: 28,
@@ -341,9 +342,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     position: "relative",
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
   },
   syncTime: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
   settingsButton: {
     padding: Spacing.sm,

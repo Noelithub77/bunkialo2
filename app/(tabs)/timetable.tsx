@@ -12,13 +12,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 export default function TimetableScreen() {
@@ -72,6 +72,7 @@ export default function TimetableScreen() {
       return date.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
+        hour12: false,
       });
     }
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -93,11 +94,25 @@ export default function TimetableScreen() {
       >
         {/* header */}
         <View style={styles.header}>
-          <Text style={[styles.screenTitle, { color: theme.text }]}>
-            Timetable
-          </Text>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.screenTitle, { color: theme.text }]}>
+              Timetable
+            </Text>
+            {lastGeneratedAt && (
+              <View style={styles.syncPill}>
+                <Ionicons
+                  name="refresh-outline"
+                  size={12}
+                  color={theme.textSecondary}
+                />
+                <Text style={[styles.syncText, { color: theme.textSecondary }]}>
+                  {formatLastGenerated(lastGeneratedAt)}
+                </Text>
+              </View>
+            )}
+          </View>
           <Pressable onPress={handleRegenerate} style={styles.refreshBtn}>
-            <Ionicons name="refresh" size={20} color={theme.textSecondary} />
+            <Ionicons name="refresh" size={16} color={theme.textSecondary} />
           </Pressable>
         </View>
 
@@ -151,16 +166,6 @@ export default function TimetableScreen() {
                 >
                   Schedule
                 </Text>
-                {lastGeneratedAt && (
-                  <Text
-                    style={[
-                      styles.lastGenerated,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    Updated {formatLastGenerated(lastGeneratedAt)}
-                  </Text>
-                )}
               </View>
               <DaySelector
                 selectedDay={selectedDay}
@@ -186,15 +191,33 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: Spacing.md,
+  },
+  headerLeft: {
+    flexShrink: 1,
+    rowGap: 2,
   },
   screenTitle: {
     fontSize: 28,
     fontWeight: "700",
   },
   refreshBtn: {
-    padding: Spacing.sm,
+    padding: Spacing.xs,
+  },
+  syncPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  syncText: {
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
   loading: {
     alignItems: "center",
@@ -230,8 +253,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  lastGenerated: {
-    fontSize: 11,
   },
 });
