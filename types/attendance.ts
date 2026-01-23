@@ -20,6 +20,7 @@ export type AttendanceStatus =
  */
 export interface AttendanceRecord {
   date: string;
+  description: string;
   status: AttendanceStatus;
   points: string;
 }
