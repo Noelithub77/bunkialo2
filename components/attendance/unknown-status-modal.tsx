@@ -3,6 +3,7 @@ import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type {
   AttendanceRecord,
+  BunkRecord,
   CourseAttendance,
   CourseBunkData,
 } from "@/types";
@@ -24,12 +25,18 @@ interface UnknownStatusModalProps {
   onClose: () => void;
   onConfirmPresent: (courseId: string, record: AttendanceRecord) => void;
   onConfirmAbsent: (courseId: string, record: AttendanceRecord) => void;
+  onRevert: (courseId: string, record: AttendanceRecord) => void;
 }
+
+type UnknownResolution = "pending" | "present" | "absent" | "dutyLeave";
 
 interface UnknownEntry {
   courseId: string;
   courseName: string;
   record: AttendanceRecord;
+  resolution: UnknownResolution;
+  bunkId: string | null;
+  note: string;
 }
 
 // parse date for display
@@ -86,21 +93,21 @@ export function UnknownStatusModal({
   onClose,
   onConfirmPresent,
   onConfirmAbsent,
+  onRevert,
 }: UnknownStatusModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
 
-  // collect all unknown entries
-  const resolvedKeysByCourse = useMemo(() => {
-    const map = new Map<string, Set<string>>();
+  const bunkLookup = useMemo(() => {
+    const map = new Map<string, Map<string, BunkRecord>>();
     if (!bunkCourses) return map;
     for (const course of bunkCourses) {
-      const keys = new Set<string>();
+      const courseMap = new Map<string, BunkRecord>();
       for (const bunk of course.bunks) {
-        keys.add(buildRecordKey(bunk.date, bunk.description));
+        courseMap.set(buildRecordKey(bunk.date, bunk.description), bunk);
       }
-      map.set(course.courseId, keys);
+      map.set(course.courseId, courseMap);
     }
     return map;
   }, [bunkCourses]);
@@ -120,31 +127,85 @@ export function UnknownStatusModal({
       const pastRecords = filterPast(course.records);
       for (const record of pastRecords) {
         if (record.status === "Unknown") {
-          const resolvedKeys = resolvedKeysByCourse.get(course.courseId);
-          if (
-            resolvedKeys?.has(buildRecordKey(record.date, record.description))
-          ) {
-            continue;
+          const recordKey = buildRecordKey(record.date, record.description);
+          const matchingBunk = bunkLookup.get(course.courseId)?.get(recordKey);
+          let resolution: UnknownResolution = "pending";
+          let note = "";
+          if (matchingBunk) {
+            if (matchingBunk.isMarkedPresent) {
+              resolution = "present";
+              note = matchingBunk.presenceNote;
+            } else if (matchingBunk.isDutyLeave) {
+              resolution = "dutyLeave";
+              note = matchingBunk.dutyLeaveNote;
+            } else {
+              resolution = "absent";
+              note = matchingBunk.note;
+            }
           }
           entries.push({
             courseId: course.courseId,
             courseName:
               courseNameById.get(course.courseId) || course.courseName,
             record,
+            resolution,
+            bunkId: matchingBunk?.id ?? null,
+            note,
           });
         }
       }
     }
     // sort by date descending
     return entries.sort((a, b) => {
+      if (a.resolution === "pending" && b.resolution !== "pending") return -1;
+      if (a.resolution !== "pending" && b.resolution === "pending") return 1;
       const dateA = a.record.date;
       const dateB = b.record.date;
       return dateB.localeCompare(dateA);
     });
-  }, [courses, courseNameById, resolvedKeysByCourse]);
+  }, [courses, courseNameById, bunkLookup]);
+
+  const pendingCount = useMemo(
+    () =>
+      unknownEntries.filter((entry) => entry.resolution === "pending").length,
+    [unknownEntries],
+  );
+
+  const getResolutionMeta = (
+    resolution: UnknownResolution,
+  ): { label: string; color: string; icon: string } => {
+    switch (resolution) {
+      case "present":
+        return {
+          label: "Marked Present",
+          color: Colors.status.success,
+          icon: "checkmark-circle",
+        };
+      case "absent":
+        return {
+          label: "Marked Absent",
+          color: Colors.status.danger,
+          icon: "close-circle",
+        };
+      case "dutyLeave":
+        return {
+          label: "Marked DL",
+          color: Colors.status.info,
+          icon: "briefcase",
+        };
+      case "pending":
+      default:
+        return {
+          label: "Pending confirmation",
+          color: Colors.status.unknown,
+          icon: "help-circle",
+        };
+    }
+  };
 
   const renderItem = ({ item }: { item: UnknownEntry }) => {
     const time = parseTime(item.record.date);
+    const resolutionMeta = getResolutionMeta(item.resolution);
     return (
       <View style={[styles.item, { borderBottomColor: theme.border }]}>
         <View style={styles.itemInfo}>
@@ -164,26 +225,60 @@ export function UnknownStatusModal({
               </Text>
             )}
           </View>
+          <View style={styles.statusRow}>
+            <Ionicons
+              name={resolutionMeta.icon as keyof typeof Ionicons.glyphMap}
+              size={14}
+              color={resolutionMeta.color}
+            />
+            <Text
+              style={[styles.statusText, { color: resolutionMeta.color }]}
+            >
+              {resolutionMeta.label}
+            </Text>
+          </View>
+          {item.note ? (
+            <Text
+              style={[styles.noteText, { color: theme.textSecondary }]}
+              numberOfLines={2}
+            >
+              {item.note}
+            </Text>
+          ) : null}
         </View>
         <View style={styles.itemActions}>
-          <Pressable
-            onPress={() => onConfirmPresent(item.courseId, item.record)}
-            style={[
-              styles.actionBtn,
-              { backgroundColor: Colors.status.success },
-            ]}
-          >
-            <Ionicons name="checkmark" size={16} color={Colors.white} />
-          </Pressable>
-          <Pressable
-            onPress={() => onConfirmAbsent(item.courseId, item.record)}
-            style={[
-              styles.actionBtn,
-              { backgroundColor: Colors.status.danger },
-            ]}
-          >
-            <Ionicons name="close" size={16} color={Colors.white} />
-          </Pressable>
+          {item.resolution === "pending" ? (
+            <>
+              <Pressable
+                onPress={() => onConfirmPresent(item.courseId, item.record)}
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: Colors.status.success },
+                ]}
+              >
+                <Ionicons name="checkmark" size={16} color={Colors.white} />
+              </Pressable>
+              <Pressable
+                onPress={() => onConfirmAbsent(item.courseId, item.record)}
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: Colors.status.danger },
+                ]}
+              >
+                <Ionicons name="close" size={16} color={Colors.white} />
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              onPress={() => onRevert(item.courseId, item.record)}
+              style={[
+                styles.actionBtn,
+                { backgroundColor: Colors.gray[600] },
+              ]}
+            >
+              <Ionicons name="arrow-undo" size={16} color={Colors.white} />
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -210,7 +305,7 @@ export function UnknownStatusModal({
                 <Ionicons name="help" size={16} color={Colors.white} />
               </View>
               <Text style={[styles.title, { color: theme.text }]}>
-                Unconfirmed
+                Unknown Sessions
               </Text>
             </View>
             <Pressable onPress={onClose} hitSlop={8}>
@@ -226,19 +321,19 @@ export function UnknownStatusModal({
                 color={Colors.status.success}
               />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                All sessions confirmed
+                No unknown sessions found
               </Text>
             </View>
           ) : (
             <>
               <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                {unknownEntries.length} session
-                {unknownEntries.length !== 1 ? "s" : ""} need confirmation
+                {unknownEntries.length} total · {pendingCount} pending ·{" "}
+                {unknownEntries.length - pendingCount} resolved
               </Text>
               <FlatList
                 data={unknownEntries}
                 keyExtractor={(item, idx) =>
-                  `${item.courseId}-${item.record.date}-${idx}`
+                  `${item.courseId}-${item.record.date}-${item.resolution}-${idx}`
                 }
                 renderItem={renderItem}
                 contentContainerStyle={styles.list}
@@ -323,6 +418,21 @@ const styles = StyleSheet.create({
   },
   itemTime: {
     fontSize: 12,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  noteText: {
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 2,
   },
   itemActions: {
     flexDirection: "row",

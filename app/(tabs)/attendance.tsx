@@ -124,6 +124,7 @@ export default function AttendanceScreen() {
     removeDutyLeave,
     markAsPresent,
     removePresenceCorrection,
+    removeBunk,
     updateBunkNote,
     addCustomCourse,
     deleteCustomCourse,
@@ -359,6 +360,30 @@ export default function AttendanceScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
     [addBunk, findMatchingBunk, removeDutyLeave, removePresenceCorrection],
+  );
+
+  const handleRevertUnknown = useCallback(
+    (courseId: string, record: AttendanceRecord) => {
+      const existingBunk = findMatchingBunk(courseId, record);
+      if (!existingBunk) return;
+      if (existingBunk.source === "user") {
+        removeBunk(courseId, existingBunk.id);
+      } else {
+        if (existingBunk.isMarkedPresent) {
+          removePresenceCorrection(courseId, existingBunk.id);
+        }
+        if (existingBunk.isDutyLeave) {
+          removeDutyLeave(courseId, existingBunk.id);
+        }
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [
+      findMatchingBunk,
+      removeBunk,
+      removeDutyLeave,
+      removePresenceCorrection,
+    ],
   );
 
   const handleMarkPresentAbsences = (
@@ -815,6 +840,7 @@ export default function AttendanceScreen() {
           courses={courses}
           bunkCourses={bunkCourses}
           onClose={() => setShowUnknownModal(false)}
+          onRevert={handleRevertUnknown}
           onConfirmPresent={(courseId, record) => {
             handleConfirmUnknownPresent(courseId, record);
             setShowUnknownModal(false);
@@ -991,6 +1017,7 @@ export default function AttendanceScreen() {
         courses={courses}
         bunkCourses={bunkCourses}
         onClose={() => setShowUnknownModal(false)}
+        onRevert={handleRevertUnknown}
         onConfirmPresent={(courseId, record) => {
           handleConfirmUnknownPresent(courseId, record);
           setShowUnknownModal(false);
