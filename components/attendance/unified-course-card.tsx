@@ -20,11 +20,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 
 interface UnifiedCourseCardProps {
-  course: CourseAttendance;
+  course: CourseAttendance | null;
   bunkData: CourseBunkData | undefined;
   isEditMode: boolean;
   onEdit: () => void;
   onAddBunk: () => void;
+  onEditSlots?: () => void;
   onMarkDL: (bunkId: string) => void;
   onRemoveDL: (bunkId: string) => void;
   onMarkPresent: (bunkId: string) => void;
@@ -33,6 +34,7 @@ interface UnifiedCourseCardProps {
   onShowUnknown: (courseId: string) => void;
   onConfirmUnknownPresent: (courseId: string, record: AttendanceRecord) => void;
   onConfirmUnknownAbsent: (courseId: string, record: AttendanceRecord) => void;
+  onDeleteCustomCourse?: () => void;
 }
 
 // 80% threshold
@@ -198,6 +200,7 @@ export function UnifiedCourseCard({
   isEditMode,
   onEdit,
   onAddBunk,
+  onEditSlots,
   onMarkDL,
   onRemoveDL,
   onMarkPresent,
@@ -206,6 +209,7 @@ export function UnifiedCourseCard({
   onShowUnknown,
   onConfirmUnknownPresent,
   onConfirmUnknownAbsent,
+  onDeleteCustomCourse,
 }: UnifiedCourseCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -215,14 +219,16 @@ export function UnifiedCourseCard({
   const theme = isDark ? Colors.dark : Colors.light;
   const calTheme = isDark ? CalendarTheme.dark : CalendarTheme.light;
 
-  const courseAlias = bunkData?.config?.alias || course.courseName;
+  const isCustomCourse = bunkData?.isCustomCourse ?? false;
+  const courseAlias = bunkData?.config?.alias || course?.courseName || "Custom Course";
   const courseColor = bunkData?.config?.color;
   const isConfigured = bunkData?.isConfigured && bunkData?.config;
+  const manualSlotsCount = bunkData?.manualSlots?.length ?? 0;
 
-  // attendance stats (past only)
+  // attendance stats (past only) - only for LMS courses
   const pastRecords = useMemo(
-    () => filterPastRecords(course.records),
-    [course.records],
+    () => (course ? filterPastRecords(course.records) : []),
+    [course],
   );
   const totalSessions = pastRecords.length;
   const attended = pastRecords.filter((r) => r.status === "Present").length;
@@ -306,13 +312,14 @@ export function UnifiedCourseCard({
   };
 
   const handleOpenLms = () => {
-    if (course.attendanceModuleId) {
+    if (course?.attendanceModuleId) {
       const url = `${getBaseUrl()}/mod/attendance/view.php?id=${course.attendanceModuleId}`;
       Linking.openURL(url);
     }
   };
 
-  if (totalSessions === 0 && pastBunks.length === 0) {
+  // for custom courses with no bunks yet, still show the card
+  if (!isCustomCourse && totalSessions === 0 && pastBunks.length === 0) {
     return (
       <GradientCard>
         <View style={styles.header}>
@@ -356,53 +363,107 @@ export function UnifiedCourseCard({
                   {courseAlias}
                 </Text>
                 <View style={styles.sessionMeta}>
-                  <Text
-                    style={[
-                      styles.sessionCount,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {attended} / {totalSessions} sessions
-                    <Text
-                      style={[
-                        styles.percentageSmall,
-                        { color: percentageColor },
-                      ]}
-                    >
-                      {" "}
-                      ({percentage}%)
-                    </Text>
-                  </Text>
-                  {unknownCount > 0 && (
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        onShowUnknown(course.courseId);
-                      }}
-                      style={styles.unknownBadge}
-                    >
-                      <Ionicons
-                        name="help"
-                        size={10}
-                        color={Colors.status.unknown}
-                      />
-                      <Text
+                  {isCustomCourse ? (
+                    <View style={styles.customBadgeRow}>
+                      <View
                         style={[
-                          styles.unknownText,
-                          { color: Colors.status.unknown },
+                          styles.customBadge,
+                          { backgroundColor: Colors.status.success + "20" },
                         ]}
                       >
-                        {unknownCount}
+                        <Text
+                          style={[
+                            styles.customBadgeText,
+                            { color: Colors.status.success },
+                          ]}
+                        >
+                          Custom
+                        </Text>
+                      </View>
+                      {manualSlotsCount > 0 && (
+                        <Text
+                          style={[
+                            styles.slotsCount,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          {manualSlotsCount} slot{manualSlotsCount > 1 ? "s" : ""}
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <>
+                      <Text
+                        style={[
+                          styles.sessionCount,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {attended} / {totalSessions} sessions
+                        <Text
+                          style={[
+                            styles.percentageSmall,
+                            { color: percentageColor },
+                          ]}
+                        >
+                          {" "}
+                          ({percentage}%)
+                        </Text>
                       </Text>
-                    </Pressable>
+                      {unknownCount > 0 && course && (
+                        <Pressable
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            onShowUnknown(course.courseId);
+                          }}
+                          style={styles.unknownBadge}
+                        >
+                          <Ionicons
+                            name="help"
+                            size={10}
+                            color={Colors.status.unknown}
+                          />
+                          <Text
+                            style={[
+                              styles.unknownText,
+                              { color: Colors.status.unknown },
+                            ]}
+                          >
+                            {unknownCount}
+                          </Text>
+                        </Pressable>
+                      )}
+                      {manualSlotsCount > 0 && (
+                        <View
+                          style={[
+                            styles.manualSlotsBadge,
+                            { backgroundColor: Colors.status.info + "20" },
+                          ]}
+                        >
+                          <Ionicons
+                            name="time-outline"
+                            size={10}
+                            color={Colors.status.info}
+                          />
+                          <Text
+                            style={[
+                              styles.manualSlotsText,
+                              { color: Colors.status.info },
+                            ]}
+                          >
+                            {manualSlotsCount}
+                          </Text>
+                        </View>
+                      )}
+                    </>
                   )}
                 </View>
               </View>
             </View>
 
             <View style={styles.headerRight}>
-              {/* LMS link */}
-              {course.attendanceModuleId && (
+              {/* LMS link - only for non-custom courses */}
+              {!isCustomCourse && course?.attendanceModuleId && (
                 <Pressable
                   onPress={(e) => {
                     e.stopPropagation();
@@ -414,6 +475,23 @@ export function UnifiedCourseCard({
                     name="open-outline"
                     size={18}
                     color={theme.textSecondary}
+                  />
+                </Pressable>
+              )}
+
+              {/* delete button for custom courses in edit mode */}
+              {isCustomCourse && isEditMode && onDeleteCustomCourse && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onDeleteCustomCourse();
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color={Colors.status.danger}
                   />
                 </Pressable>
               )}
@@ -503,8 +581,8 @@ export function UnifiedCourseCard({
             }}
           />
 
-          {/* selected date - Unknown entries (swipe to confirm) */}
-          {selectedDate && selectedUnknown.length > 0 && (
+          {/* selected date - Unknown entries (swipe to confirm) - only for LMS courses */}
+          {course && selectedDate && selectedUnknown.length > 0 && (
             <View
               style={[styles.sessionDetails, { borderTopColor: theme.border }]}
             >
@@ -559,7 +637,7 @@ export function UnifiedCourseCard({
                 <SwipeableBunkItem
                   key={bunk.id}
                   bunk={bunk}
-                  attendanceModuleId={course.attendanceModuleId}
+                  attendanceModuleId={course?.attendanceModuleId}
                   onMarkDL={() => onMarkDL(bunk.id)}
                   onRemoveDL={() => onRemoveDL(bunk.id)}
                   onMarkPresent={() => onMarkPresent(bunk.id)}
@@ -570,20 +648,40 @@ export function UnifiedCourseCard({
             </View>
           )}
 
-          {/* add bunk button */}
-          <Pressable
-            onPress={onAddBunk}
-            style={[styles.addBunkBtn, { borderColor: theme.border }]}
-          >
-            <Ionicons
-              name="add-circle-outline"
-              size={16}
-              color={theme.textSecondary}
-            />
-            <Text style={[styles.addBunkText, { color: theme.textSecondary }]}>
-              Add Bunk
-            </Text>
-          </Pressable>
+          {/* action buttons */}
+          <View style={styles.actionButtons}>
+            {/* add bunk button */}
+            <Pressable
+              onPress={onAddBunk}
+              style={[styles.addBunkBtn, { borderColor: theme.border }]}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={16}
+                color={theme.textSecondary}
+              />
+              <Text style={[styles.addBunkText, { color: theme.textSecondary }]}>
+                Add Bunk
+              </Text>
+            </Pressable>
+
+            {/* edit slots button */}
+            {onEditSlots && (
+              <Pressable
+                onPress={onEditSlots}
+                style={[styles.editSlotsBtn, { borderColor: Colors.status.info }]}
+              >
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={Colors.status.info}
+                />
+                <Text style={[styles.editSlotsText, { color: Colors.status.info }]}>
+                  Edit Slots
+                </Text>
+              </Pressable>
+            )}
+          </View>
 
           {/* swipe hint */}
           {pastBunks.length > 0 && (
@@ -689,6 +787,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
   },
+  customBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  customBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  customBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  slotsCount: {
+    fontSize: 12,
+  },
+  manualSlotsBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  manualSlotsText: {
+    fontSize: 10,
+    fontWeight: "500",
+  },
   bunksDisplayProminent: {
     alignItems: "center",
   },
@@ -754,12 +881,17 @@ const styles = StyleSheet.create({
   bunksList: {
     gap: 0,
   },
+  actionButtons: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
   addBunkBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing.xs,
-    marginTop: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
     borderRadius: Radius.sm,
@@ -767,6 +899,20 @@ const styles = StyleSheet.create({
   },
   addBunkText: {
     fontSize: 13,
+  },
+  editSlotsBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+  },
+  editSlotsText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   swipeHint: {
     fontSize: 10,

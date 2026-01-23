@@ -1,12 +1,15 @@
 import { AddBunkModal } from "@/components/attendance/add-bunk-modal";
 import { CourseEditModal } from "@/components/attendance/course-edit-modal";
+import { CreateCourseModal } from "@/components/attendance/create-course-modal";
 import { DLInputModal } from "@/components/attendance/dl-input-modal";
 import { DutyLeaveModal } from "@/components/attendance/duty-leave-modal";
 import { PresenceInputModal } from "@/components/attendance/presence-input-modal";
+import { SlotEditorModal } from "@/components/attendance/slot-editor-modal";
 import { TotalAbsenceCalendar } from "@/components/attendance/total-absence-calendar";
 import { UnifiedCourseCard } from "@/components/attendance/unified-course-card";
 import { UnknownStatusModal } from "@/components/attendance/unknown-status-modal";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
+import { SlotConflictModal } from "@/components/modals/slot-conflict-modal";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { Colors, Radius, Spacing } from "@/constants/theme";
@@ -17,10 +20,16 @@ import {
   selectAllDutyLeaves,
   useBunkStore,
 } from "@/stores/bunk-store";
-import type { AttendanceRecord, CourseBunkData, CourseConfig } from "@/types";
+import { useTimetableStore } from "@/stores/timetable-store";
+import type {
+  AttendanceRecord,
+  CourseBunkData,
+  CourseConfig,
+  ManualSlotInput,
+} from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +42,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { FAB, Portal } from "react-native-paper";
 
 type TabType = "courses" | "absences";
 type ConfirmDialogState =
@@ -90,8 +100,20 @@ export default function AttendanceScreen() {
     markAsPresent,
     removePresenceCorrection,
     updateBunkNote,
+    addCustomCourse,
+    deleteCustomCourse,
+    addManualSlot,
+    updateManualSlot,
+    removeManualSlot,
     hasHydrated: isBunkHydrated,
   } = useBunkStore();
+
+  const {
+    slots: timetableSlots,
+    conflicts,
+    generateTimetable,
+    resolveConflict,
+  } = useTimetableStore();
 
   const [activeTab, setActiveTab] = useState<TabType>("absences");
   const [showTooltip, setShowTooltip] = useState(false);
@@ -128,10 +150,40 @@ export default function AttendanceScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
+  // create course modal
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
+
+  // slot editor modal
+  const [slotEditorCourse, setSlotEditorCourse] =
+    useState<CourseBunkData | null>(null);
+
+  // conflict modal
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
+  // FAB menu
+  const [showFabMenu, setShowFabMenu] = useState(false);
+
   const allDutyLeaves = useMemo(
     () => selectAllDutyLeaves(bunkCourses),
     [bunkCourses],
   );
+
+  // auto slots for the course being edited (LMS-generated, non-manual)
+  const autoSlotsForEditor = useMemo(() => {
+    if (!slotEditorCourse) return [];
+    return timetableSlots
+      .filter(
+        (slot) => slot.courseId === slotEditorCourse.courseId && !slot.isManual,
+      )
+      .map((slot) => ({
+        id: slot.id,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        sessionType: slot.sessionType,
+        isHidden: false, // TODO: track hidden auto slots in store if needed
+      }));
+  }, [slotEditorCourse, timetableSlots]);
 
   useEffect(() => {
     if (!isAttendanceHydrated) return;
@@ -157,6 +209,17 @@ export default function AttendanceScreen() {
     syncFromLms,
   ]);
 
+  // close FAB when screen loses focus (navigating to other tabs)
+  useFocusEffect(
+    useCallback(() => {
+      // on focus - do nothing
+      return () => {
+        // on blur - close FAB menu
+        setShowFabMenu(false);
+      };
+    }, []),
+  );
+
   const handleRefresh = useCallback(() => {
     fetchAttendance();
   }, [fetchAttendance]);
@@ -164,6 +227,8 @@ export default function AttendanceScreen() {
   const handleTabChange = (tab: TabType) => {
     Haptics.selectionAsync();
     setActiveTab(tab);
+    // close FAB menu when switching tabs to prevent backdrop overlay issue
+    setShowFabMenu(false);
   };
 
   // "All Bunks" tab handlers
@@ -403,6 +468,69 @@ export default function AttendanceScreen() {
     setConfirmDialog({ type: "confirmUnknownAbsent", courseId, record });
   };
 
+  // create course handlers
+  const handleCreateCourse = (
+    courseName: string,
+    alias: string,
+    credits: number,
+    color: string,
+    slots: ManualSlotInput[],
+  ) => {
+    addCustomCourse({
+      courseName,
+      alias,
+      credits,
+      color,
+      slots,
+    });
+    generateTimetable();
+    // check for conflicts after generating
+    setTimeout(() => {
+      const currentConflicts = useTimetableStore.getState().conflicts;
+      if (currentConflicts.length > 0) {
+        setShowConflictModal(true);
+      }
+    }, 100);
+  };
+
+  // slot editor handlers
+  const handleOpenSlotEditor = (course: CourseBunkData) => {
+    setSlotEditorCourse(course);
+    setIsEditMode(false);
+  };
+
+  const handleAddSlot = (slot: ManualSlotInput) => {
+    if (!slotEditorCourse) return;
+    addManualSlot(slotEditorCourse.courseId, slot);
+    generateTimetable();
+    // check for conflicts
+    setTimeout(() => {
+      const currentConflicts = useTimetableStore.getState().conflicts;
+      if (currentConflicts.length > 0) {
+        setShowConflictModal(true);
+      }
+    }, 100);
+  };
+
+  const handleUpdateSlot = (slotId: string, slot: ManualSlotInput) => {
+    if (!slotEditorCourse) return;
+    updateManualSlot(slotEditorCourse.courseId, slotId, slot);
+    generateTimetable();
+  };
+
+  const handleRemoveSlot = (slotId: string) => {
+    if (!slotEditorCourse) return;
+    removeManualSlot(slotEditorCourse.courseId, slotId);
+    generateTimetable();
+  };
+
+  const handleResolveConflict = (
+    conflictIndex: number,
+    keep: "manual" | "auto",
+  ) => {
+    resolveConflict(conflictIndex, keep);
+  };
+
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.header}>
@@ -439,24 +567,7 @@ export default function AttendanceScreen() {
               )}
             </Pressable>
           )}
-          {activeTab === "courses" && (
-            <>
-              <Pressable
-                onPress={() => setIsEditMode(!isEditMode)}
-                style={[
-                  styles.editModeBtn,
-                  isEditMode && styles.editModeBtnActive,
-                  !isEditMode && { backgroundColor: theme.backgroundSecondary },
-                ]}
-              >
-                <Ionicons
-                  name="pencil"
-                  size={18}
-                  color={isEditMode ? Colors.white : theme.textSecondary}
-                />
-              </Pressable>
-            </>
-          )}
+
           <Pressable
             onPress={() => setShowDLModal(true)}
             style={styles.dlButton}
@@ -668,19 +779,37 @@ export default function AttendanceScreen() {
     );
   }
 
+  // combine LMS courses with custom courses
+  const allCourses = useMemo(() => {
+    const lmsCourseData = courses.map((course) => ({
+      type: "lms" as const,
+      course,
+      bunkData: bunkCourses.find((c) => c.courseId === course.courseId),
+    }));
+    const customCourseData = bunkCourses
+      .filter((c) => c.isCustomCourse)
+      .map((bunkData) => ({
+        type: "custom" as const,
+        course: null,
+        bunkData,
+      }));
+    return [...lmsCourseData, ...customCourseData];
+  }, [courses, bunkCourses]);
+
   // "Courses" tab content
   return (
     <Container>
       <FlatList
-        data={courses}
-        keyExtractor={(item) => item.courseId}
+        data={allCourses}
+        keyExtractor={(item) =>
+          item.bunkData?.courseId || item.course?.courseId || ""
+        }
         renderItem={({ item }) => {
-          const bunkData = bunkCourses.find(
-            (c) => c.courseId === item.courseId,
-          );
+          const { course, bunkData } = item;
+          const courseId = bunkData?.courseId || course?.courseId || "";
           return (
             <UnifiedCourseCard
-              course={item}
+              course={course}
               bunkData={bunkData}
               isEditMode={isEditMode}
               onEdit={() => {
@@ -692,20 +821,29 @@ export default function AttendanceScreen() {
               onAddBunk={() => {
                 if (bunkData) setAddBunkCourse(bunkData);
               }}
-              onMarkDL={(bunkId) => handleMarkDLCourses(item.courseId, bunkId)}
-              onRemoveDL={(bunkId) => handleRemoveDL(item.courseId, bunkId)}
+              onEditSlots={() => {
+                if (bunkData) handleOpenSlotEditor(bunkData);
+              }}
+              onMarkDL={(bunkId) => handleMarkDLCourses(courseId, bunkId)}
+              onRemoveDL={(bunkId) => handleRemoveDL(courseId, bunkId)}
               onMarkPresent={(bunkId) =>
-                handleMarkPresentCourses(item.courseId, bunkId)
+                handleMarkPresentCourses(courseId, bunkId)
               }
               onRemovePresent={(bunkId) =>
-                handleRemovePresent(item.courseId, bunkId)
+                handleRemovePresent(courseId, bunkId)
               }
               onUpdateNote={(bunkId, note) =>
-                updateBunkNote(item.courseId, bunkId, note)
+                updateBunkNote(courseId, bunkId, note)
               }
               onShowUnknown={handleShowUnknown}
               onConfirmUnknownPresent={handleConfirmUnknownPresent}
               onConfirmUnknownAbsent={handleConfirmUnknownAbsent}
+              onDeleteCustomCourse={() => {
+                if (bunkData?.isCustomCourse) {
+                  deleteCustomCourse(courseId);
+                  generateTimetable();
+                }
+              }}
             />
           );
         }}
@@ -811,6 +949,84 @@ export default function AttendanceScreen() {
           setConfirmDialog(null);
         }}
       />
+
+      <CreateCourseModal
+        visible={showCreateCourse}
+        onClose={() => setShowCreateCourse(false)}
+        onSave={handleCreateCourse}
+      />
+
+      <SlotEditorModal
+        visible={!!slotEditorCourse}
+        courseName={slotEditorCourse ? getDisplayName(slotEditorCourse) : ""}
+        courseColor={slotEditorCourse?.config?.color || Colors.gray[500]}
+        existingSlots={slotEditorCourse?.manualSlots || []}
+        autoSlots={autoSlotsForEditor}
+        onClose={() => setSlotEditorCourse(null)}
+        onAddSlot={handleAddSlot}
+        onUpdateSlot={handleUpdateSlot}
+        onRemoveSlot={handleRemoveSlot}
+      />
+
+      <SlotConflictModal
+        visible={showConflictModal && conflicts.length > 0}
+        conflicts={conflicts}
+        onResolve={handleResolveConflict}
+        onClose={() => setShowConflictModal(false)}
+      />
+
+      {/* FAB Speed Dial - Only render on Courses tab */}
+      {activeTab === "courses" && (
+        <Portal>
+          <FAB.Group
+            open={showFabMenu}
+            visible={true}
+            icon={showFabMenu ? "close" : isEditMode ? "check" : "plus"}
+            color={Colors.white}
+            style={{ position: "absolute", right: 0, bottom: 80 }}
+            backdropColor="rgba(0,0,0,0.5)"
+            fabStyle={{
+              backgroundColor: showFabMenu
+                ? theme.textSecondary
+                : isEditMode
+                  ? Colors.status.info
+                  : Colors.status.success,
+            }}
+            actions={[
+              {
+                icon: "pencil",
+                label: isEditMode ? "Done Editing" : "Edit Courses",
+                color: isEditMode ? Colors.white : theme.text,
+                style: {
+                  backgroundColor: isEditMode
+                    ? Colors.status.info
+                    : theme.backgroundSecondary,
+                },
+                onPress: () => {
+                  Haptics.selectionAsync();
+                  setIsEditMode(!isEditMode);
+                },
+              },
+              {
+                icon: "plus",
+                label: "Add Course",
+                color: Colors.white,
+                style: { backgroundColor: Colors.status.success },
+                onPress: () => {
+                  Haptics.selectionAsync();
+                  setShowCreateCourse(true);
+                },
+              },
+            ]}
+            onStateChange={({ open }) => setShowFabMenu(open)}
+            onPress={() => {
+              if (showFabMenu) {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+            }}
+          />
+        </Portal>
+      )}
     </Container>
   );
 }
@@ -818,7 +1034,7 @@ export default function AttendanceScreen() {
 const styles = StyleSheet.create({
   list: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: 100,
   },
   headerContainer: {
     marginBottom: Spacing.md,
@@ -849,16 +1065,6 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: Spacing.sm,
-  },
-  editModeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editModeBtnActive: {
-    backgroundColor: Colors.status.info,
   },
   dlButton: {
     flexDirection: "row",

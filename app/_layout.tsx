@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 
 import { Colors } from "@/constants/theme";
@@ -72,15 +73,17 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="faculty/[id]" />
-          <Stack.Screen name="settings" />
-        </Stack>
-        <StatusBar style={isDark ? "light" : "dark"} />
-      </ThemeProvider>
+      <PaperProvider>
+        <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="login" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="faculty/[id]" />
+            <Stack.Screen name="settings" />
+          </Stack>
+          <StatusBar style={isDark ? "light" : "dark"} />
+        </ThemeProvider>
+      </PaperProvider>
     </GestureHandlerRootView>
   );
 }

@@ -14,10 +14,26 @@ export interface TimetableSlot {
   startTime: string;
   endTime: string;
   sessionType: SessionType;
+  isManual: boolean;
+  isCustomCourse: boolean;
+}
+
+export interface ManualSlot {
+  id: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  sessionType: SessionType;
+}
+
+export interface SlotConflict {
+  manualSlot: TimetableSlot;
+  autoSlot: TimetableSlot;
 }
 
 export interface TimetableState {
   slots: TimetableSlot[];
+  conflicts: SlotConflict[];
   lastGeneratedAt: number | null;
   isLoading: boolean;
 }

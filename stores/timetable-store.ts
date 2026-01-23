@@ -1,9 +1,10 @@
 import { Colors } from "@/constants/theme";
 import type {
-    DayOfWeek,
-    SessionType,
-    TimetableSlot,
-    TimetableState,
+  DayOfWeek,
+  SessionType,
+  SlotConflict,
+  TimetableSlot,
+  TimetableState,
 } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -14,6 +15,11 @@ import { zustandStorage } from "./storage";
 interface TimetableActions {
   generateTimetable: () => void;
   clearTimetable: () => void;
+  resolveConflict: (
+    conflictIndex: number,
+    keep: "manual" | "auto",
+  ) => void;
+  clearConflicts: () => void;
 }
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -93,10 +99,21 @@ export const getRandomCourseColor = (): string => {
   ];
 };
 
+// check if two time ranges overlap
+const timesOverlap = (
+  start1: string,
+  end1: string,
+  start2: string,
+  end2: string,
+): boolean => {
+  return start1 < end2 && start2 < end1;
+};
+
 export const useTimetableStore = create<TimetableState & TimetableActions>()(
   persist(
     (set, get) => ({
       slots: [],
+      conflicts: [],
       lastGeneratedAt: null,
       isLoading: false,
 
@@ -105,10 +122,11 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
 
         const attendanceCourses = useAttendanceStore.getState().courses;
         const bunkCourses = useBunkStore.getState().courses;
-        const slotMap = new Map<string, TimetableSlot>();
+
+        // step 1: generate auto slots from LMS attendance data
+        const autoSlotMap = new Map<string, TimetableSlot>();
 
         for (const course of attendanceCourses) {
-          // get alias from bunk store
           const bunkCourse = bunkCourses.find(
             (c) => c.courseId === course.courseId,
           );
@@ -118,11 +136,10 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
             const parsed = parseSlotTime(record.date);
             if (!parsed) continue;
 
-            // unique key: courseId + day + start time
             const key = `${course.courseId}-${parsed.dayOfWeek}-${parsed.startTime}`;
 
-            if (!slotMap.has(key)) {
-              slotMap.set(key, {
+            if (!autoSlotMap.has(key)) {
+              autoSlotMap.set(key, {
                 id: generateId(),
                 courseId: course.courseId,
                 courseName: displayName,
@@ -134,23 +151,111 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
                   parsed.startTime,
                   parsed.endTime,
                 ),
+                isManual: false,
+                isCustomCourse: false,
               });
             }
           }
         }
 
-        const slots = Array.from(slotMap.values());
-        // sort by day then time
+        // step 2: collect all manual slots from bunk store
+        const manualSlots: TimetableSlot[] = [];
+
+        for (const course of bunkCourses) {
+          if (!course.manualSlots || course.manualSlots.length === 0) continue;
+
+          const displayName = course.config?.alias || course.courseName;
+
+          for (const slot of course.manualSlots) {
+            manualSlots.push({
+              id: slot.id,
+              courseId: course.courseId,
+              courseName: displayName,
+              dayOfWeek: slot.dayOfWeek,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              sessionType: slot.sessionType,
+              isManual: true,
+              isCustomCourse: course.isCustomCourse,
+            });
+          }
+        }
+
+        // step 3: detect conflicts between manual and auto slots
+        const conflicts: SlotConflict[] = [];
+        const autoSlots = Array.from(autoSlotMap.values());
+
+        for (const manualSlot of manualSlots) {
+          for (const autoSlot of autoSlots) {
+            // conflict: same day and overlapping time
+            if (
+              manualSlot.dayOfWeek === autoSlot.dayOfWeek &&
+              timesOverlap(
+                manualSlot.startTime,
+                manualSlot.endTime,
+                autoSlot.startTime,
+                autoSlot.endTime,
+              )
+            ) {
+              conflicts.push({ manualSlot, autoSlot });
+            }
+          }
+        }
+
+        // step 4: merge slots (manual slots take precedence for same course+day+time)
+        const finalSlotMap = new Map<string, TimetableSlot>();
+
+        // add auto slots first
+        for (const slot of autoSlots) {
+          const key = `${slot.dayOfWeek}-${slot.startTime}-${slot.courseId}`;
+          finalSlotMap.set(key, slot);
+        }
+
+        // add manual slots (override if same key)
+        for (const slot of manualSlots) {
+          const key = `${slot.dayOfWeek}-${slot.startTime}-${slot.courseId}`;
+          finalSlotMap.set(key, slot);
+        }
+
+        const slots = Array.from(finalSlotMap.values());
         slots.sort((a, b) => {
           if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
           return a.startTime.localeCompare(b.startTime);
         });
 
-        set({ slots, lastGeneratedAt: Date.now(), isLoading: false });
+        set({
+          slots,
+          conflicts,
+          lastGeneratedAt: Date.now(),
+          isLoading: false,
+        });
+      },
+
+      resolveConflict: (conflictIndex, keep) => {
+        const { conflicts, slots } = get();
+        if (conflictIndex < 0 || conflictIndex >= conflicts.length) return;
+
+        const conflict = conflicts[conflictIndex];
+        const slotToRemove =
+          keep === "manual" ? conflict.autoSlot : conflict.manualSlot;
+
+        // remove the unwanted slot
+        const updatedSlots = slots.filter((s) => s.id !== slotToRemove.id);
+
+        // remove this conflict from the list
+        const updatedConflicts = conflicts.filter(
+          (_, idx) => idx !== conflictIndex,
+        );
+
+        set({ slots: updatedSlots, conflicts: updatedConflicts });
+      },
+
+      clearConflicts: () => {
+        set({ conflicts: [] });
       },
 
       clearTimetable: () => {
-        set({ slots: [], lastGeneratedAt: null });
+        set({ slots: [], conflicts: [], lastGeneratedAt: null });
       },
     }),
     {
@@ -158,6 +263,7 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         slots: state.slots,
+        conflicts: state.conflicts,
         lastGeneratedAt: state.lastGeneratedAt,
       }),
     },
@@ -216,14 +322,14 @@ export const getDayName = (day: DayOfWeek, short = true): string => {
   const names = short
     ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     : [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
   return names[day];
 };
 

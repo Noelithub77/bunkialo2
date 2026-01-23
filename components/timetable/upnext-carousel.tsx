@@ -235,12 +235,40 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
             </Text>
           </View>
 
-          {/* session type */}
-          <View style={[styles.typeBadge, { backgroundColor: courseColor }]}>
-            <Text style={styles.typeText}>
-              {item.sessionType.charAt(0).toUpperCase() +
-                item.sessionType.slice(1)}
-            </Text>
+          {/* session type and badges */}
+          <View style={styles.badgeRow}>
+            <View style={[styles.typeBadge, { backgroundColor: courseColor }]}>
+              <Text style={styles.typeText}>
+                {item.sessionType.charAt(0).toUpperCase() +
+                  item.sessionType.slice(1)}
+              </Text>
+            </View>
+            {item.isManual && (
+              <View
+                style={[
+                  styles.manualBadge,
+                  { backgroundColor: Colors.status.info + "40" },
+                ]}
+              >
+                <Text style={[styles.manualText, { color: Colors.status.info }]}>
+                  Manual
+                </Text>
+              </View>
+            )}
+            {item.isCustomCourse && (
+              <View
+                style={[
+                  styles.customBadge,
+                  { backgroundColor: Colors.status.success + "40" },
+                ]}
+              >
+                <Text
+                  style={[styles.customText, { color: Colors.status.success }]}
+                >
+                  Custom
+                </Text>
+              </View>
+            )}
           </View>
         </LinearGradient>
       </View>
@@ -353,8 +381,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    flexWrap: "wrap",
+  },
   typeBadge: {
-    alignSelf: "flex-start",
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
     borderRadius: Radius.sm,
@@ -363,6 +396,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: Colors.white,
+  },
+  manualBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
+  },
+  manualText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  customBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
+  },
+  customText: {
+    fontSize: 10,
+    fontWeight: "600",
   },
   pagination: {
     flexDirection: "row",

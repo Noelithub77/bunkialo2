@@ -139,18 +139,54 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                 )}
               </View>
               <View style={styles.cardFooter}>
-                <View
-                  style={[
-                    styles.typeBadge,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
-                >
-                  <Text
-                    style={[styles.typeText, { color: theme.textSecondary }]}
+                <View style={styles.badgeRow}>
+                  <View
+                    style={[
+                      styles.typeBadge,
+                      { backgroundColor: theme.backgroundSecondary },
+                    ]}
                   >
-                    {slot.sessionType.charAt(0).toUpperCase() +
-                      slot.sessionType.slice(1)}
-                  </Text>
+                    <Text
+                      style={[styles.typeText, { color: theme.textSecondary }]}
+                    >
+                      {slot.sessionType.charAt(0).toUpperCase() +
+                        slot.sessionType.slice(1)}
+                    </Text>
+                  </View>
+                  {slot.isManual && (
+                    <View
+                      style={[
+                        styles.manualBadge,
+                        { backgroundColor: Colors.status.info + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.manualText,
+                          { color: Colors.status.info },
+                        ]}
+                      >
+                        Manual
+                      </Text>
+                    </View>
+                  )}
+                  {slot.isCustomCourse && (
+                    <View
+                      style={[
+                        styles.customBadge,
+                        { backgroundColor: Colors.status.success + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.customText,
+                          { color: Colors.status.success },
+                        ]}
+                      >
+                        Custom
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
@@ -242,13 +278,36 @@ const styles = StyleSheet.create({
   cardFooter: {
     marginTop: Spacing.xs,
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    flexWrap: "wrap",
+  },
   typeBadge: {
-    alignSelf: "flex-start",
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: Radius.sm,
   },
   typeText: {
     fontSize: 10,
+  },
+  manualBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  manualText: {
+    fontSize: 9,
+    fontWeight: "500",
+  },
+  customBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  customText: {
+    fontSize: 9,
+    fontWeight: "500",
   },
 });

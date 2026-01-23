@@ -5,7 +5,10 @@ import type {
   BunkState,
   CourseBunkData,
   CourseConfig,
+  CustomCourseInput,
   DutyLeaveInfo,
+  ManualSlot,
+  ManualSlotInput,
 } from "@/types";
 import { extractCourseCode, extractCourseName } from "@/utils/course-name";
 import { create } from "zustand";
@@ -30,6 +33,15 @@ interface BunkActions {
   removePresenceCorrection: (courseId: string, bunkId: string) => void;
   removeBunk: (courseId: string, bunkId: string) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
+  addCustomCourse: (input: CustomCourseInput) => string;
+  deleteCustomCourse: (courseId: string) => void;
+  addManualSlot: (courseId: string, slot: ManualSlotInput) => string | null;
+  updateManualSlot: (
+    courseId: string,
+    slotId: string,
+    slot: ManualSlotInput,
+  ) => void;
+  removeManualSlot: (courseId: string, slotId: string) => void;
 }
 
 const generateId = () =>
@@ -168,16 +180,16 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
               const autoCredits = findCreditsByCode(extractedCode);
               const updatedConfig: CourseConfig = existing.config
                 ? {
-                    ...existing.config,
-                    alias: extractedName,
-                    courseCode: extractedCode,
-                  }
+                  ...existing.config,
+                  alias: extractedName,
+                  courseCode: extractedCode,
+                }
                 : {
-                    credits: autoCredits ?? 3,
-                    alias: extractedName,
-                    courseCode: extractedCode,
-                    color: getRandomCourseColor(),
-                  };
+                  credits: autoCredits ?? 3,
+                  alias: extractedName,
+                  courseCode: extractedCode,
+                  color: getRandomCourseColor(),
+                };
 
               return {
                 courseId: course.courseId,
@@ -185,6 +197,8 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
                 config: updatedConfig,
                 bunks: [...mergedLmsBunks, ...userBunks],
                 isConfigured: existing.isConfigured || autoCredits !== null,
+                isCustomCourse: false,
+                manualSlots: existing.manualSlots || [],
               };
             }
 
@@ -209,19 +223,30 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
               },
               bunks: lmsBunks,
               isConfigured: autoCredits !== null,
+              isCustomCourse: false,
+              manualSlots: [],
             };
           },
         );
 
-        set({ courses: updatedCourses, lastSyncTime: Date.now() });
+        // preserve custom courses (not from LMS)
+        const customCourses = currentBunks.filter((c) => c.isCustomCourse);
+        set({
+          courses: [...updatedCourses, ...customCourses],
+          lastSyncTime: Date.now(),
+        });
       },
 
-      // reset all to LMS data, wipe user modifications
+      // reset all to LMS data, wipe user modifications (but keep custom courses)
       resetToLms: () => {
         const attendanceCourses = useAttendanceStore.getState().courses;
+        const currentBunks = get().courses;
 
         const freshCourses: CourseBunkData[] = attendanceCourses.map(
           (course) => {
+            const existing = currentBunks.find(
+              (c) => c.courseId === course.courseId,
+            );
             const lmsBunks: BunkRecord[] = course.records
               .filter((r) => r.status === "Absent")
               .map((r) => ({
@@ -258,11 +283,18 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
               },
               bunks: lmsBunks,
               isConfigured: autoCredits !== null,
+              isCustomCourse: false,
+              manualSlots: existing?.manualSlots || [],
             };
           },
         );
 
-        set({ courses: freshCourses, lastSyncTime: Date.now() });
+        // preserve custom courses
+        const customCourses = currentBunks.filter((c) => c.isCustomCourse);
+        set({
+          courses: [...freshCourses, ...customCourses],
+          lastSyncTime: Date.now(),
+        });
       },
 
       updateCourseConfig: (courseId, config) => {
@@ -293,11 +325,11 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                  ...c,
-                  bunks: c.bunks.map((b) =>
-                    b.id === bunkId ? { ...b, note } : b,
-                  ),
-                }
+                ...c,
+                bunks: c.bunks.map((b) =>
+                  b.id === bunkId ? { ...b, note } : b,
+                ),
+              }
               : c,
           ),
         }));
@@ -308,13 +340,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                  ...c,
-                  bunks: c.bunks.map((b) =>
-                    b.id === bunkId
-                      ? { ...b, isDutyLeave: true, dutyLeaveNote: note }
-                      : b,
-                  ),
-                }
+                ...c,
+                bunks: c.bunks.map((b) =>
+                  b.id === bunkId
+                    ? { ...b, isDutyLeave: true, dutyLeaveNote: note }
+                    : b,
+                ),
+              }
               : c,
           ),
         }));
@@ -325,13 +357,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                  ...c,
-                  bunks: c.bunks.map((b) =>
-                    b.id === bunkId
-                      ? { ...b, isDutyLeave: false, dutyLeaveNote: "" }
-                      : b,
-                  ),
-                }
+                ...c,
+                bunks: c.bunks.map((b) =>
+                  b.id === bunkId
+                    ? { ...b, isDutyLeave: false, dutyLeaveNote: "" }
+                    : b,
+                ),
+              }
               : c,
           ),
         }));
@@ -342,13 +374,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                  ...c,
-                  bunks: c.bunks.map((b) =>
-                    b.id === bunkId
-                      ? { ...b, isMarkedPresent: true, presenceNote: note }
-                      : b,
-                  ),
-                }
+                ...c,
+                bunks: c.bunks.map((b) =>
+                  b.id === bunkId
+                    ? { ...b, isMarkedPresent: true, presenceNote: note }
+                    : b,
+                ),
+              }
               : c,
           ),
         }));
@@ -359,13 +391,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                  ...c,
-                  bunks: c.bunks.map((b) =>
-                    b.id === bunkId
-                      ? { ...b, isMarkedPresent: false, presenceNote: "" }
-                      : b,
-                  ),
-                }
+                ...c,
+                bunks: c.bunks.map((b) =>
+                  b.id === bunkId
+                    ? { ...b, isMarkedPresent: false, presenceNote: "" }
+                    : b,
+                ),
+              }
               : c,
           ),
         }));
@@ -376,6 +408,92 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? { ...c, bunks: c.bunks.filter((b) => b.id !== bunkId) }
+              : c,
+          ),
+        }));
+      },
+
+      addCustomCourse: (input) => {
+        const courseId = `custom-${generateId()}`;
+        const manualSlots: ManualSlot[] = input.slots.map((slot) => ({
+          ...slot,
+          id: generateId(),
+        }));
+
+        const newCourse: CourseBunkData = {
+          courseId,
+          courseName: input.courseName,
+          config: {
+            credits: input.credits,
+            alias: input.alias || input.courseName,
+            courseCode: "",
+            color: input.color,
+          },
+          bunks: [],
+          isConfigured: true,
+          isCustomCourse: true,
+          manualSlots,
+        };
+
+        set((state) => ({
+          courses: [...state.courses, newCourse],
+        }));
+
+        return courseId;
+      },
+
+      deleteCustomCourse: (courseId) => {
+        set((state) => ({
+          courses: state.courses.filter(
+            (c) => !(c.courseId === courseId && c.isCustomCourse),
+          ),
+        }));
+      },
+
+      addManualSlot: (courseId, slot) => {
+        const slotId = generateId();
+        const newSlot: ManualSlot = {
+          ...slot,
+          id: slotId,
+        };
+
+        const course = get().courses.find((c) => c.courseId === courseId);
+        if (!course) return null;
+
+        set((state) => ({
+          courses: state.courses.map((c) =>
+            c.courseId === courseId
+              ? { ...c, manualSlots: [...c.manualSlots, newSlot] }
+              : c,
+          ),
+        }));
+
+        return slotId;
+      },
+
+      updateManualSlot: (courseId, slotId, slot) => {
+        set((state) => ({
+          courses: state.courses.map((c) =>
+            c.courseId === courseId
+              ? {
+                ...c,
+                manualSlots: c.manualSlots.map((s) =>
+                  s.id === slotId ? { ...s, ...slot } : s,
+                ),
+              }
+              : c,
+          ),
+        }));
+      },
+
+      removeManualSlot: (courseId, slotId) => {
+        set((state) => ({
+          courses: state.courses.map((c) =>
+            c.courseId === courseId
+              ? {
+                ...c,
+                manualSlots: c.manualSlots.filter((s) => s.id !== slotId),
+              }
               : c,
           ),
         }));

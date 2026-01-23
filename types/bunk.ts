@@ -2,6 +2,8 @@
  * Bunk management types
  */
 
+import type { DayOfWeek, ManualSlot, SessionType } from "./timetable";
+
 export type BunkSource = "lms" | "user";
 
 export interface BunkRecord {
@@ -30,6 +32,8 @@ export interface CourseBunkData {
   config: CourseConfig | null;
   bunks: BunkRecord[];
   isConfigured: boolean;
+  isCustomCourse: boolean;
+  manualSlots: ManualSlot[];
 }
 
 export interface BunkState {
@@ -46,4 +50,19 @@ export interface DutyLeaveInfo {
   date: string;
   timeSlot: string | null;
   note: string;
+}
+
+export interface CustomCourseInput {
+  courseName: string;
+  alias: string;
+  credits: number;
+  color: string;
+  slots: Omit<ManualSlot, "id">[];
+}
+
+export interface ManualSlotInput {
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  sessionType: SessionType;
 }
