@@ -107,9 +107,11 @@ export default function AttendanceScreen() {
       {/* Header */}
       <View style={styles.headerContainer}>
         <View style={styles.header}>
-          <Text style={[styles.screenTitle, { color: theme.text }]}>
-            Attendance
-          </Text>
+          <View style={styles.headerTitle}>
+            <Text style={[styles.screenTitle, { color: theme.text }]}>
+              Attendance
+            </Text>
+          </View>
           <View style={styles.headerActions}>
             {lastSyncTime && (
               <Pressable
@@ -312,16 +314,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    rowGap: Spacing.sm,
     marginBottom: Spacing.md,
+  },
+  headerTitle: {
+    flexShrink: 1,
+    minWidth: "40%",
   },
   screenTitle: {
     fontSize: 28,
     fontWeight: "700",
+    flexShrink: 1,
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+    rowGap: Spacing.xs,
+    minWidth: "45%",
   },
   headerRight: {
     flexDirection: "row",

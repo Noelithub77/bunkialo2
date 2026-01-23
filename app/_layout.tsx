@@ -1,3 +1,7 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuthStore } from "@/stores/auth-store";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   DarkTheme,
   DefaultTheme,
@@ -10,10 +14,6 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
-
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAuthStore } from "@/stores/auth-store";
 
 // Custom dark theme with black background
 const CustomDarkTheme = {
@@ -43,7 +43,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -73,7 +73,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider>
+      <PaperProvider
+        settings={{
+          icon: (props) => <MaterialCommunityIcons {...props} />,
+        }}
+      >
         <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
