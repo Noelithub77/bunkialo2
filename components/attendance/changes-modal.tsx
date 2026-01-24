@@ -1,11 +1,12 @@
-import { Button } from "@/components/ui/button";
 import { Colors, Radius, Spacing } from "@/constants/theme";
+import { findCreditsByCode } from "@/data/credits";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { getDisplayName, useBunkStore } from "@/stores/bunk-store";
-import type { BunkRecord, CourseBunkData, ManualSlotInput } from "@/types";
+import type { BunkRecord, CourseAttendance, CourseBunkData } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo } from "react";
+import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -20,15 +21,45 @@ interface ChangesModalProps {
   onClose: () => void;
 }
 
-const DAYS: { label: string; value: number }[] = [
-  { label: "Mon", value: 1 },
-  { label: "Tue", value: 2 },
-  { label: "Wed", value: 3 },
-  { label: "Thu", value: 4 },
-  { label: "Fri", value: 5 },
-  { label: "Sat", value: 6 },
-  { label: "Sun", value: 0 },
-];
+interface SectionProps {
+  title: string;
+  count?: number;
+  children: ReactNode;
+  defaultExpanded?: boolean;
+}
+
+const Section = ({
+  title,
+  count,
+  children,
+  defaultExpanded = true,
+}: SectionProps) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
+
+  return (
+    <View style={styles.section}>
+      <Pressable
+        onPress={() => setExpanded((prev) => !prev)}
+        style={styles.sectionHeader}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.text }]}
+        >
+          {title}
+          {typeof count === "number" ? ` (${count})` : ""}
+        </Text>
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={theme.textSecondary}
+        />
+      </Pressable>
+      {expanded && <View style={styles.sectionBody}>{children}</View>}
+    </View>
+  );
+};
 
 const formatTime = (time: string): string => {
   const [hours] = time.split(":").map(Number);
@@ -37,19 +68,65 @@ const formatTime = (time: string): string => {
   return `${displayHours}${period}`;
 };
 
-const formatSlotDisplay = (slot: ManualSlotInput): string => {
-  const dayLabel = DAYS.find((d) => d.value === slot.dayOfWeek)?.label || "";
+const formatSlot = (slot: { dayOfWeek: number; startTime: string; endTime: string }) => {
+  const dayLabel = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+    slot.dayOfWeek
+  ];
   return `${dayLabel} ${formatTime(slot.startTime)} - ${formatTime(
     slot.endTime,
   )}`;
 };
 
-const flattenBunks = (courses: CourseBunkData[]): BunkRecord[] => {
-  const result: BunkRecord[] = [];
+type CourseBunkEntry = { courseId: string; bunk: BunkRecord };
+
+const flattenBunks = (courses: CourseBunkData[]): CourseBunkEntry[] => {
+  const result: CourseBunkEntry[] = [];
   for (const course of courses) {
-    result.push(...course.bunks);
+    for (const bunk of course.bunks) {
+      result.push({ courseId: course.courseId, bunk });
+    }
   }
   return result;
+};
+
+const extractCourseName = (courseName: string): string => {
+  const trimmed = courseName.trim();
+  const patterns = [
+    /^[\w\d]+\s*[-:]\s*/,
+    /^[\w\d]+\s{2,}/,
+    /^[\w\d]+\s+/,
+  ];
+  for (const pattern of patterns) {
+    if (pattern.test(trimmed)) {
+      return trimmed.replace(pattern, "").trim();
+    }
+  }
+  return trimmed;
+};
+
+const extractCourseCode = (courseName: string): string => {
+  const trimmed = courseName.trim();
+  const patterns = [
+    /^([\w\d]+)\s*[-:]\s*/,
+    /^([\w\d]+)\s{2,}/,
+    /^([\w\d]+)\s+/,
+  ];
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match) return match[1];
+  }
+  return trimmed;
+};
+
+const getDefaultCredits = (course: CourseAttendance): number => {
+  const code = extractCourseCode(course.courseName);
+  return findCreditsByCode(code) ?? 3;
+};
+
+const buildCourseMap = (courses: CourseBunkData[]) => {
+  const map = new Map<string, CourseBunkData>();
+  courses.forEach((course) => map.set(course.courseId, course));
+  return map;
 };
 
 export function ChangesModal({ visible, onClose }: ChangesModalProps) {
@@ -58,6 +135,8 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
   const theme = isDark ? Colors.dark : Colors.light;
   const { courses: attendanceCourses } = useAttendanceStore();
   const { courses: bunkCourses } = useBunkStore();
+
+  const courseMap = useMemo(() => buildCourseMap(bunkCourses), [bunkCourses]);
 
   const customCourses = useMemo(
     () => bunkCourses.filter((course) => course.isCustomCourse),
@@ -75,9 +154,7 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
 
   const manualSlotCourses = useMemo(
     () =>
-      bunkCourses.filter(
-        (course) => (course.manualSlots?.length ?? 0) > 0,
-      ),
+      bunkCourses.filter((course) => (course.manualSlots?.length ?? 0) > 0),
     [bunkCourses],
   );
 
@@ -89,52 +166,168 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
   }, [manualSlotCourses]);
 
   const manualBunks = useMemo(() => {
-    return flattenBunks(bunkCourses).filter((bunk) => bunk.source === "user");
+    return flattenBunks(bunkCourses).filter(
+      (entry) => entry.bunk.source === "user",
+    );
   }, [bunkCourses]);
 
-  const dutyLeaveBunks = useMemo(() => {
-    return flattenBunks(bunkCourses).filter((bunk) => bunk.isDutyLeave);
+  const dutyLeaves = useMemo(() => {
+    return flattenBunks(bunkCourses).filter(
+      (entry) => entry.bunk.isDutyLeave,
+    );
   }, [bunkCourses]);
 
-  const presentCorrections = useMemo(() => {
-    return flattenBunks(bunkCourses).filter((bunk) => bunk.isMarkedPresent);
+  const presentMarks = useMemo(() => {
+    return flattenBunks(bunkCourses).filter(
+      (entry) => entry.bunk.isMarkedPresent,
+    );
   }, [bunkCourses]);
+
+  const configChanges = useMemo(() => {
+    return attendanceCourses
+      .map((course) => {
+        const bunkCourse = courseMap.get(course.courseId);
+        if (!bunkCourse?.config) return null;
+        const defaultAlias = extractCourseName(course.courseName);
+        const defaultCredits = getDefaultCredits(course);
+        const aliasChanged = bunkCourse.config.alias !== defaultAlias;
+        const creditsChanged = bunkCourse.config.credits !== defaultCredits;
+        if (!aliasChanged && !creditsChanged) return null;
+        return {
+          courseId: course.courseId,
+          name: getDisplayName(bunkCourse),
+          aliasChanged,
+          creditsChanged,
+          defaultAlias,
+          currentAlias: bunkCourse.config.alias,
+          defaultCredits,
+          currentCredits: bunkCourse.config.credits,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [attendanceCourses, courseMap]);
 
   const hasChanges =
     customCourses.length > 0 ||
     overrideCourses.length > 0 ||
-    manualSlotCourses.length > 0 ||
+    manualSlotsCount > 0 ||
     manualBunks.length > 0 ||
-    dutyLeaveBunks.length > 0 ||
-    presentCorrections.length > 0;
+    dutyLeaves.length > 0 ||
+    presentMarks.length > 0 ||
+    configChanges.length > 0;
 
   const totalCourses = attendanceCourses.length + customCourses.length;
+
+  const renderBunkGroup = (title: string, entries: CourseBunkEntry[]) => {
+    if (entries.length === 0) return null;
+    const grouped = new Map<string, BunkRecord[]>();
+    entries.forEach((entry) => {
+      const existing = grouped.get(entry.courseId) ?? [];
+      existing.push(entry.bunk);
+      grouped.set(entry.courseId, existing);
+    });
+
+    return (
+      <Section title={title} count={entries.length} defaultExpanded={false}>
+        {Array.from(grouped.entries()).map(([courseId, items]) => {
+          const course = courseMap.get(courseId);
+          return (
+            <View key={courseId} style={styles.groupBlock}>
+              <Text style={[styles.courseName, { color: theme.text }]}
+              >
+                {course ? getDisplayName(course) : "Unknown course"}
+              </Text>
+              {items.map((bunk) => (
+                <View
+                  key={bunk.id}
+                  style={[
+                    styles.bunkRow,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
+                  <View style={styles.bunkInfo}>
+                    <Text style={[styles.bunkDate, { color: theme.text }]}
+                    >
+                      {bunk.date}
+                    </Text>
+                    {bunk.timeSlot && (
+                      <Text
+                        style={[styles.bunkMeta, { color: theme.textSecondary }]}
+                      >
+                        {bunk.timeSlot}
+                      </Text>
+                    )}
+                    {bunk.note ? (
+                      <Text
+                        style={[styles.bunkMeta, { color: theme.textSecondary }]}
+                      >
+                        Note: {bunk.note}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {bunk.isDutyLeave && (
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: Colors.status.info + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.badgeText, { color: Colors.status.info }]}
+                      >
+                        DL
+                      </Text>
+                    </View>
+                  )}
+                  {bunk.isMarkedPresent && (
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: Colors.status.success + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.badgeText, { color: Colors.status.success }]}
+                      >
+                        PRESENT
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          );
+        })}
+      </Section>
+    );
+  };
 
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
+      animationType="slide"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Ionicons
-                name="list-outline"
-                size={20}
-                color={theme.textSecondary}
-              />
-              <Text style={[styles.title, { color: theme.text }]}>Changes</Text>
-            </View>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={24} color={theme.textSecondary} />
-            </Pressable>
-          </View>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Ionicons name="close" size={24} color={theme.textSecondary} />
+          </Pressable>
+          <Text style={[styles.title, { color: theme.text }]}>Changes</Text>
+          <View style={styles.headerSpacer} />
+        </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={[
+              styles.summaryCard,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text style={[styles.summaryValue, { color: theme.text }]}
@@ -155,7 +348,7 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
                 <Text
                   style={[styles.summaryLabel, { color: theme.textSecondary }]}
                 >
-                  slot edits
+                  slots edited
                 </Text>
               </View>
               <View style={styles.summaryItem}>
@@ -170,253 +363,214 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
                 </Text>
               </View>
             </View>
+          </View>
 
-            {!hasChanges && (
-              <View style={styles.emptyState}>
-                <Ionicons
-                  name="sparkles-outline"
-                  size={32}
-                  color={theme.textSecondary}
-                />
-                <Text style={[styles.emptyText, { color: theme.textSecondary }]}
-                >
-                  No manual changes yet. Your schedule matches LMS data.
-                </Text>
-              </View>
-            )}
+          {!hasChanges && (
+            <View
+              style={[
+                styles.emptyState,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
+            >
+              <Ionicons
+                name="sparkles-outline"
+                size={32}
+                color={theme.textSecondary}
+              />
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}
+              >
+                No manual changes yet. Your schedule matches LMS data.
+              </Text>
+            </View>
+          )}
 
-            {customCourses.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}
+          {customCourses.length > 0 && (
+            <Section title="Custom Courses" count={customCourses.length}>
+              {customCourses.map((course) => (
+                <View
+                  key={course.courseId}
+                  style={[
+                    styles.courseRow,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
                 >
-                  Custom Courses
-                </Text>
-                {customCourses.map((course) => (
-                  <View
-                    key={course.courseId}
-                    style={[
-                      styles.courseRow,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
-                  >
-                    <View style={styles.courseInfo}>
-                      <Text style={[styles.courseName, { color: theme.text }]}
-                      >
-                        {getDisplayName(course)}
-                      </Text>
-                      <Text
-                        style={[styles.courseMeta, { color: theme.textSecondary }]}
-                      >
-                        {course.manualSlots.length} slot
-                        {course.manualSlots.length === 1 ? "" : "s"}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: Colors.status.success + "20" },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.badgeText, { color: Colors.status.success }]}
-                      >
-                        CUSTOM
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {overrideCourses.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}
-                >
-                  LMS Overrides
-                </Text>
-                {overrideCourses.map((course) => (
-                  <View
-                    key={course.courseId}
-                    style={[
-                      styles.courseRow,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
-                  >
-                    <View style={styles.courseInfo}>
-                      <Text style={[styles.courseName, { color: theme.text }]}
-                      >
-                        {getDisplayName(course)}
-                      </Text>
-                      <Text
-                        style={[styles.courseMeta, { color: theme.textSecondary }]}
-                      >
-                        Manual schedule enabled
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: Colors.status.info + "20" },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.badgeText, { color: Colors.status.info }]}
-                      >
-                        OVERRIDE
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {manualSlotCourses.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}
-                >
-                  Manual Slots
-                </Text>
-                {manualSlotCourses.map((course) => (
-                  <View key={course.courseId} style={styles.slotGroup}>
+                  <View style={styles.courseInfo}>
                     <Text style={[styles.courseName, { color: theme.text }]}
                     >
                       {getDisplayName(course)}
                     </Text>
-                    <View style={styles.slotsList}>
-                      {course.manualSlots.map((slot) => (
-                        <View
-                          key={slot.id}
-                          style={[
-                            styles.slotItem,
-                            { backgroundColor: theme.backgroundSecondary },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.slotText, { color: theme.text }]}
-                          >
-                            {formatSlotDisplay(slot)}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.slotType,
-                              { color: theme.textSecondary },
-                            ]}
-                          >
-                            {slot.sessionType}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {(manualBunks.length > 0 ||
-              dutyLeaveBunks.length > 0 ||
-              presentCorrections.length > 0) && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}
-                >
-                  Attendance Adjustments
-                </Text>
-                <View style={styles.adjustmentRow}>
-                  <View style={styles.adjustmentItem}>
-                    <Text style={[styles.adjustmentValue, { color: theme.text }]}
-                    >
-                      {manualBunks.length}
-                    </Text>
                     <Text
-                      style={[
-                        styles.adjustmentLabel,
-                        { color: theme.textSecondary },
-                      ]}
+                      style={[styles.courseMeta, { color: theme.textSecondary }]}
                     >
-                      manual bunks
+                      {course.manualSlots.length} slot
+                      {course.manualSlots.length === 1 ? "" : "s"}
                     </Text>
                   </View>
-                  <View style={styles.adjustmentItem}>
-                    <Text style={[styles.adjustmentValue, { color: theme.text }]}
-                    >
-                      {dutyLeaveBunks.length}
-                    </Text>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: Colors.status.success + "20" },
+                    ]}
+                  >
                     <Text
-                      style={[
-                        styles.adjustmentLabel,
-                        { color: theme.textSecondary },
-                      ]}
+                      style={[styles.badgeText, { color: Colors.status.success }]}
                     >
-                      duty leaves
-                    </Text>
-                  </View>
-                  <View style={styles.adjustmentItem}>
-                    <Text style={[styles.adjustmentValue, { color: theme.text }]}
-                    >
-                      {presentCorrections.length}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.adjustmentLabel,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      present marks
+                      CUSTOM
                     </Text>
                   </View>
                 </View>
-              </View>
-            )}
-          </ScrollView>
+              ))}
+            </Section>
+          )}
 
-          <View style={styles.actions}>
-            <Button
-              title="Close"
-              variant="secondary"
-              onPress={onClose}
-            />
-          </View>
-        </View>
+          {overrideCourses.length > 0 && (
+            <Section title="LMS Overrides" count={overrideCourses.length}>
+              {overrideCourses.map((course) => (
+                <View
+                  key={course.courseId}
+                  style={[
+                    styles.courseRow,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
+                  <View style={styles.courseInfo}>
+                    <Text style={[styles.courseName, { color: theme.text }]}
+                    >
+                      {getDisplayName(course)}
+                    </Text>
+                    <Text
+                      style={[styles.courseMeta, { color: theme.textSecondary }]}
+                    >
+                      Manual schedule enabled
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: Colors.status.info + "20" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.badgeText, { color: Colors.status.info }]}
+                    >
+                      OVERRIDE
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </Section>
+          )}
+
+          {configChanges.length > 0 && (
+            <Section title="Course Settings" count={configChanges.length}>
+              {configChanges.map((change) => (
+                <View
+                  key={change.courseId}
+                  style={[
+                    styles.courseRow,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
+                  <View style={styles.courseInfo}>
+                    <Text style={[styles.courseName, { color: theme.text }]}
+                    >
+                      {change.name}
+                    </Text>
+                    {change.aliasChanged && (
+                      <Text
+                        style={[styles.courseMeta, { color: theme.textSecondary }]}
+                      >
+                        Alias: {change.defaultAlias} {"->"}{" "}
+                        {change.currentAlias}
+                      </Text>
+                    )}
+                    {change.creditsChanged && (
+                      <Text
+                        style={[styles.courseMeta, { color: theme.textSecondary }]}
+                      >
+                        Credits: {change.defaultCredits} {"->"}{" "}
+                        {change.currentCredits}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </Section>
+          )}
+
+          {manualSlotCourses.length > 0 && (
+            <Section title="Manual Slots" count={manualSlotsCount}>
+              {manualSlotCourses.map((course) => (
+                <View key={course.courseId} style={styles.groupBlock}>
+                  <Text style={[styles.courseName, { color: theme.text }]}
+                  >
+                    {getDisplayName(course)}
+                  </Text>
+                  <View style={styles.slotsList}>
+                    {course.manualSlots.map((slot) => (
+                      <View
+                        key={slot.id}
+                        style={[
+                          styles.slotItem,
+                          { backgroundColor: theme.backgroundSecondary },
+                        ]}
+                      >
+                        <Text style={[styles.slotText, { color: theme.text }]}
+                        >
+                          {formatSlot(slot)}
+                        </Text>
+                        <Text
+                          style={[styles.slotMeta, { color: theme.textSecondary }]}
+                        >
+                          {slot.sessionType}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </Section>
+          )}
+
+          {renderBunkGroup("Manual Bunks", manualBunks)}
+          {renderBunkGroup("Duty Leaves", dutyLeaves)}
+          {renderBunkGroup("Present Marks", presentMarks)}
+        </ScrollView>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  screen: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "92%",
-    maxWidth: 440,
-    maxHeight: "90%",
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+  headerSpacer: {
+    width: 24,
   },
   title: {
     fontSize: 18,
     fontWeight: "600",
   },
+  container: {
+    paddingBottom: Spacing.xl,
+  },
+  summaryCard: {
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: Spacing.md,
   },
   summaryItem: {
     flex: 1,
@@ -432,8 +586,10 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: Radius.md,
     gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   emptyText: {
     fontSize: 12,
@@ -442,10 +598,18 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: Spacing.sm,
+  },
+  sectionBody: {
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   courseRow: {
     flexDirection: "row",
@@ -453,14 +617,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: Spacing.sm,
     borderRadius: Radius.sm,
-    marginBottom: Spacing.sm,
   },
   courseInfo: {
     flex: 1,
   },
   courseName: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   courseMeta: {
     fontSize: 11,
@@ -475,8 +638,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
-  slotGroup: {
-    marginBottom: Spacing.md,
+  groupBlock: {
     gap: Spacing.sm,
   },
   slotsList: {
@@ -490,28 +652,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-  slotType: {
+  slotMeta: {
     fontSize: 10,
     textTransform: "capitalize",
   },
-  adjustmentRow: {
+  bunkRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: Spacing.sm,
-  },
-  adjustmentItem: {
-    flex: 1,
     alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.sm,
+    borderRadius: Radius.sm,
   },
-  adjustmentValue: {
-    fontSize: 16,
-    fontWeight: "700",
+  bunkInfo: {
+    flex: 1,
+    gap: 2,
   },
-  adjustmentLabel: {
-    fontSize: 11,
-    marginTop: 2,
+  bunkDate: {
+    fontSize: 12,
+    fontWeight: "500",
   },
-  actions: {
-    marginTop: Spacing.md,
+  bunkMeta: {
+    fontSize: 10,
   },
 });

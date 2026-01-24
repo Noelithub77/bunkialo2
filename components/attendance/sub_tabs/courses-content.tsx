@@ -268,6 +268,7 @@ export const CoursesContent = () => {
 
       <ChangesModal visible={isChangesVisible} onClose={closeModal} />
 
+
       <DLInputModal
         visible={isDLInputBunkVisible}
         onClose={closeModal}

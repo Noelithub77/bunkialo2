@@ -23,6 +23,7 @@ export interface AttendanceRecord {
   description: string;
   status: AttendanceStatus;
   points: string;
+  remarks?: string;
 }
 
 export interface CourseAttendance {

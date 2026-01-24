@@ -85,7 +85,6 @@ const formatSlotDisplay = (slot: ManualSlotInput): string => {
   )}`;
 };
 
-// parse "Thu 16 Jan 2026 10AM - 10:55AM" -> { dayOfWeek, startTime, endTime }
 const parseSlotTime = (
   dateStr: string,
 ): { dayOfWeek: DayOfWeek; startTime: string; endTime: string } | null => {
@@ -160,6 +159,9 @@ export function CourseEditModal({
   const [overrideLmsSlots, setOverrideLmsSlots] = useState(false);
   const [slots, setSlots] = useState<ManualSlotInput[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [activeSection, setActiveSection] = useState<"details" | "slots">(
+    "details",
+  );
 
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(1);
   const [selectedStartTime, setSelectedStartTime] = useState("09:00");
@@ -234,6 +236,7 @@ export function CourseEditModal({
       setSelectedEndTime("10:00");
       setSelectedSessionType("regular");
       setError("");
+      setActiveSection("details");
     }
   }, [course, visible]);
 
@@ -359,6 +362,7 @@ export function CourseEditModal({
     setSlots(autoSlots);
     setEditingIndex(null);
     setError("");
+    setActiveSection("slots");
   };
 
   const handleSave = () => {
@@ -367,6 +371,7 @@ export function CourseEditModal({
     if (course.isCustomCourse || overrideLmsSlots) {
       if (slots.length === 0) {
         setError("Add at least one time slot");
+        setActiveSection("slots");
         return;
       }
     }
@@ -374,6 +379,7 @@ export function CourseEditModal({
     const creditNum = credits;
     if (creditNum < 1 || creditNum > 10) {
       setError("Credits must be between 1-10");
+      setActiveSection("details");
       return;
     }
 
@@ -397,43 +403,89 @@ export function CourseEditModal({
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
+      animationType="slide"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={[styles.screen, { backgroundColor: theme.background }]}
       >
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
-          {/* header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View
-                style={[
-                  styles.colorIndicator,
-                  { backgroundColor: selectedColor },
-                ]}
-              />
-              <Text style={[styles.title, { color: theme.text }]}>
-                Edit Course
-              </Text>
-            </View>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={24} color={theme.textSecondary} />
-            </Pressable>
-          </View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={styles.content}
-          >
-            <Text style={[styles.courseName, { color: theme.textSecondary }]}>
+        <View style={styles.header}>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Ionicons name="close" size={24} color={theme.textSecondary} />
+          </Pressable>
+          <View style={styles.headerTitleWrap}>
+            <Text style={[styles.title, { color: theme.text }]}>Edit Course</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}
+            >
               {course.courseName}
             </Text>
+          </View>
+          <View style={styles.headerSpacer} />
+        </View>
 
-            <View style={styles.form}>
+        <View
+          style={[
+            styles.segmented,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
+          <Pressable
+            onPress={() => setActiveSection("details")}
+            style={[
+              styles.segmentButton,
+              activeSection === "details" && {
+                backgroundColor: theme.background,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color:
+                    activeSection === "details"
+                      ? theme.text
+                      : theme.textSecondary,
+                },
+              ]}
+            >
+              Details
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setActiveSection("slots")}
+            style={[
+              styles.segmentButton,
+              activeSection === "slots" && {
+                backgroundColor: theme.background,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color:
+                    activeSection === "slots"
+                      ? theme.text
+                      : theme.textSecondary,
+                },
+              ]}
+            >
+              Slots
+            </Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {activeSection === "details" ? (
+            <View style={styles.sectionBlock}>
               <Input
                 label="Alias (optional)"
                 placeholder="Short name for course"
@@ -516,12 +568,12 @@ export function CourseEditModal({
                   ]}
                 >
                   <View style={styles.overrideText}>
-                    <Text style={[styles.label, { color: theme.text }]}>Override LMS Slots</Text>
+                    <Text style={[styles.label, { color: theme.text }]}
+                    >
+                      Override LMS Slots
+                    </Text>
                     <Text
-                      style={[
-                        styles.helperText,
-                        { color: theme.textSecondary },
-                      ]}
+                      style={[styles.helperText, { color: theme.textSecondary }]}
                     >
                       Use your own weekly schedule instead of LMS data.
                     </Text>
@@ -537,19 +589,24 @@ export function CourseEditModal({
                   />
                 </View>
               )}
-
+            </View>
+          ) : (
+            <View style={styles.sectionBlock}>
               {!overrideLmsSlots && autoSlots.length > 0 && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
-                    <Text style={[styles.label, { color: theme.text }]}>LMS Slots</Text>
+                    <Text style={[styles.label, { color: theme.text }]}
+                    >
+                      LMS Slots
+                    </Text>
                     <View
                       style={[
-                        styles.lmsBadge,
+                        styles.badge,
                         { backgroundColor: selectedColor + "30" },
                       ]}
                     >
                       <Text
-                        style={[styles.lmsBadgeText, { color: selectedColor }]}
+                        style={[styles.badgeText, { color: selectedColor }]}
                       >
                         AUTO
                       </Text>
@@ -565,8 +622,7 @@ export function CourseEditModal({
                         ]}
                       >
                         <View style={styles.slotInfo}>
-                          <Text
-                            style={[styles.slotText, { color: theme.text }]}
+                          <Text style={[styles.slotText, { color: theme.text }]}
                           >
                             {formatSlotDisplay(slot)}
                           </Text>
@@ -605,19 +661,19 @@ export function CourseEditModal({
 
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.label, { color: theme.text }]}>Weekly Slots</Text>
+                  <Text style={[styles.label, { color: theme.text }]}
+                  >
+                    Weekly Slots
+                  </Text>
                   {overrideLmsSlots && (
                     <View
                       style={[
-                        styles.lmsBadge,
+                        styles.badge,
                         { backgroundColor: Colors.status.info + "20" },
                       ]}
                     >
                       <Text
-                        style={[
-                          styles.lmsBadgeText,
-                          { color: Colors.status.info },
-                        ]}
+                        style={[styles.badgeText, { color: Colors.status.info }]}
                       >
                         MANUAL
                       </Text>
@@ -653,8 +709,7 @@ export function CourseEditModal({
                           style={styles.slotInfo}
                           onPress={() => handleEditSlot(slot, index)}
                         >
-                          <Text
-                            style={[styles.slotText, { color: theme.text }]}
+                          <Text style={[styles.slotText, { color: theme.text }]}
                           >
                             {formatSlotDisplay(slot)}
                           </Text>
@@ -875,17 +930,24 @@ export function CourseEditModal({
                 />
               </View>
             </View>
-          </ScrollView>
+          )}
+        </ScrollView>
 
-          <View style={styles.actions}>
-            <Button
-              title="Cancel"
-              variant="secondary"
-              onPress={onClose}
-              style={styles.btn}
-            />
-            <Button title="Save" onPress={handleSave} style={styles.btn} />
-          </View>
+        {error && activeSection === "details" ? (
+          <Text style={[styles.error, { color: Colors.status.danger }]}
+          >
+            {error}
+          </Text>
+        ) : null}
+
+        <View style={styles.footer}>
+          <Button
+            title="Cancel"
+            variant="secondary"
+            onPress={onClose}
+            style={styles.footerBtn}
+          />
+          <Button title="Save" onPress={handleSave} style={styles.footerBtn} />
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -893,64 +955,69 @@ export function CourseEditModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  screen: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "92%",
-    maxWidth: 420,
-    maxHeight: "90%",
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
-  headerLeft: {
-    flexDirection: "row",
+  headerTitleWrap: {
     alignItems: "center",
-    gap: Spacing.sm,
+    flex: 1,
+    paddingHorizontal: Spacing.md,
   },
-  colorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  headerSpacer: {
+    width: 24,
   },
   title: {
     fontSize: 18,
     fontWeight: "600",
   },
-  content: {
-    flexGrow: 0,
+  subtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    textAlign: "center",
   },
-  courseName: {
-    fontSize: 13,
+  segmented: {
+    flexDirection: "row",
+    padding: 4,
+    borderRadius: Radius.md,
     marginBottom: Spacing.md,
   },
-  form: {
-    gap: Spacing.md,
+  segmentButton: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.sm,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: Spacing.lg,
+  },
+  sectionBlock: {
+    gap: Spacing.lg,
   },
   section: {
-    marginTop: Spacing.md,
+    gap: Spacing.sm,
   },
   label: {
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: Spacing.sm,
   },
   subLabel: {
     fontSize: 12,
     marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
   },
   chipContainer: {
     gap: Spacing.sm,
@@ -971,7 +1038,6 @@ const styles = StyleSheet.create({
   },
   bunksPreview: {
     fontSize: 11,
-    marginTop: Spacing.xs,
   },
   colorGrid: {
     flexDirection: "row",
@@ -1013,16 +1079,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
   },
-  lmsBadge: {
+  badge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: Radius.sm,
   },
-  lmsBadgeText: {
+  badgeText: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   overrideAction: {
     flexDirection: "row",
@@ -1130,18 +1195,18 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: 12,
-    marginTop: Spacing.sm,
     textAlign: "center",
+    marginBottom: Spacing.sm,
   },
   saveSlotBtn: {
     marginTop: Spacing.md,
   },
-  actions: {
+  footer: {
     flexDirection: "row",
     gap: Spacing.sm,
-    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
-  btn: {
+  footerBtn: {
     flex: 1,
   },
 });

@@ -373,6 +373,7 @@ export function AttendanceCard({
                 <SwipeableBunkItem
                   key={bunk.id}
                   bunk={bunk}
+                  attendanceModuleId={course.attendanceModuleId}
                   onMarkDL={() => {
                     const record = pastRecords.find(
                       (r) =>

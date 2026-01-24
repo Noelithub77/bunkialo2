@@ -411,7 +411,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.ideaInfo}>
               <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-                Idea of{" "}
+                Ideas by{" "}
               </Text>
               <Pressable
                 onPress={() =>

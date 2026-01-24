@@ -639,7 +639,7 @@ export function UnifiedCourseCard({
                 <SwipeableBunkItem
                   key={bunk.id}
                   bunk={bunk}
-                  attendanceModuleId={course?.attendanceModuleId}
+                  attendanceModuleId={course?.attendanceModuleId ?? null}
                   onMarkDL={() => onMarkDL(bunk.id)}
                   onRemoveDL={() => onRemoveDL(bunk.id)}
                   onMarkPresent={() => onMarkPresent(bunk.id)}
