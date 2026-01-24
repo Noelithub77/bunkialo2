@@ -10,6 +10,7 @@ let currentBaseUrl = DEFAULT_BASE_URL; // lazy init to avoid circular dep
 // Re-auth state
 let isReauthenticating = false;
 let reauthPromise: Promise<boolean> | null = null;
+let reauthEnabled = true;
 
 // Check if response indicates session expired (redirected to login)
 const isSessionExpired = (html: string, url: string): boolean => {
@@ -62,6 +63,7 @@ api.interceptors.response.use(
     const isRetry = response.config.headers?.["X-Retry-After-Reauth"];
 
     if (
+      reauthEnabled &&
       !isRetry &&
       typeof response.data === "string" &&
       isSessionExpired(response.data, url)
@@ -96,6 +98,10 @@ api.interceptors.response.use(
 
 // Handle re-authentication with mutex
 const handleReauth = async (): Promise<boolean> => {
+  if (!reauthEnabled) {
+    debug.api("Re-auth disabled, skipping");
+    return false;
+  }
   if (isReauthenticating && reauthPromise) {
     debug.api("Re-auth in progress, waiting...");
     return reauthPromise;
@@ -147,6 +153,15 @@ export const clearCookies = () => {
   cookieStore.clear();
 };
 
+// Enable or disable auto re-authentication
+export const setReauthEnabled = (enabled: boolean) => {
+  reauthEnabled = enabled;
+  if (!enabled) {
+    isReauthenticating = false;
+    reauthPromise = null;
+  }
+};
+
 // Get debug info
 export const getDebugInfo = () => ({
   baseUrl: currentBaseUrl,
@@ -155,4 +170,3 @@ export const getDebugInfo = () => ({
 });
 
 export { currentBaseUrl as BASE_URL };
-

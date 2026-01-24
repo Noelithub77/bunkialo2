@@ -258,7 +258,12 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
       },
 
       clearTimetable: () => {
-        set({ slots: [], conflicts: [], lastGeneratedAt: null });
+        set({
+          slots: [],
+          conflicts: [],
+          lastGeneratedAt: null,
+          isLoading: false,
+        });
       },
     }),
     {

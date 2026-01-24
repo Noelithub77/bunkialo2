@@ -84,6 +84,7 @@ export const useDashboardStore = create<DashboardStore>()(
           overdueEvents: [],
           lastSyncTime: null,
           error: null,
+          isLoading: false,
         }),
     }),
     {

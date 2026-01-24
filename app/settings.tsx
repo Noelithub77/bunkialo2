@@ -125,7 +125,7 @@ export default function SettingsScreen() {
   };
 
   const handleLogoutConfirm = async () => {
-    clearAttendance();
+    setShowLogoutModal(false);
     await logout();
     router.replace("/login");
   };

@@ -24,6 +24,7 @@ interface BunkStoreState extends BunkState {
 interface BunkActions {
   syncFromLms: () => void;
   resetToLms: () => void;
+  clearBunks: () => void;
   updateCourseConfig: (courseId: string, config: CourseConfig) => void;
   addBunk: (courseId: string, bunk: Omit<BunkRecord, "id" | "source">) => void;
   updateBunkNote: (courseId: string, bunkId: string, note: string) => void;
@@ -301,6 +302,15 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
         set({
           courses: [...freshCourses, ...customCourses],
           lastSyncTime: Date.now(),
+        });
+      },
+
+      clearBunks: () => {
+        set({
+          courses: [],
+          lastSyncTime: null,
+          isLoading: false,
+          error: null,
         });
       },
 

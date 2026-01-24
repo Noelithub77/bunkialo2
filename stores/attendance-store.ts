@@ -46,7 +46,12 @@ export const useAttendanceStore = create<
       },
 
       clearAttendance: () => {
-        set({ courses: [], lastSyncTime: null, error: null });
+        set({
+          courses: [],
+          lastSyncTime: null,
+          error: null,
+          isLoading: false,
+        });
       },
     }),
     {

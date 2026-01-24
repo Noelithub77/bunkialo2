@@ -1,5 +1,15 @@
 import { create } from "zustand";
+import {
+  cancelAllScheduledNotifications,
+  stopBackgroundRefresh,
+} from "@/services/background-tasks";
 import * as authService from "@/services/auth";
+import { useAttendanceStore } from "@/stores/attendance-store";
+import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
+import { useBunkStore } from "@/stores/bunk-store";
+import { useDashboardStore } from "@/stores/dashboard-store";
+import { useFacultyStore } from "@/stores/faculty-store";
+import { useTimetableStore } from "@/stores/timetable-store";
 import type { AuthState } from "@/types";
 
 interface AuthActions {
@@ -33,9 +43,30 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   },
 
   logout: async () => {
-    set({ isLoading: true });
-    await authService.logout();
-    set({ isLoggedIn: false, username: null, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      stopBackgroundRefresh();
+      try {
+        await cancelAllScheduledNotifications();
+      } catch (error) {
+        console.error("Failed to cancel notifications during logout", error);
+      }
+
+      useAttendanceStore.getState().clearAttendance();
+      useBunkStore.getState().clearBunks();
+      const dashboardState = useDashboardStore.getState();
+      dashboardState.clearDashboard();
+      dashboardState.clearLogs();
+      useTimetableStore.getState().clearTimetable();
+      useFacultyStore.getState().clearRecentSearches();
+      useAttendanceUIStore.getState().resetUI();
+
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout failed", error);
+    } finally {
+      set({ isLoggedIn: false, username: null, isLoading: false, error: null });
+    }
   },
 
   checkAuth: async () => {
