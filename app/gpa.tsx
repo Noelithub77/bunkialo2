@@ -325,10 +325,7 @@ export default function GpaCalculatorScreen() {
 
   return (
     <Container>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <Pressable
@@ -465,155 +462,151 @@ export default function GpaCalculatorScreen() {
           </Text>
         </View>
 
-        {courses.length === 0 && (
-          <View
-            style={[
-              styles.emptyState,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
-          >
-            <Ionicons
-              name="school-outline"
-              size={28}
-              color={theme.textSecondary}
-            />
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              No courses yet. Sync attendance to get started.
-            </Text>
-          </View>
-        )}
-
-        {courses.map((course) => {
-          const gradeColor = getGradeColor(course.grade);
-          const impactPoints =
-            (GRADE_POINTS[course.grade] - GRADE_POINTS.A) * course.credits;
-          const impactSgpa = totalCredits > 0 ? impactPoints / totalCredits : 0;
-          const impactCgpa =
-            totalCreditsAll > 0 ? impactPoints / totalCreditsAll : 0;
-
-          return (
+        <ScrollView
+          style={styles.courseScroll}
+          contentContainerStyle={styles.courseList}
+          showsVerticalScrollIndicator={false}
+        >
+          {courses.length === 0 && (
             <View
-              key={course.courseId}
               style={[
-                styles.courseCard,
+                styles.emptyState,
                 { backgroundColor: theme.backgroundSecondary },
               ]}
             >
-              <View style={styles.courseHeader}>
+              <Ionicons
+                name="school-outline"
+                size={28}
+                color={theme.textSecondary}
+              />
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                No courses yet. Sync attendance to get started.
+              </Text>
+            </View>
+          )}
+
+          {courses.map((course) => {
+            const gradeColor = getGradeColor(course.grade);
+            const impactPoints =
+              (GRADE_POINTS[course.grade] - GRADE_POINTS.A) * course.credits;
+            const impactSgpa =
+              totalCredits > 0 ? impactPoints / totalCredits : 0;
+            const impactCgpa =
+              totalCreditsAll > 0 ? impactPoints / totalCreditsAll : 0;
+            const showImpact = course.grade !== DEFAULT_GRADE;
+
+            return (
+              <View
+                key={course.courseId}
+                style={[
+                  styles.courseCard,
+                  { backgroundColor: theme.backgroundSecondary },
+                ]}
+              >
+                <View style={styles.courseHeader}>
                 <View style={styles.courseInfo}>
                   <Text style={[styles.courseName, { color: theme.text }]}>
                     {course.courseName}
+                    <Text style={[styles.creditInline, { color: Colors.status.info }]}>
+                      {" "}
+                      ({course.credits})
+                    </Text>
                   </Text>
-                  <View style={styles.courseMetaRow}>
-                    <View
-                      style={[
-                        styles.creditPill,
-                        {
-                          backgroundColor: `${Colors.status.info}18`,
-                          borderColor: Colors.status.info,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.creditText,
-                          { color: Colors.status.info },
-                        ]}
-                      >
-                        {course.credits} credits
-                      </Text>
-                    </View>
+                </View>
+                  <View
+                    style={[
+                      styles.gradeBadge,
+                      {
+                        backgroundColor: `${gradeColor}20`,
+                        borderColor: gradeColor,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.gradeBadgeText, { color: gradeColor }]}>
+                      {course.grade}
+                    </Text>
                   </View>
                 </View>
-                <View
-                  style={[
-                    styles.gradeBadge,
-                    {
-                      backgroundColor: `${gradeColor}20`,
-                      borderColor: gradeColor,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.gradeBadgeText, { color: gradeColor }]}>
-                    {course.grade}
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.gradeRow}>
-                {GRADE_OPTIONS.map((grade) => {
-                  const isSelected = grade === course.grade;
-                  const chipColor = getGradeColor(grade);
-                  return (
-                    <Pressable
-                      key={grade}
-                      onPress={() => setCourseGrade(course.courseId, grade)}
-                      style={({ pressed }) => [
-                        styles.gradeChip,
+                <View style={styles.gradeRow}>
+                  {GRADE_OPTIONS.map((grade) => {
+                    const isSelected = grade === course.grade;
+                    const chipColor = getGradeColor(grade);
+                    return (
+                      <Pressable
+                        key={grade}
+                        onPress={() => setCourseGrade(course.courseId, grade)}
+                        style={({ pressed }) => [
+                          styles.gradeChip,
+                          {
+                            borderColor: isSelected ? chipColor : theme.border,
+                            backgroundColor: isSelected
+                              ? `${chipColor}20`
+                              : theme.background,
+                          },
+                          pressed && { opacity: 0.85 },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.gradeChipText,
+                            { color: isSelected ? chipColor : theme.text },
+                          ]}
+                        >
+                          {grade}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.gradeChipPoint,
+                            {
+                              color: isSelected
+                                ? chipColor
+                                : theme.textSecondary,
+                            },
+                          ]}
+                        >
+                          {GRADE_POINTS[grade]}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {showImpact && (
+                  <View style={styles.impactRow}>
+                    <View style={styles.impactLabel}>
+                      <Ionicons
+                        name="pulse-outline"
+                        size={14}
+                        color={theme.textSecondary}
+                      />
+                      <Text
+                        style={[styles.impactText, { color: theme.textSecondary }]}
+                      >
+                        Impact
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.impactValue,
                         {
-                          borderColor: isSelected ? chipColor : theme.border,
-                          backgroundColor: isSelected
-                            ? `${chipColor}20`
-                            : theme.background,
+                          color:
+                            impactSgpa < 0
+                              ? Colors.status.danger
+                              : theme.textSecondary,
                         },
-                        pressed && { opacity: 0.85 },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.gradeChipText,
-                          { color: isSelected ? chipColor : theme.text },
-                        ]}
-                      >
-                        {grade}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.gradeChipPoint,
-                          {
-                            color: isSelected ? chipColor : theme.textSecondary,
-                          },
-                        ]}
-                      >
-                        {GRADE_POINTS[grade]}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                      {formatDelta(impactSgpa)} SGPA • {formatDelta(impactCgpa)}{" "}
+                      CGPA
+                    </Text>
+                  </View>
+                )}
               </View>
-
-              <View style={styles.impactRow}>
-                <View style={styles.impactLabel}>
-                  <Ionicons
-                    name="pulse-outline"
-                    size={14}
-                    color={theme.textSecondary}
-                  />
-                  <Text
-                    style={[styles.impactText, { color: theme.textSecondary }]}
-                  >
-                    Impact vs A
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.impactValue,
-                    {
-                      color:
-                        impactSgpa < 0
-                          ? Colors.status.danger
-                          : theme.textSecondary,
-                    },
-                  ]}
-                >
-                  {formatDelta(impactSgpa)} SGPA • {formatDelta(impactCgpa)}{" "}
-                  CGPA
-                </Text>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <Modal
         visible={showPrevSemModal}
@@ -733,9 +726,9 @@ export default function GpaCalculatorScreen() {
 
 const styles = StyleSheet.create({
   content: {
+    flex: 1,
     padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   header: {
     flexDirection: "row",
@@ -850,7 +843,14 @@ const styles = StyleSheet.create({
   courseCard: {
     padding: Spacing.md,
     borderRadius: Radius.lg,
-    gap: Spacing.md,
+    gap: Spacing.sm,
+  },
+  courseList: {
+    gap: Spacing.sm,
+    paddingBottom: Spacing.xl,
+  },
+  courseScroll: {
+    flex: 1,
   },
   courseHeader: {
     flexDirection: "row",
@@ -866,19 +866,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  courseMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  creditPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-  },
-  creditText: {
-    fontSize: 12,
+  creditInline: {
+    fontSize: 13,
     fontWeight: "600",
     letterSpacing: 0.2,
   },
