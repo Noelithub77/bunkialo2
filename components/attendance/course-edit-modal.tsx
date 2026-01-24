@@ -25,6 +25,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface CourseEditModalProps {
   visible: boolean;
@@ -407,10 +408,11 @@ export function CourseEditModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={[styles.screen, { backgroundColor: theme.background }]}
-      >
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.screen}
+        >
         <View style={styles.header}>
           <Pressable onPress={onClose} hitSlop={8}>
             <Ionicons name="close" size={24} color={theme.textSecondary} />
@@ -949,16 +951,19 @@ export function CourseEditModal({
           />
           <Button title="Save" onPress={handleSave} style={styles.footerBtn} />
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   screen: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
   },
   header: {
     flexDirection: "row",

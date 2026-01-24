@@ -25,6 +25,8 @@ app/                    # Expo Router screens
   ├── _layout.tsx      # Root layout, auth routing
   ├── login.tsx        # Login screen
   ├── settings.tsx     # Settings screen
+  ├── faculty/         # Faculty detail page
+  │   └── [id].tsx     # Dynamic route for faculty details
   └── (tabs)/
       ├── index.tsx     # Dashboard - Timeline & Overdue assignments (Default)
       ├── attendance.tsx # Attendance list with bunk management
@@ -36,17 +38,23 @@ app/                    # Expo Router screens
 components/            # React components organized by tab
   ├── dashboard/      # Dashboard-specific components
   │   ├── event-card.tsx
+  │   ├── quick-glance-card.tsx
   │   ├── timeline-section.tsx
+  │   ├── up-next-section.tsx
   │   └── index.ts
   ├── attendance/     # Attendance & bunk management components
   │   ├── add-bunk-modal.tsx
   │   ├── attendance-card.tsx
+  │   ├── changes-modal.tsx
   │   ├── course-edit-modal.tsx
+  │   ├── create-course-modal.tsx
   │   ├── dl-input-modal.tsx
   │   ├── duty-leave-modal.tsx
   │   ├── presence-input-modal.tsx
+  │   ├── slot-editor-modal.tsx
   │   ├── swipeable-attendance-slot.tsx
   │   ├── swipeable-bunk-item.tsx
+  │   ├── sub_tabs/    # Attendance sub-tab components
   │   ├── total-absence-calendar.tsx
   │   ├── unified-course-card.tsx
   │   ├── unknown-status-modal.tsx
@@ -65,65 +73,88 @@ components/            # React components organized by tab
   │   ├── meal-day-selector.tsx
   │   └── index.ts
   ├── shared/        # Components used across multiple tabs
-  │   ├── confirm-modal.tsx
+  │   ├── current-class-card.tsx
   │   ├── external-link.tsx
   │   ├── haptic-tab.tsx
   │   ├── logs-section.tsx
-  │   ├── current-class-card.tsx
   │   └── index.ts
   ├── ui/            # Base UI components
   │   ├── button.tsx
   │   ├── collapsible.tsx
   │   ├── container.tsx
   │   ├── gradient-card.tsx
-  │   ├── input.tsx
   │   ├── icon-symbol.tsx
+  │   ├── icon-symbol.ios.tsx
+  │   ├── input.tsx
   │   └── index.ts
-  ├── modals/        # All modal components re-exported
+  ├── modals/        # Modal re-exports and shared modals
   │   ├── confirm-modal.tsx
   │   ├── selection-modal.tsx
+  │   ├── slot-conflict-modal.tsx
   │   └── index.ts
   ├── themed-text.tsx # Theme text component
   ├── themed-view.tsx # Theme view component
   ├── index.ts       # Main export file
   └── README.md      # Component organization guide
 
+hooks/                 # Custom React hooks
+  ├── use-bunk-actions.ts
+  ├── use-color-scheme.ts
+  ├── use-color-scheme.web.ts
+  ├── use-course-actions.ts
+  └── use-theme-color.ts
+
 services/              # Business logic (NO React)
   ├── api.ts          # Axios + cookie interceptors
   ├── auth.ts         # Login/logout
-  ├── dashboard.ts     # Moodle Timeline/Events API
   ├── background-tasks.ts # Refresh & Notifications
-  ├── scraper.ts      # Moodle API + HTML parsing
   ├── baseurl.ts      # LMS base URL configuration
-  └── cookie-store.ts # Cookie management utilities
+  ├── cookie-store.ts # Cookie management utilities
+  ├── dashboard.ts     # Moodle Timeline/Events API
+  └── scraper.ts      # Moodle API + HTML parsing
 
 stores/                # Zustand stores
   ├── auth-store.ts
   ├── attendance-store.ts
+  ├── attendance-ui-store.ts
   ├── bunk-store.ts
   ├── dashboard-store.ts # Events, logs, sync state
-  ├── settings-store.ts  # Refresh interval, reminders
-  ├── timetable-store.ts  # Generated timetable state
   ├── faculty-store.ts    # Faculty directory state
-  └── storage.ts          # AsyncStorage wrapper
+  ├── settings-store.ts  # Refresh interval, reminders
+  ├── storage.ts          # AsyncStorage wrapper
+  └── timetable-store.ts  # Generated timetable state
 
 data/                  # Static data
-  ├── mess.ts         # Mess menu data and helpers
+  ├── credits.ts      # Course credits data
   ├── faculty.ts      # Faculty directory data
-  └── credits.ts      # Course credits data
+  └── mess.ts         # Mess menu data and helpers
 
-types/index.ts         # All TypeScript types
+types/                 # TypeScript types (split by domain)
+  ├── attendance.ts
+  ├── auth.ts
+  ├── bunk.ts
+  ├── calendar.ts
+  ├── common.ts
+  ├── dashboard.ts
+  ├── faculty.ts
+  ├── index.ts         # Central re-exports
+  ├── lms.ts
+  └── timetable.ts
+
 utils/                 # Utility functions
+  ├── attendance-helpers.ts # Attendance-specific helpers
+  ├── course-name.ts  # Course name utilities
   ├── debug.ts        # Debug logging
   ├── html-parser.ts  # HTML parsing helpers
-  ├── course-name.ts  # Course name utilities
   └── notifications.ts # Notification helpers
 ```
 
 ## Key Types (`types/index.ts`)
 
+Types are organized by domain in separate files and re-exported from `types/index.ts`:
+
 ```typescript
-// Core
+// Core (types/attendance.ts)
 type AttendanceStatus = "Present" | "Absent" | "Late" | "Excused";
 interface AttendanceRecord {
   date;
@@ -141,7 +172,7 @@ interface CourseAttendance {
   records;
 }
 
-// Dashboard
+// Dashboard (types/dashboard.ts)
 interface TimelineEvent {
   id;
   name;
@@ -163,7 +194,7 @@ interface DashboardSettings {
   notificationsEnabled;
 }
 
-// Mess Menu
+// Mess Menu (types/common.ts)
 type MealType = "breakfast" | "lunch" | "snacks" | "dinner";
 interface Meal {
   type: MealType;
@@ -177,7 +208,7 @@ interface DayMenu {
   meals: Meal[];
 }
 
-// Moodle API
+// Moodle API (types/lms.ts)
 interface MoodleAjaxRequest {
   index;
   methodname;
