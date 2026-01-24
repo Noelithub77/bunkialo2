@@ -14,8 +14,8 @@ export type ModalState =
     }
   | { type: "course-edit"; course: CourseBunkData }
   | { type: "add-bunk"; course: CourseBunkData }
-  | { type: "slot-editor"; course: CourseBunkData }
   | { type: "create-course" }
+  | { type: "changes" }
   | { type: "duty-leave-list" }
   | { type: "unknown-status" }
   | { type: "slot-conflict" }

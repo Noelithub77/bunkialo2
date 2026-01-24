@@ -24,6 +24,7 @@ export interface CourseConfig {
   alias: string;
   courseCode: string;
   color: string;
+  overrideLmsSlots: boolean;
 }
 
 export interface CourseBunkData {

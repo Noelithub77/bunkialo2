@@ -3,6 +3,7 @@
 export { AddBunkModal } from "../attendance/add-bunk-modal";
 export { CourseEditModal } from "../attendance/course-edit-modal";
 export { CreateCourseModal } from "../attendance/create-course-modal";
+export { ChangesModal } from "../attendance/changes-modal";
 export { DLInputModal } from "../attendance/dl-input-modal";
 export { DutyLeaveModal } from "../attendance/duty-leave-modal";
 export { PresenceInputModal } from "../attendance/presence-input-modal";

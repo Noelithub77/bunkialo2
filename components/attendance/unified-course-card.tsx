@@ -3,15 +3,16 @@ import { GradientCard } from "@/components/ui/gradient-card";
 import { CalendarTheme, Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getBaseUrl } from "@/services/baseurl";
+import { useAuthStore } from "@/stores/auth-store";
 import { filterPastBunks, selectCourseStats } from "@/stores/bunk-store";
 import type {
-    AttendanceRecord,
-    AttendanceStatus,
-    BunkRecord,
-    CourseAttendance,
-    CourseBunkData,
-    MarkedDates,
-    SessionType,
+  AttendanceRecord,
+  AttendanceStatus,
+  BunkRecord,
+  CourseAttendance,
+  CourseBunkData,
+  MarkedDates,
+  SessionType,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
@@ -25,7 +26,6 @@ interface UnifiedCourseCardProps {
   isEditMode: boolean;
   onEdit: () => void;
   onAddBunk: () => void;
-  onEditSlots?: () => void;
   onMarkDL: (bunkId: string) => void;
   onRemoveDL: (bunkId: string) => void;
   onMarkPresent: (bunkId: string) => void;
@@ -200,7 +200,6 @@ export function UnifiedCourseCard({
   isEditMode,
   onEdit,
   onAddBunk,
-  onEditSlots,
   onMarkDL,
   onRemoveDL,
   onMarkPresent,
@@ -218,9 +217,11 @@ export function UnifiedCourseCard({
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
   const calTheme = isDark ? CalendarTheme.dark : CalendarTheme.light;
+  const { username } = useAuthStore();
 
   const isCustomCourse = bunkData?.isCustomCourse ?? false;
-  const courseAlias = bunkData?.config?.alias || course?.courseName || "Custom Course";
+  const courseAlias =
+    bunkData?.config?.alias || course?.courseName || "Custom Course";
   const courseColor = bunkData?.config?.color;
   const isConfigured = bunkData?.isConfigured && bunkData?.config;
   const manualSlotsCount = bunkData?.manualSlots?.length ?? 0;
@@ -313,7 +314,7 @@ export function UnifiedCourseCard({
 
   const handleOpenLms = () => {
     if (course?.attendanceModuleId) {
-      const url = `${getBaseUrl()}/mod/attendance/view.php?id=${course.attendanceModuleId}`;
+      const url = `${getBaseUrl(username)}/mod/attendance/view.php?id=${course.attendanceModuleId}`;
       Linking.openURL(url);
     }
   };
@@ -387,7 +388,8 @@ export function UnifiedCourseCard({
                             { color: theme.textSecondary },
                           ]}
                         >
-                          {manualSlotsCount} slot{manualSlotsCount > 1 ? "s" : ""}
+                          {manualSlotsCount} slot
+                          {manualSlotsCount > 1 ? "s" : ""}
                         </Text>
                       )}
                     </View>
@@ -660,27 +662,12 @@ export function UnifiedCourseCard({
                 size={16}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.addBunkText, { color: theme.textSecondary }]}>
+              <Text
+                style={[styles.addBunkText, { color: theme.textSecondary }]}
+              >
                 Add Bunk
               </Text>
             </Pressable>
-
-            {/* edit slots button */}
-            {onEditSlots && (
-              <Pressable
-                onPress={onEditSlots}
-                style={[styles.editSlotsBtn, { borderColor: Colors.status.info }]}
-              >
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                  color={Colors.status.info}
-                />
-                <Text style={[styles.editSlotsText, { color: Colors.status.info }]}>
-                  Edit Slots
-                </Text>
-              </Pressable>
-            )}
           </View>
 
           {/* swipe hint */}
@@ -899,20 +886,6 @@ const styles = StyleSheet.create({
   },
   addBunkText: {
     fontSize: 13,
-  },
-  editSlotsBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  editSlotsText: {
-    fontSize: 13,
-    fontWeight: "500",
   },
   swipeHint: {
     fontSize: 10,

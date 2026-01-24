@@ -274,6 +274,13 @@ export default function AttendanceScreen() {
             }}
             actions={[
               {
+                icon: "history",
+                label: "Changes",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => openModal({ type: "changes" }),
+              },
+              {
                 icon: "pencil",
                 label: isEditMode ? "Done Editing" : "Edit Courses",
                 color: isEditMode ? Colors.white : theme.text,

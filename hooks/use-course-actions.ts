@@ -11,20 +11,26 @@ export const useCourseActions = () => {
     addBunk,
     addCustomCourse,
     deleteCustomCourse,
-    addManualSlot,
-    updateManualSlot,
-    removeManualSlot,
+    setManualSlots,
   } = useBunkStore();
 
   const { generateTimetable, resolveConflict, conflicts } = useTimetableStore();
   const { openModal, closeModal, toggleEditMode } = useAttendanceUIStore();
 
   // config handlers
-  const handleSaveConfig = useCallback(
-    (courseId: string, config: CourseConfig) => {
+  const handleSaveCourse = useCallback(
+    (courseId: string, config: CourseConfig, slots: ManualSlotInput[]) => {
       updateCourseConfig(courseId, config);
+      setManualSlots(courseId, slots);
+      generateTimetable();
+      setTimeout(() => {
+        const currentConflicts = useTimetableStore.getState().conflicts;
+        if (currentConflicts.length > 0) {
+          openModal({ type: "slot-conflict" });
+        }
+      }, 100);
     },
-    [updateCourseConfig],
+    [generateTimetable, openModal, setManualSlots, updateCourseConfig],
   );
 
   // add bunk handler
@@ -77,64 +83,11 @@ export const useCourseActions = () => {
     [deleteCustomCourse, generateTimetable],
   );
 
-  // slot editor handlers
-  const handleAddSlot = useCallback(
-    (courseId: string, slot: ManualSlotInput) => {
-      addManualSlot(courseId, slot);
-      generateTimetable();
-      setTimeout(() => {
-        const currentConflicts = useTimetableStore.getState().conflicts;
-        if (currentConflicts.length > 0) {
-          openModal({ type: "slot-conflict" });
-        }
-      }, 100);
-    },
-    [addManualSlot, generateTimetable, openModal],
-  );
-
-  const handleUpdateSlot = useCallback(
-    (courseId: string, slotId: string, slot: ManualSlotInput) => {
-      updateManualSlot(courseId, slotId, slot);
-      generateTimetable();
-    },
-    [generateTimetable, updateManualSlot],
-  );
-
-  const handleRemoveSlot = useCallback(
-    (courseId: string, slotId: string) => {
-      removeManualSlot(courseId, slotId);
-      generateTimetable();
-    },
-    [generateTimetable, removeManualSlot],
-  );
-
   const handleResolveConflict = useCallback(
     (conflictIndex: number, keep: "manual" | "auto") => {
       resolveConflict(conflictIndex, keep);
     },
     [resolveConflict],
-  );
-
-  // modal openers
-  const handleEditCourse = useCallback(
-    (course: CourseBunkData) => {
-      openModal({ type: "course-edit", course });
-    },
-    [openModal],
-  );
-
-  const handleOpenAddBunk = useCallback(
-    (course: CourseBunkData) => {
-      openModal({ type: "add-bunk", course });
-    },
-    [openModal],
-  );
-
-  const handleOpenSlotEditor = useCallback(
-    (course: CourseBunkData) => {
-      openModal({ type: "slot-editor", course });
-    },
-    [openModal],
   );
 
   const handleOpenCreateCourse = useCallback(() => {
@@ -148,17 +101,11 @@ export const useCourseActions = () => {
   }, [toggleEditMode]);
 
   return {
-    handleSaveConfig,
+    handleSaveCourse,
     handleAddBunk,
     handleCreateCourse,
     handleDeleteCustomCourse,
-    handleAddSlot,
-    handleUpdateSlot,
-    handleRemoveSlot,
     handleResolveConflict,
-    handleEditCourse,
-    handleOpenAddBunk,
-    handleOpenSlotEditor,
     handleOpenCreateCourse,
     handleToggleEditMode,
     conflicts,

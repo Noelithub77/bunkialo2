@@ -130,6 +130,9 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
           const bunkCourse = bunkCourses.find(
             (c) => c.courseId === course.courseId,
           );
+          const overrideLmsSlots =
+            bunkCourse?.config?.overrideLmsSlots ?? false;
+          if (overrideLmsSlots) continue;
           const displayName = bunkCourse?.config?.alias || course.courseName;
 
           for (const record of course.records) {

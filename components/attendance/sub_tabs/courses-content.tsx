@@ -11,7 +11,6 @@ import {
   selectAllDutyLeaves,
   useBunkStore,
 } from "@/stores/bunk-store";
-import { useTimetableStore } from "@/stores/timetable-store";
 import type { AttendanceRecord } from "@/types";
 import { useCallback, useMemo } from "react";
 import {
@@ -28,9 +27,9 @@ import { CreateCourseModal } from "../create-course-modal";
 import { DLInputModal } from "../dl-input-modal";
 import { DutyLeaveModal } from "../duty-leave-modal";
 import { PresenceInputModal } from "../presence-input-modal";
-import { SlotEditorModal } from "../slot-editor-modal";
 import { UnifiedCourseCard } from "../unified-course-card";
 import { UnknownStatusModal } from "../unknown-status-modal";
+import { ChangesModal } from "../changes-modal";
 
 export const CoursesContent = () => {
   const colorScheme = useColorScheme();
@@ -40,7 +39,6 @@ export const CoursesContent = () => {
   const { courses, isLoading, lastSyncTime, fetchAttendance } =
     useAttendanceStore();
   const { courses: bunkCourses } = useBunkStore();
-  const { slots: timetableSlots } = useTimetableStore();
   const { activeModal, isEditMode, openModal, closeModal } =
     useAttendanceUIStore();
 
@@ -58,13 +56,10 @@ export const CoursesContent = () => {
   } = useBunkActions();
 
   const {
-    handleSaveConfig,
+    handleSaveCourse,
     handleAddBunk,
     handleCreateCourse,
     handleDeleteCustomCourse,
-    handleAddSlot,
-    handleUpdateSlot,
-    handleRemoveSlot,
     handleResolveConflict,
     conflicts,
   } = useCourseActions();
@@ -73,24 +68,6 @@ export const CoursesContent = () => {
     () => selectAllDutyLeaves(bunkCourses),
     [bunkCourses],
   );
-
-  // auto slots for slot editor
-  const autoSlotsForEditor = useMemo(() => {
-    if (activeModal?.type !== "slot-editor") return [];
-    return timetableSlots
-      .filter(
-        (slot) =>
-          slot.courseId === activeModal.course.courseId && !slot.isManual,
-      )
-      .map((slot) => ({
-        id: slot.id,
-        dayOfWeek: slot.dayOfWeek,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        sessionType: slot.sessionType,
-        isHidden: false,
-      }));
-  }, [activeModal, timetableSlots]);
 
   // combine LMS courses with custom courses
   const allCourses = useMemo(() => {
@@ -117,7 +94,7 @@ export const CoursesContent = () => {
   const isCourseEditVisible = activeModal?.type === "course-edit";
   const isAddBunkVisible = activeModal?.type === "add-bunk";
   const isCreateCourseVisible = activeModal?.type === "create-course";
-  const isSlotEditorVisible = activeModal?.type === "slot-editor";
+  const isChangesVisible = activeModal?.type === "changes";
   const isDLInputBunkVisible = activeModal?.type === "dl-input-bunk";
   const isPresenceInputBunkVisible =
     activeModal?.type === "presence-input-bunk";
@@ -206,10 +183,6 @@ export const CoursesContent = () => {
               onAddBunk={() => {
                 if (bunkData) openModal({ type: "add-bunk", course: bunkData });
               }}
-              onEditSlots={() => {
-                if (bunkData)
-                  openModal({ type: "slot-editor", course: bunkData });
-              }}
               onMarkDL={(bunkId) => handleMarkDLCourses(courseId, bunkId)}
               onRemoveDL={(bunkId) =>
                 openModal({ type: "confirm-remove-dl", courseId, bunkId })
@@ -269,7 +242,7 @@ export const CoursesContent = () => {
         visible={isCourseEditVisible}
         course={activeModal?.type === "course-edit" ? activeModal.course : null}
         onClose={closeModal}
-        onSave={handleSaveConfig}
+        onSave={handleSaveCourse}
       />
 
       <AddBunkModal
@@ -293,41 +266,7 @@ export const CoursesContent = () => {
         onSave={handleCreateCourse}
       />
 
-      <SlotEditorModal
-        visible={isSlotEditorVisible}
-        courseName={
-          activeModal?.type === "slot-editor"
-            ? getDisplayName(activeModal.course)
-            : ""
-        }
-        courseColor={
-          activeModal?.type === "slot-editor"
-            ? activeModal.course.config?.color || Colors.gray[500]
-            : Colors.gray[500]
-        }
-        existingSlots={
-          activeModal?.type === "slot-editor"
-            ? activeModal.course.manualSlots || []
-            : []
-        }
-        autoSlots={autoSlotsForEditor}
-        onClose={closeModal}
-        onAddSlot={(slot) => {
-          if (activeModal?.type === "slot-editor") {
-            handleAddSlot(activeModal.course.courseId, slot);
-          }
-        }}
-        onUpdateSlot={(slotId, slot) => {
-          if (activeModal?.type === "slot-editor") {
-            handleUpdateSlot(activeModal.course.courseId, slotId, slot);
-          }
-        }}
-        onRemoveSlot={(slotId) => {
-          if (activeModal?.type === "slot-editor") {
-            handleRemoveSlot(activeModal.course.courseId, slotId);
-          }
-        }}
-      />
+      <ChangesModal visible={isChangesVisible} onClose={closeModal} />
 
       <DLInputModal
         visible={isDLInputBunkVisible}

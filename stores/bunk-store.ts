@@ -36,6 +36,7 @@ interface BunkActions {
   addCustomCourse: (input: CustomCourseInput) => string;
   deleteCustomCourse: (courseId: string) => void;
   addManualSlot: (courseId: string, slot: ManualSlotInput) => string | null;
+  setManualSlots: (courseId: string, slots: ManualSlotInput[]) => void;
   updateManualSlot: (
     courseId: string,
     slotId: string,
@@ -183,12 +184,15 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
                   ...existing.config,
                   alias: extractedName,
                   courseCode: extractedCode,
+                  overrideLmsSlots:
+                    existing.config.overrideLmsSlots ?? false,
                 }
                 : {
                   credits: autoCredits ?? 3,
                   alias: extractedName,
                   courseCode: extractedCode,
                   color: getRandomCourseColor(),
+                  overrideLmsSlots: false,
                 };
 
               return {
@@ -220,6 +224,7 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
                 alias: extractedName,
                 courseCode: extractedCode,
                 color: autoColor,
+                overrideLmsSlots: false,
               },
               bunks: lmsBunks,
               isConfigured: autoCredits !== null,
@@ -280,6 +285,8 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
                 alias: extractedName,
                 courseCode: extractedCode,
                 color: autoColor,
+                overrideLmsSlots:
+                  existing?.config?.overrideLmsSlots ?? false,
               },
               bunks: lmsBunks,
               isConfigured: autoCredits !== null,
@@ -428,6 +435,7 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
             alias: input.alias || input.courseName,
             courseCode: "",
             color: input.color,
+            overrideLmsSlots: true,
           },
           bunks: [],
           isConfigured: true,
@@ -469,6 +477,19 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
         }));
 
         return slotId;
+      },
+
+      setManualSlots: (courseId, slots) => {
+        const manualSlots: ManualSlot[] = slots.map((slot) => ({
+          ...slot,
+          id: generateId(),
+        }));
+
+        set((state) => ({
+          courses: state.courses.map((c) =>
+            c.courseId === courseId ? { ...c, manualSlots } : c,
+          ),
+        }));
       },
 
       updateManualSlot: (courseId, slotId, slot) => {

@@ -9,7 +9,7 @@ const getBaseUrlFromUsername = (username: string): string => {
   return `https://lmsug${yearSuffix}.iiitkottayam.ac.in`;
 };
 
-export const getBaseUrl = (username?: string): string => {
+export const getBaseUrl = (username?: string | null): string => {
   if (!username) {
     return DEFAULT_BASE_URL;
   }
