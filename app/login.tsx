@@ -51,12 +51,15 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <Input
-              label="username"
+              label="Username"
               placeholder="Enter your rollno."
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="username"
+              textContentType="username"
+              importantForAutofill="yes"
             />
 
             <Input
@@ -65,6 +68,11 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="password"
+              textContentType="password"
+              importantForAutofill="yes"
             />
 
             {error && <Text style={styles.error}>{error}</Text>}

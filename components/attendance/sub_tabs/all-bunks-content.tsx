@@ -91,6 +91,7 @@ export const AllBunksContent = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
         refreshControl={
           <RefreshControl
             refreshing={isLoading}

@@ -223,6 +223,7 @@ export function TotalAbsenceCalendar({
             <ScrollView
               style={styles.scrollList}
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
             >
               {selectedAbsences.map((absence, idx) => (
                 <View key={idx} style={styles.slotWrapper}>
