@@ -10,6 +10,7 @@ export * from "./calendar";
 export * from "./common";
 export * from "./dashboard";
 export * from "./faculty";
+export * from "./gpa";
 export * from "./lms";
 export * from "./timetable";
 

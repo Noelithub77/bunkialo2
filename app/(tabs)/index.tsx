@@ -8,7 +8,8 @@ import { startBackgroundRefresh } from "@/services/background-tasks";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { initializeNotifications } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +21,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { FAB, Portal } from "react-native-paper";
 
 const formatSyncTime = (timestamp: number | null): string => {
   if (!timestamp) return "";
@@ -49,6 +51,8 @@ export default function DashboardScreen() {
     hasHydrated,
   } = useDashboardStore();
   const [showOverdue, setShowOverdue] = useState(false);
+  const [showFabMenu, setShowFabMenu] = useState(false);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -67,6 +71,12 @@ export default function DashboardScreen() {
       startBackgroundRefresh();
     }
   }, [hasHydrated]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => setShowFabMenu(false);
+    }, [setShowFabMenu]),
+  );
 
   const handleRefresh = useCallback(() => {
     fetchDashboard();
@@ -186,6 +196,37 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+
+      {isFocused && (
+        <Portal>
+          <FAB.Group
+            open={showFabMenu}
+            visible={true}
+            icon={showFabMenu ? "close" : "menu"}
+            color={isDark ? Colors.gray[200] : Colors.gray[700]}
+            style={{ position: "absolute", right: 0, bottom: 80 }}
+            backdropColor="rgba(0,0,0,0.45)"
+            fabStyle={{
+              backgroundColor: showFabMenu
+                ? Colors.gray[800]
+                : theme.backgroundSecondary,
+            }}
+            actions={[
+              {
+                icon: "calculator-variant",
+                label: "GPA Calculator",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  router.push("/gpa");
+                },
+              },
+            ]}
+            onStateChange={({ open }) => setShowFabMenu(open)}
+          />
+        </Portal>
+      )}
     </Container>
   );
 }

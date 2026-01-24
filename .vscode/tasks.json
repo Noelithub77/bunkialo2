@@ -21,6 +21,27 @@
         "reveal": "always",
         "panel": "new"
       }
+    },
+    {
+      "label": "Build Production",
+      "type": "shell",
+      "command": "eas",
+      "args": [
+        "build",
+        "--profile",
+        "production",
+        "--platform",
+        "android",
+        "--submit"
+      ],
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
     }
   ],
   "inputs": [

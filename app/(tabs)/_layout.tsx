@@ -24,22 +24,22 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}
     >
-      {/* left side: timetable, faculty */}
-      <Tabs.Screen
-        name="timetable"
-        options={{
-          title: "Timetable",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* left side: faculty, timetable */}
       <Tabs.Screen
         name="faculty"
         options={{
           title: "Faculty",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="timetable"
+        options={{
+          title: "Timetable",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="time-outline" size={size} color={color} />
           ),
         }}
       />
@@ -55,22 +55,22 @@ export default function TabLayout() {
         }}
       />
 
-      {/* right side: attendance */}
-      <Tabs.Screen
-        name="attendance"
-        options={{
-          title: "Attendance",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* right side: mess, attendance */}
       <Tabs.Screen
         name="mess"
         options={{
           title: "Mess",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="restaurant-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="attendance"
+        options={{
+          title: "Attendance",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />

@@ -84,6 +84,15 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="faculty/[id]" />
             <Stack.Screen name="settings" />
+            <Stack.Screen
+              name="gpa"
+              options={{
+                presentation: "modal",
+                animation: "slide_from_bottom",
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+              }}
+            />
           </Stack>
           <StatusBar style={isDark ? "light" : "dark"} />
         </ThemeProvider>
