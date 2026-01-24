@@ -533,11 +533,11 @@ export default function GpaCalculatorScreen() {
                     const isSelected = grade === course.grade;
                     const chipColor = getGradeColor(grade);
                     return (
-                      <Pressable
-                        key={grade}
-                        onPress={() => setCourseGrade(course.courseId, grade)}
-                        style={({ pressed }) => [
-                          styles.gradeChip,
+                    <Pressable
+                      key={grade}
+                      onPress={() => setCourseGrade(course.courseId, grade)}
+                      style={({ pressed }) => [
+                        styles.gradeChip,
                           {
                             borderColor: isSelected ? chipColor : theme.border,
                             backgroundColor: isSelected
@@ -545,32 +545,20 @@ export default function GpaCalculatorScreen() {
                               : theme.background,
                           },
                           pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.gradeChipText,
+                          { color: isSelected ? chipColor : theme.text },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.gradeChipText,
-                            { color: isSelected ? chipColor : theme.text },
-                          ]}
-                        >
-                          {grade}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.gradeChipPoint,
-                            {
-                              color: isSelected
-                                ? chipColor
-                                : theme.textSecondary,
-                            },
-                          ]}
-                        >
-                          {GRADE_POINTS[grade]}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                        {grade}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
                 {showImpact && (
                   <View style={styles.impactRow}>
@@ -841,9 +829,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   courseCard: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radius.lg,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   courseList: {
     gap: Spacing.sm,
@@ -884,22 +872,18 @@ const styles = StyleSheet.create({
   gradeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 6,
+    gap: 4,
   },
   gradeChip: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: Radius.md,
     borderWidth: 1,
     alignItems: "center",
   },
   gradeChipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-  },
-  gradeChipPoint: {
-    fontSize: 11,
-    fontWeight: "500",
   },
   impactRow: {
     flexDirection: "row",

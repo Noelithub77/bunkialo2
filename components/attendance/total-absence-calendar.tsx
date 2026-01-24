@@ -191,7 +191,7 @@ export function TotalAbsenceCalendar({
         markingType="multi-dot"
         markedDates={markedDates}
         onDayPress={handleDayPress}
-        enableSwipeMonths
+        enableSwipeMonths={false}
         hideExtraDays
         theme={{
           calendarBackground: calTheme.calendarBackground,
