@@ -27,8 +27,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install yarn (for expo action)
+        run: npm i -g yarn
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
+        env:
+          EXPO_USE_NPM: "1"
         with:
           token: ${{ secrets.EXPO_TOKEN }}
           expo-version: latest
@@ -40,14 +45,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Configure Gradle memory limits
-        run: |
-          {
-            echo "ORG_GRADLE_PROJECT_org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
-            echo "ORG_GRADLE_PROJECT_org.gradle.parallel=false"
-            echo "ORG_GRADLE_PROJECT_org.gradle.workers.max=2"
-            echo "JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=1024m"
-          } >> "$GITHUB_ENV"
+      # - name: Configure Gradle memory limits
+      #   run: |
+      #     {
+      #       echo "ORG_GRADLE_PROJECT_org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
+      #       echo "ORG_GRADLE_PROJECT_org.gradle.parallel=false"
+      #       echo "ORG_GRADLE_PROJECT_org.gradle.workers.max=2"
+      #       echo "JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=1024m"
+      #     } >> "$GITHUB_ENV"
 
       - name: Build Android (preview)
         run: |

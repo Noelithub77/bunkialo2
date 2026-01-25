@@ -29,6 +29,8 @@ jobs:
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
+        env:
+          EXPO_USE_NPM: "1"
         with:
           token: ${{ secrets.EXPO_TOKEN }}
           expo-version: latest

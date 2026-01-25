@@ -1,0 +1,47 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+  }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"
+
+def stripAsyncStorageManifestPackage(Project subproject) {
+  def manifestFile = new File(subproject.projectDir, "src/main/AndroidManifest.xml")
+  if (!manifestFile.exists()) {
+    return
+  }
+
+  def original = manifestFile.getText("UTF-8")
+  def patched = original.replaceFirst(/\s*package="[^"]*"/, "")
+  if (patched != original) {
+    manifestFile.write(patched, "UTF-8")
+    subproject.logger.lifecycle("[AsyncStorage] Stripped package attribute from AndroidManifest.xml.")
+  }
+}
+
+subprojects { subproject ->
+  def projectPath = subproject.projectDir.path.replace("\\", "/")
+  if (projectPath.contains("/node_modules/@react-native-async-storage/async-storage/android")) {
+    subproject.afterEvaluate {
+      stripAsyncStorageManifestPackage(subproject)
+    }
+  }
+}
