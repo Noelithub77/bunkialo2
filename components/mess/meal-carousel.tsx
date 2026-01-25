@@ -131,6 +131,9 @@ export function MealCarousel() {
     const nextMealIndex = meals.findIndex((m) => currentTime < m.startTime);
     const isNextMeal = index === nextMealIndex && !isCurrentlyActive;
 
+    const cardBackground = theme.backgroundSecondary;
+    const chipBackground = isDark ? theme.border : theme.background;
+
     let statusColor = theme.text;
     let statusText = MEAL_TIMES[item.type].name;
     let borderColor: string | undefined;
@@ -159,9 +162,9 @@ export function MealCarousel() {
           style={[
             styles.card,
             !isActive && styles.cardInactive,
+            { backgroundColor: cardBackground, borderColor: theme.border },
             borderColor && { borderColor, borderWidth: 2 },
             isFinished && { opacity: cardOpacity },
-            { backgroundColor: "#000000" },
           ]}
         >
           {/* status row */}
@@ -212,7 +215,7 @@ export function MealCarousel() {
                   key={i}
                   style={[
                     styles.itemChip,
-                    { backgroundColor: theme.backgroundSecondary },
+                    { backgroundColor: chipBackground },
                   ]}
                 >
                   <Text style={[styles.itemText, { color: theme.text }]}>
@@ -305,6 +308,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.sm,
     minHeight: 160,
+    borderWidth: 1,
   },
   cardInactive: {
     opacity: 0.7,
