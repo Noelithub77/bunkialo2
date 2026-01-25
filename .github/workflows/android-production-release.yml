@@ -42,14 +42,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Configure Gradle memory limits
-        run: |
-          {
-            echo "ORG_GRADLE_PROJECT_org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
-            echo "ORG_GRADLE_PROJECT_org.gradle.parallel=false"
-            echo "ORG_GRADLE_PROJECT_org.gradle.workers.max=2"
-            echo "JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=1024m"
-          } >> "$GITHUB_ENV"
+      # - name: Configure Gradle memory limits
+      #   run: |
+      #     {
+      #       echo "ORG_GRADLE_PROJECT_org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
+      #       echo "ORG_GRADLE_PROJECT_org.gradle.parallel=false"
+      #       echo "ORG_GRADLE_PROJECT_org.gradle.workers.max=2"
+      #       echo "JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=1024m"
+      #     } >> "$GITHUB_ENV"
 
       - name: Build Android (production)
         run: |
