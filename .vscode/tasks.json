@@ -23,7 +23,7 @@
       }
     },
     {
-      "label": "Build Production",
+      "label": "Build AAB",
       "type": "shell",
       "command": "eas",
       "args": [
@@ -31,8 +31,27 @@
         "--profile",
         "production",
         "--platform",
-        "android",
-        "--submit"
+        "android"
+      ],
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build APK",
+      "type": "shell",
+      "command": "eas",
+      "args": [
+        "build",
+        "--profile",
+        "preview",
+        "--platform",
+        "android"
       ],
       "group": {
         "kind": "build"
