@@ -22,7 +22,6 @@ export default function TabLayout() {
     <MaterialBottomTabs
       initialRouteName="index"
       backBehavior="initialRoute"
-      lazy
       tabBarPosition="bottom"
       screenOptions={{
         tabBarActiveTintColor: theme.tabIconSelected,
@@ -56,7 +55,7 @@ export default function TabLayout() {
         name="faculty"
         options={{
           title: "Faculty",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="people-outline" size={iconSize} color={color} />
           ),
         }}
@@ -65,7 +64,7 @@ export default function TabLayout() {
         name="timetable"
         options={{
           title: "Timetable",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="time-outline" size={iconSize} color={color} />
           ),
         }}
@@ -76,7 +75,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Dashboard",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="grid-outline" size={iconSize} color={color} />
           ),
         }}
@@ -87,7 +86,7 @@ export default function TabLayout() {
         name="mess"
         options={{
           title: "Mess",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="restaurant-outline" size={iconSize} color={color} />
           ),
         }}
@@ -96,7 +95,7 @@ export default function TabLayout() {
         name="attendance"
         options={{
           title: "Bunks",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="calendar-outline" size={iconSize} color={color} />
           ),
         }}
