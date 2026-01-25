@@ -25,13 +25,11 @@
     {
       "label": "Build AAB",
       "type": "shell",
-      "command": "eas",
+      "command": "gh",
       "args": [
-        "build",
-        "--profile",
-        "production",
-        "--platform",
-        "android"
+        "workflow",
+        "run",
+        "android-production-release.yml"
       ],
       "group": {
         "kind": "build"
@@ -45,13 +43,11 @@
     {
       "label": "Build APK",
       "type": "shell",
-      "command": "eas",
+      "command": "gh",
       "args": [
-        "build",
-        "--profile",
-        "preview",
-        "--platform",
-        "android"
+        "workflow",
+        "run",
+        "android-preview-release.yml"
       ],
       "group": {
         "kind": "build"
