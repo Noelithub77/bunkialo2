@@ -11,6 +11,7 @@ import { useDashboardStore } from "@/stores/dashboard-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { requestNotificationPermissionsWithExplanation } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
+import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -89,7 +90,7 @@ export default function SettingsScreen() {
   const theme = isDark ? Colors.dark : Colors.light;
 
   const { username, logout } = useAuthStore();
-  const { fetchAttendance, clearAttendance, isLoading } = useAttendanceStore();
+  const { clearAttendance } = useAttendanceStore();
   const { resetToLms } = useBunkStore();
   const { logs, clearLogs } = useDashboardStore();
   const {
@@ -118,7 +119,23 @@ export default function SettingsScreen() {
     message: "",
   });
 
-  const appVersion = Constants.expoConfig?.version ?? "0.0.0";
+  const expoConfig = Constants.expoConfig;
+  const configBuildNumber =
+    expoConfig?.ios?.buildNumber ??
+    (expoConfig?.android?.versionCode
+      ? String(expoConfig.android.versionCode)
+      : null);
+  const appVersion =
+    Constants.appOwnership === "expo"
+      ? (expoConfig?.version ?? Application.nativeApplicationVersion ?? "0.0.0")
+      : (Application.nativeApplicationVersion ??
+        expoConfig?.version ??
+        "0.0.0");
+  const buildVersion =
+    Constants.appOwnership === "expo"
+      ? (configBuildNumber ?? Application.nativeBuildVersion)
+      : (Application.nativeBuildVersion ?? configBuildNumber);
+  const showBuildVersion = Constants.appOwnership !== "expo" && !!buildVersion;
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -346,14 +363,6 @@ export default function SettingsScreen() {
           </Text>
           <View style={[styles.list, { borderColor: theme.border }]}>
             <SettingRow
-              icon="refresh"
-              label="Refresh Attendance"
-              onPress={fetchAttendance}
-              loading={isLoading}
-              theme={theme}
-            />
-            <View style={[styles.divider, { backgroundColor: theme.border }]} />
-            <SettingRow
               icon="cloud-download-outline"
               label="Check for Updates"
               onPress={handleCheckForUpdates}
@@ -393,7 +402,9 @@ export default function SettingsScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-              Bunkialo v{appVersion}
+              {showBuildVersion
+                ? `Bunkialo v${appVersion} (build ${buildVersion})`
+                : `Bunkialo v${appVersion}`}
             </Text>
             <View style={styles.devInfo}>
               <Text style={[styles.footerText, { color: theme.textSecondary }]}>
@@ -606,11 +617,13 @@ const styles = StyleSheet.create({
   },
   reminderInput: {
     flex: 1,
-    height: 36,
+    minHeight: 40,
     borderRadius: Radius.sm,
     borderWidth: 1,
     paddingHorizontal: Spacing.sm,
+    paddingVertical: 0,
     fontSize: 14,
+    textAlignVertical: "center",
   },
   addButton: {
     width: 36,
