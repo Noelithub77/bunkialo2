@@ -1,0 +1,67 @@
+name: Build Android Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: latest
+          eas-version: latest
+
+      - name: Setup EAS local builds
+        run: npm install -g eas-cli-local-build-plugin
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Android (production)
+        run: |
+          eas build --local \
+            --non-interactive \
+            --output=./app-build \
+            --platform=android \
+            --profile=production
+
+      - name: Locate build artifact
+        id: artifact
+        run: |
+          ARTIFACT_PATH=$(ls app-build/*.aab app-build/*.apk 2>/dev/null | head -n 1)
+          if [ -z "$ARTIFACT_PATH" ]; then
+            echo "No build artifact found in app-build" >&2
+            exit 1
+          fi
+          echo "path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-production-${{ github.run_number }}
+          name: Android production build ${{ github.run_number }}
+          generate_release_notes: true
+          files: ${{ steps.artifact.outputs.path }}
