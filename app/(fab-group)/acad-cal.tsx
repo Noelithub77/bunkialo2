@@ -2,14 +2,12 @@ import {
   CalendarContent,
   ChangesModal,
   EventEditorModal,
-  formatShortDate,
   getCurrentTerm,
   getInitialSelectedDate,
   toISODate,
 } from "@/components/acad-cal";
 import { UpNextContent } from "@/components/acad-cal/sub_tabs/upnext-content";
 import { Container } from "@/components/ui/container";
-import { GradientCard } from "@/components/ui/gradient-card";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { ACADEMIC_EVENTS } from "@/data/acad-cal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -90,24 +88,6 @@ export default function AcademicCalendarScreen() {
     return [...mergedBase, ...customForTerm];
   }, [baseEvents, customEvents, overrides, currentTerm.id]);
 
-  // next upcoming event
-  const nextEvent = useMemo(() => {
-    const next = termEvents
-      .filter((event) => (event.endDate ?? event.date) >= today)
-      .sort((a, b) => a.date.localeCompare(b.date))[0];
-    return next ?? null;
-  }, [termEvents, today]);
-
-  // count upcoming groups for summary
-  const upcomingCount = useMemo(() => {
-    const upcoming = termEvents.filter((event) => {
-      const endDate = event.endDate ?? event.date;
-      return endDate >= today;
-    });
-    const grouped = new Set(upcoming.map((e) => e.date));
-    return grouped.size;
-  }, [termEvents, today]);
-
   const handleToggleEditMode = () => {
     toggleEditMode();
     if (showFabMenu) setShowFabMenu(false);
@@ -135,68 +115,6 @@ export default function AcademicCalendarScreen() {
             </Text>
           </View>
         </View>
-
-        {/* summary card */}
-        <GradientCard style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <View style={styles.summaryHeading}>
-              <Ionicons
-                name="calendar-outline"
-                size={18}
-                color={theme.textSecondary}
-              />
-              <Text style={[styles.summaryTitle, { color: theme.text }]}>
-                {termInfo?.shortTitle ?? "Semester"}
-              </Text>
-            </View>
-            <Text style={[styles.summaryRange, { color: theme.textSecondary }]}>
-              {termInfo
-                ? `${formatShortDate(termInfo.startDate)} - ${formatShortDate(
-                    termInfo.endDate,
-                  )}`
-                : ""}
-            </Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text
-                style={[styles.summaryLabel, { color: theme.textSecondary }]}
-              >
-                Upcoming
-              </Text>
-              <Text style={[styles.summaryValue, { color: theme.text }]}>
-                {upcomingCount}
-              </Text>
-            </View>
-            <View
-              style={[styles.summaryDivider, { backgroundColor: theme.border }]}
-            />
-            <View style={styles.summaryItem}>
-              <Text
-                style={[styles.summaryLabel, { color: theme.textSecondary }]}
-              >
-                Next
-              </Text>
-              <Text style={[styles.summaryValue, { color: theme.text }]}>
-                {nextEvent ? formatShortDate(nextEvent.date) : "-"}
-              </Text>
-            </View>
-            <View
-              style={[styles.summaryDivider, { backgroundColor: theme.border }]}
-            />
-            <View style={styles.summaryItem}>
-              <Text
-                style={[styles.summaryLabel, { color: theme.textSecondary }]}
-              >
-                Events
-              </Text>
-              <Text style={[styles.summaryValue, { color: theme.text }]}>
-                {termEvents.length}
-              </Text>
-            </View>
-          </View>
-        </GradientCard>
 
         {/* view mode chips */}
         <View style={styles.chipRow}>
@@ -334,48 +252,6 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 4,
     fontSize: 13,
-  },
-  summaryCard: {
-    marginBottom: Spacing.lg,
-  },
-  summaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  summaryHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  summaryRange: {
-    fontSize: 12,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  summaryItem: {
-    flex: 1,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  summaryDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: Colors.gray[800],
   },
   chipRow: {
     flexDirection: "row",
