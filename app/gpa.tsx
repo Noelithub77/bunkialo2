@@ -19,14 +19,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { Button } from "react-native-paper";
 
 const GRADE_OPTIONS: GradeLetter[] = [
   "A",
@@ -291,6 +293,8 @@ export default function GpaCalculatorScreen() {
 
   const deltaSgpa = sgpa - sgpaAllA;
   const deltaCgpa = cgpa - cgpaAllA;
+  const { height: screenHeight } = useWindowDimensions();
+  const modalMaxHeight = Math.round(screenHeight * 0.82);
 
   const missingCreditsCount = courses.filter(
     (course) => course.credits <= 0,
@@ -345,7 +349,10 @@ export default function GpaCalculatorScreen() {
             onPress={() => setShowPrevSemModal(true)}
             style={[
               styles.prevSemIconButton,
-              { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundSecondary,
+              },
             ]}
           >
             <Ionicons
@@ -353,7 +360,9 @@ export default function GpaCalculatorScreen() {
               size={16}
               color={theme.textSecondary}
             />
-            <Text style={[styles.prevSemIconText, { color: theme.textSecondary }]}>
+            <Text
+              style={[styles.prevSemIconText, { color: theme.textSecondary }]}
+            >
               Prev
             </Text>
           </Pressable>
@@ -504,15 +513,20 @@ export default function GpaCalculatorScreen() {
                 ]}
               >
                 <View style={styles.courseHeader}>
-                <View style={styles.courseInfo}>
-                  <Text style={[styles.courseName, { color: theme.text }]}>
-                    {course.courseName}
-                    <Text style={[styles.creditInline, { color: Colors.status.info }]}>
-                      {" "}
-                      ({course.credits})
+                  <View style={styles.courseInfo}>
+                    <Text style={[styles.courseName, { color: theme.text }]}>
+                      {course.courseName}
+                      <Text
+                        style={[
+                          styles.creditInline,
+                          { color: Colors.status.info },
+                        ]}
+                      >
+                        {" "}
+                        ({course.credits})
+                      </Text>
                     </Text>
-                  </Text>
-                </View>
+                  </View>
                   <View
                     style={[
                       styles.gradeBadge,
@@ -522,7 +536,9 @@ export default function GpaCalculatorScreen() {
                       },
                     ]}
                   >
-                    <Text style={[styles.gradeBadgeText, { color: gradeColor }]}>
+                    <Text
+                      style={[styles.gradeBadgeText, { color: gradeColor }]}
+                    >
                       {course.grade}
                     </Text>
                   </View>
@@ -533,11 +549,11 @@ export default function GpaCalculatorScreen() {
                     const isSelected = grade === course.grade;
                     const chipColor = getGradeColor(grade);
                     return (
-                    <Pressable
-                      key={grade}
-                      onPress={() => setCourseGrade(course.courseId, grade)}
-                      style={({ pressed }) => [
-                        styles.gradeChip,
+                      <Pressable
+                        key={grade}
+                        onPress={() => setCourseGrade(course.courseId, grade)}
+                        style={({ pressed }) => [
+                          styles.gradeChip,
                           {
                             borderColor: isSelected ? chipColor : theme.border,
                             backgroundColor: isSelected
@@ -545,20 +561,20 @@ export default function GpaCalculatorScreen() {
                               : theme.background,
                           },
                           pressed && { opacity: 0.85 },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.gradeChipText,
-                          { color: isSelected ? chipColor : theme.text },
                         ]}
                       >
-                        {grade}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                        <Text
+                          style={[
+                            styles.gradeChipText,
+                            { color: isSelected ? chipColor : theme.text },
+                          ]}
+                        >
+                          {grade}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
                 {showImpact && (
                   <View style={styles.impactRow}>
@@ -569,7 +585,10 @@ export default function GpaCalculatorScreen() {
                         color={theme.textSecondary}
                       />
                       <Text
-                        style={[styles.impactText, { color: theme.textSecondary }]}
+                        style={[
+                          styles.impactText,
+                          { color: theme.textSecondary },
+                        ]}
                       >
                         Impact
                       </Text>
@@ -602,111 +621,132 @@ export default function GpaCalculatorScreen() {
         animationType="slide"
         onRequestClose={() => setShowPrevSemModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "position"}
+          style={styles.modalOverlay}
+        >
           <Pressable
             style={styles.modalBackdrop}
             onPress={() => setShowPrevSemModal(false)}
           />
           <View
-            style={[styles.modalSheet, { backgroundColor: theme.background }]}
+            style={[
+              styles.modalSheet,
+              { backgroundColor: theme.background, maxHeight: modalMaxHeight },
+            ]}
           >
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
-                Previous Semesters
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
+                  Previous Semesters
+                </Text>
+                <Pressable onPress={() => setShowPrevSemModal(false)} hitSlop={8}>
+                  <Ionicons name="close" size={20} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+              <Text
+                style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+              >
+                Add past SGPA and credits to refine CGPA.
               </Text>
-              <Pressable onPress={() => setShowPrevSemModal(false)} hitSlop={8}>
-                <Ionicons name="close" size={20} color={theme.textSecondary} />
-              </Pressable>
-            </View>
-            <Text
-              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
-            >
-              Add past SGPA and credits to refine CGPA.
-            </Text>
 
-            <ScrollView
-              contentContainerStyle={styles.modalContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {previousSemesters.map((semester, index) => (
-                <View
-                  key={semester.id}
-                  style={[
-                    styles.semesterCard,
-                    { backgroundColor: theme.backgroundSecondary },
+              <ScrollView
+                contentContainerStyle={styles.modalContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {previousSemesters.map((semester, index) => (
+                  <View
+                    key={semester.id}
+                    style={[
+                      styles.semesterCard,
+                      { backgroundColor: theme.backgroundSecondary },
+                    ]}
+                  >
+                    <View style={styles.semesterHeader}>
+                      <Text style={[styles.semesterTitle, { color: theme.text }]}>
+                        {semester.label || `Sem ${index + 1}`}
+                      </Text>
+                      {previousSemesters.length > 1 &&
+                        index === previousSemesters.length - 1 && (
+                          <Pressable
+                            onPress={() => removeSemester(semester.id)}
+                            hitSlop={8}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color={Colors.status.danger}
+                            />
+                          </Pressable>
+                        )}
+                    </View>
+
+                    <View style={styles.semesterFields}>
+                      <Input
+                        label="SGPA"
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        value={
+                          semesterDrafts[semester.id]?.sgpa ??
+                          (semester.sgpa !== null ? `${semester.sgpa}` : "")
+                        }
+                        placeholder="0 - 10"
+                        onChangeText={(value) =>
+                          handleSemesterChange(semester.id, "sgpa", value)
+                        }
+                        style={styles.semesterInput}
+                      />
+                      <Input
+                        label="Total credits"
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        value={
+                          semesterDrafts[semester.id]?.credits ??
+                          (semester.credits !== null ? `${semester.credits}` : "")
+                        }
+                        placeholder="Total credits"
+                        onChangeText={(value) =>
+                          handleSemesterChange(semester.id, "credits", value)
+                        }
+                        style={styles.semesterInput}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+
+              <View style={styles.modalActions}>
+                <Pressable
+                  onPress={handleAddSemester}
+                  style={({ pressed }) => [
+                    styles.modalSecondaryButton,
+                    { borderColor: theme.border },
+                    pressed && { opacity: 0.9 },
                   ]}
                 >
-                  <View style={styles.semesterHeader}>
-                    <Text style={[styles.semesterTitle, { color: theme.text }]}>
-                      {semester.label || `Sem ${index + 1}`}
-                    </Text>
-                    {previousSemesters.length > 1 &&
-                      index === previousSemesters.length - 1 && (
-                        <Pressable
-                          onPress={() => removeSemester(semester.id)}
-                          hitSlop={8}
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={18}
-                            color={Colors.status.danger}
-                          />
-                        </Pressable>
-                      )}
-                  </View>
-
-                  <View style={styles.semesterFields}>
-                    <Input
-                      label="SGPA"
-                      keyboardType="decimal-pad"
-                      inputMode="decimal"
-                      value={
-                        semesterDrafts[semester.id]?.sgpa ??
-                        (semester.sgpa !== null ? `${semester.sgpa}` : "")
-                      }
-                      placeholder="0 - 10"
-                      onChangeText={(value) =>
-                        handleSemesterChange(semester.id, "sgpa", value)
-                      }
-                      style={styles.semesterInput}
-                    />
-                    <Input
-                      label="Credits"
-                      keyboardType="decimal-pad"
-                      inputMode="decimal"
-                      value={
-                        semesterDrafts[semester.id]?.credits ??
-                        (semester.credits !== null ? `${semester.credits}` : "")
-                      }
-                      placeholder="Total credits"
-                      onChangeText={(value) =>
-                        handleSemesterChange(semester.id, "credits", value)
-                      }
-                      style={styles.semesterInput}
-                    />
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-
-            <View style={styles.modalActions}>
-              <Pressable
-                onPress={handleAddSemester}
-                style={({ pressed }) => [
-                  styles.modalPrimaryButton,
-                  pressed && { opacity: 0.9 },
-                ]}
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={18}
-                  color={Colors.white}
-                />
-                <Text style={styles.modalPrimaryText}>Add semester</Text>
-              </Pressable>
-            </View>
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={18}
+                    color={theme.text}
+                  />
+                  <Text
+                    style={[styles.modalSecondaryText, { color: theme.text }]}
+                  >
+                    Add semester
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setShowPrevSemModal(false)}
+                  style={({ pressed }) => [
+                    styles.modalPrimaryButton,
+                    pressed && { opacity: 0.9 },
+                  ]}
+                >
+                  <Text style={styles.modalPrimaryText}>Save</Text>
+                </Pressable>
+              </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Container>
   );
@@ -924,14 +964,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalBackdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   modalSheet: {
     padding: Spacing.md,
     paddingBottom: Spacing.xl,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
-    maxHeight: "80%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -953,10 +992,12 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   modalActions: {
+    flexDirection: "row",
     paddingTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   modalPrimaryButton: {
-    width: "100%",
+    flex: 1,
     height: 48,
     borderRadius: Radius.md,
     backgroundColor: Colors.gray[800],
@@ -967,6 +1008,22 @@ const styles = StyleSheet.create({
   },
   modalPrimaryText: {
     color: Colors.white,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  modalSecondaryButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    borderWidth: 1,
+    backgroundColor: "transparent",
+  },
+  modalSecondaryText: {
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: 0.3,
