@@ -15,7 +15,7 @@ const ENABLED_CATEGORIES: LogCategory[] = [
   "COOKIE",
   "API",
   "STORE",
-  "COURSE_NAME",
+  // "COURSE_NAME",
 ];
 
 const CATEGORY_COLORS: Record<LogCategory, string> = {
@@ -81,10 +81,9 @@ export const debug = {
   },
 
   auth: (message: string, data?: unknown) => debug.log("AUTH", message, data),
-  cookie: (message: string, data?: unknown) => debug.log("COOKIE", message, data),
+  cookie: (message: string, data?: unknown) =>
+    debug.log("COOKIE", message, data),
   scraper: (_message: string, _data?: unknown) => {}, // intentionally disabled
   api: (message: string, data?: unknown) => debug.log("API", message, data),
   store: (message: string, data?: unknown) => debug.log("STORE", message, data),
-  courseName: (message: string, data?: unknown) =>
-    debug.log("COURSE_NAME", message, data),
 };

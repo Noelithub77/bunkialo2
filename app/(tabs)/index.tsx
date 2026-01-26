@@ -222,6 +222,16 @@ export default function DashboardScreen() {
                   router.push("/gpa");
                 },
               },
+              {
+                icon: "calendar-month",
+                label: "Academic Calendar",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  router.push("/acad-cal");
+                },
+              },
             ]}
             onStateChange={({ open }) => setShowFabMenu(open)}
           />

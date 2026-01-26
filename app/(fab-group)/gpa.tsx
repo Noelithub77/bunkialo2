@@ -327,6 +327,12 @@ export default function GpaCalculatorScreen() {
     addSemester({ credits: totalCredits > 0 ? totalCredits : 23 });
   };
 
+  const handleResetAllGrades = () => {
+    courses.forEach((course) => {
+      setCourseGrade(course.courseId, DEFAULT_GRADE);
+    });
+  };
+
   return (
     <Container>
       <View style={styles.content}>
@@ -345,27 +351,46 @@ export default function GpaCalculatorScreen() {
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: theme.text }]}>GPA</Text>
           </View>
-          <Pressable
-            onPress={() => setShowPrevSemModal(true)}
-            style={[
-              styles.prevSemIconButton,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundSecondary,
-              },
-            ]}
-          >
-            <Ionicons
-              name="albums-outline"
-              size={16}
-              color={theme.textSecondary}
-            />
-            <Text
-              style={[styles.prevSemIconText, { color: theme.textSecondary }]}
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => setShowPrevSemModal(true)}
+              style={[
+                styles.prevSemIconButton,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundSecondary,
+                },
+              ]}
             >
-              Prev
-            </Text>
-          </Pressable>
+              <Ionicons
+                name="albums-outline"
+                size={16}
+                color={theme.textSecondary}
+              />
+              <Text
+                style={[styles.prevSemIconText, { color: theme.textSecondary }]}
+              >
+                Prev
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleResetAllGrades}
+              style={[
+                styles.resetIconButton,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundSecondary,
+                },
+              ]}
+              hitSlop={6}
+            >
+              <Ionicons
+                name="refresh-outline"
+                size={14}
+                color={theme.textSecondary}
+              />
+            </Pressable>
+          </View>
         </View>
 
         <GradientCard style={styles.summaryCard}>
@@ -643,12 +668,6 @@ export default function GpaCalculatorScreen() {
                 <Ionicons name="close" size={20} color={theme.textSecondary} />
               </Pressable>
             </View>
-            <Text
-              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
-            >
-              Add past SGPA and credits to refine CGPA.
-            </Text>
-
             <ScrollView
               contentContainerStyle={styles.modalContent}
               showsVerticalScrollIndicator={false}
@@ -662,10 +681,40 @@ export default function GpaCalculatorScreen() {
                     { backgroundColor: theme.backgroundSecondary },
                   ]}
                 >
-                  <View style={styles.semesterHeader}>
+                  <View style={styles.semesterRow}>
                     <Text style={[styles.semesterTitle, { color: theme.text }]}>
                       {semester.label || `Sem ${index + 1}`}
                     </Text>
+                    <View style={styles.semesterFields}>
+                      <Input
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        value={
+                          semesterDrafts[semester.id]?.sgpa ??
+                          (semester.sgpa !== null ? `${semester.sgpa}` : "")
+                        }
+                        placeholder="SGPA"
+                        onChangeText={(value) =>
+                          handleSemesterChange(semester.id, "sgpa", value)
+                        }
+                        style={styles.semesterInput}
+                      />
+                      <Input
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        value={
+                          semesterDrafts[semester.id]?.credits ??
+                          (semester.credits !== null
+                            ? `${semester.credits}`
+                            : "")
+                        }
+                        placeholder="Total credits"
+                        onChangeText={(value) =>
+                          handleSemesterChange(semester.id, "credits", value)
+                        }
+                        style={styles.semesterInput}
+                      />
+                    </View>
                     {previousSemesters.length > 1 &&
                       index === previousSemesters.length - 1 && (
                         <Pressable
@@ -680,40 +729,15 @@ export default function GpaCalculatorScreen() {
                         </Pressable>
                       )}
                   </View>
-
-                  <View style={styles.semesterFields}>
-                    <Input
-                      label="SGPA"
-                      keyboardType="decimal-pad"
-                      inputMode="decimal"
-                      value={
-                        semesterDrafts[semester.id]?.sgpa ??
-                        (semester.sgpa !== null ? `${semester.sgpa}` : "")
-                      }
-                      placeholder="0 - 10"
-                      onChangeText={(value) =>
-                        handleSemesterChange(semester.id, "sgpa", value)
-                      }
-                      style={styles.semesterInput}
-                    />
-                    <Input
-                      label="Total credits"
-                      keyboardType="decimal-pad"
-                      inputMode="decimal"
-                      value={
-                        semesterDrafts[semester.id]?.credits ??
-                        (semester.credits !== null ? `${semester.credits}` : "")
-                      }
-                      placeholder="Total credits"
-                      onChangeText={(value) =>
-                        handleSemesterChange(semester.id, "credits", value)
-                      }
-                      style={styles.semesterInput}
-                    />
-                  </View>
                 </View>
               ))}
             </ScrollView>
+            <Text
+              style={[styles.modalHint, { color: theme.textSecondary }]}
+            >
+              Tip: If you&apos;re unsure, set total credits as 23{"\n"}(roughly
+              the average across semesters).
+            </Text>
 
             <View style={styles.modalActions}>
               <Pressable
@@ -762,6 +786,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
   },
   backIcon: {
     width: 40,
@@ -958,6 +987,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.2,
   },
+  resetIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -987,9 +1024,18 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: Spacing.md,
   },
+  modalHint: {
+    fontSize: 10,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    opacity: 0.55,
+  },
   modalContent: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
     paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   modalActions: {
     flexDirection: "row",
@@ -1029,14 +1075,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   semesterCard: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radius.lg,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
-  semesterHeader: {
+  semesterRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: Spacing.sm,
   },
   semesterTitle: {
     fontSize: 15,
@@ -1045,8 +1092,11 @@ const styles = StyleSheet.create({
   semesterFields: {
     flexDirection: "row",
     gap: Spacing.sm,
+    flex: 1,
+    justifyContent: "flex-end",
   },
   semesterInput: {
     flex: 1,
+    height: 44,
   },
 });

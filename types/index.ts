@@ -5,6 +5,7 @@
 
 export * from "./attendance";
 export * from "./auth";
+export * from "./academic-calendar";
 export * from "./bunk";
 export * from "./calendar";
 export * from "./common";
