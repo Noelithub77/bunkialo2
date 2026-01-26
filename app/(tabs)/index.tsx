@@ -1,6 +1,7 @@
 import { EventCard } from "@/components/dashboard/event-card";
 import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { UpNextSection } from "@/components/dashboard/up-next-section";
+import { DevInfoModal } from "@/components/modals/dev-info-modal";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -52,6 +53,7 @@ export default function DashboardScreen() {
   } = useDashboardStore();
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
+  const [showDevInfo, setShowDevInfo] = useState(false);
   const isFocused = useIsFocused();
 
   useEffect(() => {
@@ -116,6 +118,16 @@ export default function DashboardScreen() {
             )}
           </View>
           <View style={styles.headerRight}>
+            <Pressable
+              onPress={() => setShowDevInfo(true)}
+              style={styles.settingsBtn}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={theme.textSecondary}
+              />
+            </Pressable>
             <Pressable
               onPress={() => router.push("/settings")}
               style={styles.settingsBtn}
@@ -237,6 +249,11 @@ export default function DashboardScreen() {
           />
         </Portal>
       )}
+
+      <DevInfoModal
+        visible={showDevInfo}
+        onClose={() => setShowDevInfo(false)}
+      />
     </Container>
   );
 }

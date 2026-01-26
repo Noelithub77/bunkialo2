@@ -403,7 +403,7 @@ export default function SettingsScreen() {
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>
               {showBuildVersion
-                ? `Bunkialo v${appVersion} (build ${buildVersion})`
+                ? `Bunkialo v${appVersion}(${buildVersion})`
                 : `Bunkialo v${appVersion}`}
             </Text>
             <View style={styles.devInfo}>

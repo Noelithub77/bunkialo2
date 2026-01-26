@@ -226,7 +226,6 @@ export const login = async (
     },
   );
 
-  debug.auth(`Login response size: ${loginResponse.data.length} chars`);
   debug.auth("Login response summary", {
     status: loginResponse.status,
     ...summarizeHtml(loginResponse.data),

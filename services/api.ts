@@ -56,7 +56,6 @@ api.interceptors.response.use(
     }
 
     debug.api(`RESPONSE: ${response.status} ${response.config.url}`);
-    debug.api(`Response size: ${response.data?.length || 0} chars`);
 
     // Check for session expiry (HTML response with login form)
     const url = response.config.url || "";
