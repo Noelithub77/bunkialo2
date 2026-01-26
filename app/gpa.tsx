@@ -205,6 +205,11 @@ export default function GpaCalculatorScreen() {
     [courses],
   );
 
+  const { totalCredits, totalPoints, sgpa } = useMemo(
+    () => summarizeSemester(courses),
+    [courses],
+  );
+
   useEffect(() => {
     if (courseIds.length === 0) return;
     ensureCourseGrades(courseIds, DEFAULT_GRADE);
@@ -270,11 +275,6 @@ export default function GpaCalculatorScreen() {
       }
     });
   }, [previousSemesters, updateSemester]);
-
-  const { totalCredits, totalPoints, sgpa } = useMemo(
-    () => summarizeSemester(courses),
-    [courses],
-  );
 
   const { totalCredits: prevCredits, totalPoints: prevPoints } = useMemo(
     () => summarizePreviousSemesters(previousSemesters),
@@ -635,116 +635,116 @@ export default function GpaCalculatorScreen() {
               { backgroundColor: theme.background, maxHeight: modalMaxHeight },
             ]}
           >
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>
-                  Previous Semesters
-                </Text>
-                <Pressable onPress={() => setShowPrevSemModal(false)} hitSlop={8}>
-                  <Ionicons name="close" size={20} color={theme.textSecondary} />
-                </Pressable>
-              </View>
-              <Text
-                style={[styles.modalSubtitle, { color: theme.textSecondary }]}
-              >
-                Add past SGPA and credits to refine CGPA.
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Previous Semesters
               </Text>
+              <Pressable onPress={() => setShowPrevSemModal(false)} hitSlop={8}>
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
+              </Pressable>
+            </View>
+            <Text
+              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+            >
+              Add past SGPA and credits to refine CGPA.
+            </Text>
 
-              <ScrollView
-                contentContainerStyle={styles.modalContent}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                {previousSemesters.map((semester, index) => (
-                  <View
-                    key={semester.id}
-                    style={[
-                      styles.semesterCard,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
-                  >
-                    <View style={styles.semesterHeader}>
-                      <Text style={[styles.semesterTitle, { color: theme.text }]}>
-                        {semester.label || `Sem ${index + 1}`}
-                      </Text>
-                      {previousSemesters.length > 1 &&
-                        index === previousSemesters.length - 1 && (
-                          <Pressable
-                            onPress={() => removeSemester(semester.id)}
-                            hitSlop={8}
-                          >
-                            <Ionicons
-                              name="trash-outline"
-                              size={18}
-                              color={Colors.status.danger}
-                            />
-                          </Pressable>
-                        )}
-                    </View>
-
-                    <View style={styles.semesterFields}>
-                      <Input
-                        label="SGPA"
-                        keyboardType="decimal-pad"
-                        inputMode="decimal"
-                        value={
-                          semesterDrafts[semester.id]?.sgpa ??
-                          (semester.sgpa !== null ? `${semester.sgpa}` : "")
-                        }
-                        placeholder="0 - 10"
-                        onChangeText={(value) =>
-                          handleSemesterChange(semester.id, "sgpa", value)
-                        }
-                        style={styles.semesterInput}
-                      />
-                      <Input
-                        label="Total credits"
-                        keyboardType="decimal-pad"
-                        inputMode="decimal"
-                        value={
-                          semesterDrafts[semester.id]?.credits ??
-                          (semester.credits !== null ? `${semester.credits}` : "")
-                        }
-                        placeholder="Total credits"
-                        onChangeText={(value) =>
-                          handleSemesterChange(semester.id, "credits", value)
-                        }
-                        style={styles.semesterInput}
-                      />
-                    </View>
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {previousSemesters.map((semester, index) => (
+                <View
+                  key={semester.id}
+                  style={[
+                    styles.semesterCard,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
+                  <View style={styles.semesterHeader}>
+                    <Text style={[styles.semesterTitle, { color: theme.text }]}>
+                      {semester.label || `Sem ${index + 1}`}
+                    </Text>
+                    {previousSemesters.length > 1 &&
+                      index === previousSemesters.length - 1 && (
+                        <Pressable
+                          onPress={() => removeSemester(semester.id)}
+                          hitSlop={8}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={Colors.status.danger}
+                          />
+                        </Pressable>
+                      )}
                   </View>
-                ))}
-              </ScrollView>
 
-              <View style={styles.modalActions}>
-                <Pressable
-                  onPress={handleAddSemester}
-                  style={({ pressed }) => [
-                    styles.modalSecondaryButton,
-                    { borderColor: theme.border },
-                    pressed && { opacity: 0.9 },
-                  ]}
+                  <View style={styles.semesterFields}>
+                    <Input
+                      label="SGPA"
+                      keyboardType="decimal-pad"
+                      inputMode="decimal"
+                      value={
+                        semesterDrafts[semester.id]?.sgpa ??
+                        (semester.sgpa !== null ? `${semester.sgpa}` : "")
+                      }
+                      placeholder="0 - 10"
+                      onChangeText={(value) =>
+                        handleSemesterChange(semester.id, "sgpa", value)
+                      }
+                      style={styles.semesterInput}
+                    />
+                    <Input
+                      label="Total credits"
+                      keyboardType="decimal-pad"
+                      inputMode="decimal"
+                      value={
+                        semesterDrafts[semester.id]?.credits ??
+                        (semester.credits !== null ? `${semester.credits}` : "")
+                      }
+                      placeholder="Total credits"
+                      onChangeText={(value) =>
+                        handleSemesterChange(semester.id, "credits", value)
+                      }
+                      style={styles.semesterInput}
+                    />
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={handleAddSemester}
+                style={({ pressed }) => [
+                  styles.modalSecondaryButton,
+                  { borderColor: theme.border },
+                  pressed && { opacity: 0.9 },
+                ]}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={18}
+                  color={theme.text}
+                />
+                <Text
+                  style={[styles.modalSecondaryText, { color: theme.text }]}
                 >
-                  <Ionicons
-                    name="add-circle-outline"
-                    size={18}
-                    color={theme.text}
-                  />
-                  <Text
-                    style={[styles.modalSecondaryText, { color: theme.text }]}
-                  >
-                    Add semester
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setShowPrevSemModal(false)}
-                  style={({ pressed }) => [
-                    styles.modalPrimaryButton,
-                    pressed && { opacity: 0.9 },
-                  ]}
-                >
-                  <Text style={styles.modalPrimaryText}>Save</Text>
-                </Pressable>
-              </View>
+                  Add semester
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowPrevSemModal(false)}
+                style={({ pressed }) => [
+                  styles.modalPrimaryButton,
+                  pressed && { opacity: 0.9 },
+                ]}
+              >
+                <Text style={styles.modalPrimaryText}>Save</Text>
+              </Pressable>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>

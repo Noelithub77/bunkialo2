@@ -48,13 +48,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "2c2c7143-e4c5-4d6c-acd3-8eb57849fcbe"
+        "projectId": "7cbe49d9-9827-4df3-b86e-849443804d63"
       }
     },
-    "owner": "lorexpo",
     "runtimeVersion": "0.1.0",
     "updates": {
-      "url": "https://u.expo.dev/2c2c7143-e4c5-4d6c-acd3-8eb57849fcbe"
+      "url": "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63"
     }
   }
 }
