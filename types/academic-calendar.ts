@@ -34,3 +34,8 @@ export interface AcademicEvent {
   note?: string;
   isTentative?: boolean;
 }
+
+export interface AcademicEventOverride
+  extends Partial<Omit<AcademicEvent, "id">> {
+  hidden?: boolean;
+}
