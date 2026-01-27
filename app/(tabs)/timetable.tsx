@@ -11,7 +11,7 @@ import type { DayOfWeek } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -35,6 +35,7 @@ export default function TimetableScreen() {
     isLoading: isAttendanceLoading,
   } = useAttendanceStore();
   const [refreshing, setRefreshing] = useState(false);
+  const hasGenerated = useRef(false);
 
   // recompute day on focus
   const getDefaultDay = (): DayOfWeek => {
@@ -51,10 +52,15 @@ export default function TimetableScreen() {
 
   // generate timetable on first load
   useEffect(() => {
-    if (attendanceCourses.length > 0 && slots.length === 0) {
+    if (
+      !hasGenerated.current &&
+      attendanceCourses.length > 0 &&
+      slots.length === 0
+    ) {
       generateTimetable();
+      hasGenerated.current = true;
     }
-  }, [attendanceCourses.length]);
+  }, [attendanceCourses.length, generateTimetable, slots.length]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
