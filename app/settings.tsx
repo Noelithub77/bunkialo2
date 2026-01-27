@@ -113,6 +113,10 @@ export default function SettingsScreen() {
   const [showRefreshIntervalModal, setShowRefreshIntervalModal] =
     useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [availableUpdateInfo, setAvailableUpdateInfo] = useState<{
+    message?: string;
+    updateId?: string;
+  } | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoModalContent, setInfoModalContent] = useState({
     title: "",
@@ -179,7 +183,15 @@ export default function SettingsScreen() {
     setIsCheckingUpdate(true);
     try {
       const update = await Updates.checkForUpdateAsync();
-      if (update.isAvailable) {
+      if (update.isAvailable && update.manifest) {
+        const manifest = update.manifest as Record<string, unknown>;
+        const metadata = manifest?.metadata as
+          | Record<string, string>
+          | undefined;
+        setAvailableUpdateInfo({
+          message: metadata?.message,
+          updateId: manifest?.id as string | undefined,
+        });
         setShowUpdateModal(true);
       } else {
         setInfoModalContent({
@@ -508,7 +520,11 @@ export default function SettingsScreen() {
       <ConfirmModal
         visible={showUpdateModal}
         title="Update Available"
-        message="A new version is available. Download now?"
+        message={
+          availableUpdateInfo?.message
+            ? `${availableUpdateInfo.message}${availableUpdateInfo.updateId ? `\n\n(${availableUpdateInfo.updateId.slice(0, 8)})` : ""}`
+            : `A new version is available.${availableUpdateInfo?.updateId ? ` (${availableUpdateInfo.updateId.slice(0, 8)})` : ""}`
+        }
         confirmText="Update"
         icon="cloud-download-outline"
         onCancel={() => setShowUpdateModal(false)}

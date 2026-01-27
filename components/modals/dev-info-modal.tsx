@@ -42,13 +42,15 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
       ? (configBuildNumber ?? Application.nativeBuildVersion)
       : (Application.nativeBuildVersion ?? configBuildNumber);
 
-  // OTA update info
+  // OTA update info - message is stored in metadata when using `eas update --message`
   const manifest = Updates.manifest as Record<string, unknown> | null;
-  const extra = manifest?.extra as Record<string, unknown> | undefined;
-  const expoClient = extra?.expoClient as Record<string, unknown> | undefined;
-  const updateMessage = (expoClient?.extra as Record<string, unknown>)
-    ?.updateMessage as string | undefined;
+  const metadata = manifest?.metadata as Record<string, string> | undefined;
+  const updateMessage = metadata?.message;
+  const updateId = Updates.updateId;
   const updateCreatedAt = Updates.createdAt;
+
+  // Show update section if we have any OTA update info
+  const hasUpdateInfo = updateId && Constants.appOwnership !== "expo";
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -67,12 +69,12 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
               Bunkialo
             </Text>
             <Text style={[styles.version, { color: theme.textSecondary }]}>
-              {buildVersion ? `${appVersion}(${buildVersion})` : appVersion}
+              {buildVersion ? `${appVersion} (${buildVersion})` : appVersion}
             </Text>
           </View>
 
           {/* OTA Update Info */}
-          {updateMessage && (
+          {hasUpdateInfo && (
             <View
               style={[
                 styles.updateBox,
@@ -82,22 +84,32 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
               <Text
                 style={[styles.updateLabel, { color: theme.textSecondary }]}
               >
-                Latest Update
+                Current Update
               </Text>
-              <Text style={[styles.updateMessage, { color: theme.text }]}>
-                {updateMessage}
-              </Text>
-              {updateCreatedAt && (
-                <Text
-                  style={[styles.updateDate, { color: theme.textSecondary }]}
-                >
-                  {updateCreatedAt.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+              {updateMessage && (
+                <Text style={[styles.updateMessage, { color: theme.text }]}>
+                  {updateMessage}
                 </Text>
               )}
+              <View style={styles.updateMeta}>
+                {updateCreatedAt && (
+                  <Text
+                    style={[styles.updateDate, { color: theme.textSecondary }]}
+                  >
+                    {updateCreatedAt.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </Text>
+                )}
+                <Text
+                  style={[styles.updateHash, { color: theme.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {updateId.slice(0, 8)}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -225,9 +237,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  updateMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: Spacing.xs,
+  },
   updateDate: {
     fontSize: 11,
-    marginTop: Spacing.xs,
+  },
+  updateHash: {
+    fontSize: 11,
+    fontFamily: "monospace",
   },
   credits: {
     gap: Spacing.sm,

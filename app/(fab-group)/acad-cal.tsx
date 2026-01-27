@@ -6,6 +6,7 @@ import {
   getInitialSelectedDate,
   toISODate,
 } from "@/components/acad-cal";
+import { ExportCalendarModal } from "@/components/acad-cal/export-calendar-modal";
 import { UpNextContent } from "@/components/acad-cal/sub_tabs/upnext-content";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
@@ -43,6 +44,8 @@ export default function AcademicCalendarScreen() {
     toggleEditMode,
     setEditMode,
     openModal,
+    activeModal,
+    closeModal,
   } = useAcadCalUIStore();
 
   const currentTerm = useMemo(() => getCurrentTerm(today), [today]);
@@ -174,6 +177,16 @@ export default function AcademicCalendarScreen() {
             }}
             actions={[
               {
+                icon: "export",
+                label: "Export to Calendar",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  openModal({ type: "export" });
+                },
+              },
+              {
                 icon: "history",
                 label: "Changes",
                 color: theme.text,
@@ -220,6 +233,12 @@ export default function AcademicCalendarScreen() {
       {/* modals */}
       <EventEditorModal termId={currentTerm.id} />
       <ChangesModal termId={currentTerm.id} />
+      <ExportCalendarModal
+        visible={activeModal?.type === "export"}
+        onClose={closeModal}
+        events={termEvents}
+        termName={termInfo.shortTitle}
+      />
     </Container>
   );
 }

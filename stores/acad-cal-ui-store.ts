@@ -5,6 +5,7 @@ import { create } from "zustand";
 type ModalState =
     | { type: "event-editor"; event: CalendarEvent | null; mode: EditorMode }
     | { type: "changes" }
+    | { type: "export" }
     | null;
 
 export type CalendarEvent = AcademicEvent & { source: "base" | "custom" };
