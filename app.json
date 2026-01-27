@@ -2,6 +2,8 @@
   "expo": {
     "name": "Bunkialo2",
     "slug": "Bunkialo2",
+    "owner": "ialexpo",
+    "originalFullName": "@ialexpo/Bunkialo2",
     "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,7 +17,7 @@
       }
     },
     "android": {
-      "versionCode": 17,
+      "versionCode": 18,
       "permissions": ["RECEIVE_BOOT_COMPLETED"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -58,7 +60,8 @@
     },
     "runtimeVersion": "0.1.0",
     "updates": {
-      "url": "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63"
+      "url": "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
+      "assetPatternsToBeBundled": ["assets/**/*"]
     }
   }
 }

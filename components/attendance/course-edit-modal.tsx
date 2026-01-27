@@ -3,27 +3,27 @@ import { Input } from "@/components/ui/input";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
-import { getRandomCourseColor } from "@/stores/timetable-store";
 import type {
-  CourseBunkData,
-  CourseConfig,
-  DayOfWeek,
-  ManualSlotInput,
-  SessionType,
+    CourseBunkData,
+    CourseConfig,
+    DayOfWeek,
+    ManualSlotInput,
+    SessionType,
 } from "@/types";
+import { getRandomCourseColor } from "@/utils/course-color";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -221,7 +221,9 @@ export function CourseEditModal({
       setAlias(course.config?.alias || "");
       setSelectedColor(course.config?.color || getRandomCourseColor());
       setOverrideLmsSlots(
-        course.isCustomCourse ? true : course.config?.overrideLmsSlots ?? false,
+        course.isCustomCourse
+          ? true
+          : (course.config?.overrideLmsSlots ?? false),
       );
       setSlots(
         (course.manualSlots || []).map((slot) => ({
@@ -408,549 +410,581 @@ export function CourseEditModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: theme.background }]}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.screen}
         >
-        <View style={styles.header}>
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Ionicons name="close" size={24} color={theme.textSecondary} />
-          </Pressable>
-          <View style={styles.headerTitleWrap}>
-            <Text style={[styles.title, { color: theme.text }]}>Edit Course</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}
-            >
-              {course.courseName}
-            </Text>
+          <View style={styles.header}>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Ionicons name="close" size={24} color={theme.textSecondary} />
+            </Pressable>
+            <View style={styles.headerTitleWrap}>
+              <Text style={[styles.title, { color: theme.text }]}>
+                Edit Course
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                {course.courseName}
+              </Text>
+            </View>
+            <View style={styles.headerSpacer} />
           </View>
-          <View style={styles.headerSpacer} />
-        </View>
 
-        <View
-          style={[
-            styles.segmented,
-            { backgroundColor: theme.backgroundSecondary },
-          ]}
-        >
-          <Pressable
-            onPress={() => setActiveSection("details")}
+          <View
             style={[
-              styles.segmentButton,
-              activeSection === "details" && {
-                backgroundColor: theme.background,
-              },
+              styles.segmented,
+              { backgroundColor: theme.backgroundSecondary },
             ]}
           >
-            <Text
+            <Pressable
+              onPress={() => setActiveSection("details")}
               style={[
-                styles.segmentText,
-                {
-                  color:
-                    activeSection === "details"
-                      ? theme.text
-                      : theme.textSecondary,
+                styles.segmentButton,
+                activeSection === "details" && {
+                  backgroundColor: theme.background,
                 },
               ]}
             >
-              Details
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setActiveSection("slots")}
-            style={[
-              styles.segmentButton,
-              activeSection === "slots" && {
-                backgroundColor: theme.background,
-              },
-            ]}
-          >
-            <Text
+              <Text
+                style={[
+                  styles.segmentText,
+                  {
+                    color:
+                      activeSection === "details"
+                        ? theme.text
+                        : theme.textSecondary,
+                  },
+                ]}
+              >
+                Details
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setActiveSection("slots")}
               style={[
-                styles.segmentText,
-                {
-                  color:
-                    activeSection === "slots"
-                      ? theme.text
-                      : theme.textSecondary,
+                styles.segmentButton,
+                activeSection === "slots" && {
+                  backgroundColor: theme.background,
                 },
               ]}
             >
-              Slots
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  styles.segmentText,
+                  {
+                    color:
+                      activeSection === "slots"
+                        ? theme.text
+                        : theme.textSecondary,
+                  },
+                ]}
+              >
+                Slots
+              </Text>
+            </Pressable>
+          </View>
 
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {activeSection === "details" ? (
-            <View style={styles.sectionBlock}>
-              <Input
-                label="Alias (optional)"
-                placeholder="Short name for course"
-                value={alias}
-                onChangeText={setAlias}
-              />
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {activeSection === "details" ? (
+              <View style={styles.sectionBlock}>
+                <Input
+                  label="Alias (optional)"
+                  placeholder="Short name for course"
+                  value={alias}
+                  onChangeText={setAlias}
+                />
 
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: theme.text }]}>Credits</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.chipContainer}
-                >
-                  {CREDIT_OPTIONS.map((credit) => {
-                    const isSelected = credits === credit;
-                    return (
-                      <Pressable
-                        key={credit}
-                        onPress={() => handleCreditSelect(credit)}
-                        style={[
-                          styles.chip,
-                          { borderColor: theme.border },
-                          isSelected && {
-                            backgroundColor: selectedColor,
-                            borderColor: selectedColor,
-                          },
-                        ]}
-                      >
-                        <Text
+                <View style={styles.section}>
+                  <Text style={[styles.label, { color: theme.text }]}>
+                    Credits
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipContainer}
+                  >
+                    {CREDIT_OPTIONS.map((credit) => {
+                      const isSelected = credits === credit;
+                      return (
+                        <Pressable
+                          key={credit}
+                          onPress={() => handleCreditSelect(credit)}
                           style={[
-                            styles.chipText,
-                            { color: theme.textSecondary },
-                            isSelected && styles.chipTextSelected,
+                            styles.chip,
+                            { borderColor: theme.border },
+                            isSelected && {
+                              backgroundColor: selectedColor,
+                              borderColor: selectedColor,
+                            },
                           ]}
                         >
-                          {credit}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-                <Text
-                  style={[styles.bunksPreview, { color: theme.textSecondary }]}
-                >
-                  {totalBunks} bunks allowed
-                </Text>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: theme.text }]}>Color</Text>
-                <View style={styles.colorGrid}>
-                  {Colors.courseColors.map((color) => (
-                    <Pressable
-                      key={color}
-                      onPress={() => handleColorSelect(color)}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorSelected,
-                      ]}
-                    >
-                      {selectedColor === color && (
-                        <Ionicons
-                          name="checkmark"
-                          size={16}
-                          color={Colors.white}
-                        />
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-
-              {showOverrideToggle && (
-                <View
-                  style={[
-                    styles.overrideRow,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
-                >
-                  <View style={styles.overrideText}>
-                    <Text style={[styles.label, { color: theme.text }]}
-                    >
-                      Override LMS Slots
-                    </Text>
-                    <Text
-                      style={[styles.helperText, { color: theme.textSecondary }]}
-                    >
-                      Use your own weekly schedule instead of LMS data.
-                    </Text>
-                  </View>
-                  <Switch
-                    value={overrideLmsSlots}
-                    onValueChange={handleOverrideToggle}
-                    trackColor={{
-                      false: theme.border,
-                      true: Colors.status.success,
-                    }}
-                    thumbColor={Colors.white}
-                  />
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.sectionBlock}>
-              {!overrideLmsSlots && autoSlots.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={[styles.label, { color: theme.text }]}
-                    >
-                      LMS Slots
-                    </Text>
-                    <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: selectedColor + "30" },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.badgeText, { color: selectedColor }]}
-                      >
-                        AUTO
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.slotsList}>
-                    {autoSlots.map((slot, index) => (
-                      <View
-                        key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}
-                        style={[
-                          styles.slotItem,
-                          { backgroundColor: theme.backgroundSecondary },
-                        ]}
-                      >
-                        <View style={styles.slotInfo}>
-                          <Text style={[styles.slotText, { color: theme.text }]}
-                          >
-                            {formatSlotDisplay(slot)}
-                          </Text>
                           <Text
                             style={[
-                              styles.slotType,
+                              styles.chipText,
                               { color: theme.textSecondary },
+                              isSelected && styles.chipTextSelected,
                             ]}
                           >
-                            {slot.sessionType}
-                          </Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                  <Pressable
-                    onPress={handleUseLmsSlots}
-                    style={[
-                      styles.overrideAction,
-                      { borderColor: selectedColor },
-                    ]}
-                  >
-                    <Ionicons
-                      name="swap-horizontal"
-                      size={18}
-                      color={selectedColor}
-                    />
-                    <Text
-                      style={[styles.overrideActionText, { color: selectedColor }]}
-                    >
-                      Override & Edit These Slots
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.label, { color: theme.text }]}
-                  >
-                    Weekly Slots
-                  </Text>
-                  {overrideLmsSlots && (
-                    <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: Colors.status.info + "20" },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.badgeText, { color: Colors.status.info }]}
-                      >
-                        MANUAL
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {slots.length === 0 && (
-                  <Text
-                    style={[styles.helperText, { color: theme.textSecondary }]}
-                  >
-                    {overrideLmsSlots
-                      ? "Add your weekly timetable slots below."
-                      : "Add extra slots (LMS slots are used by default)."}
-                  </Text>
-                )}
-
-                {orderedSlots.length > 0 && (
-                  <View style={styles.slotsList}>
-                    {orderedSlots.map(({ slot, index }) => (
-                      <View
-                        key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}
-                        style={[
-                          styles.slotItem,
-                          { backgroundColor: theme.backgroundSecondary },
-                          editingIndex === index && {
-                            borderColor: selectedColor,
-                            borderWidth: 1,
-                          },
-                        ]}
-                      >
-                        <Pressable
-                          style={styles.slotInfo}
-                          onPress={() => handleEditSlot(slot, index)}
-                        >
-                          <Text style={[styles.slotText, { color: theme.text }]}
-                          >
-                            {formatSlotDisplay(slot)}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.slotType,
-                              { color: theme.textSecondary },
-                            ]}
-                          >
-                            {slot.sessionType}
+                            {credit}
                           </Text>
                         </Pressable>
-                        <View style={styles.slotActions}>
-                          <Pressable
-                            onPress={() => handleEditSlot(slot, index)}
-                            hitSlop={8}
-                            style={styles.slotActionBtn}
-                          >
-                            <Ionicons
-                              name="pencil"
-                              size={18}
-                              color={selectedColor}
-                            />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => handleRemoveSlot(index)}
-                            hitSlop={8}
-                            style={styles.slotActionBtn}
-                          >
-                            <Ionicons
-                              name="trash-outline"
-                              size={18}
-                              color={Colors.status.danger}
-                            />
-                          </Pressable>
-                        </View>
-                      </View>
+                      );
+                    })}
+                  </ScrollView>
+                  <Text
+                    style={[
+                      styles.bunksPreview,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {totalBunks} bunks allowed
+                  </Text>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={[styles.label, { color: theme.text }]}>
+                    Color
+                  </Text>
+                  <View style={styles.colorGrid}>
+                    {Colors.courseColors.map((color) => (
+                      <Pressable
+                        key={color}
+                        onPress={() => handleColorSelect(color)}
+                        style={[
+                          styles.colorOption,
+                          { backgroundColor: color },
+                          selectedColor === color && styles.colorSelected,
+                        ]}
+                      >
+                        {selectedColor === color && (
+                          <Ionicons
+                            name="checkmark"
+                            size={16}
+                            color={Colors.white}
+                          />
+                        )}
+                      </Pressable>
                     ))}
+                  </View>
+                </View>
+
+                {showOverrideToggle && (
+                  <View
+                    style={[
+                      styles.overrideRow,
+                      { backgroundColor: theme.backgroundSecondary },
+                    ]}
+                  >
+                    <View style={styles.overrideText}>
+                      <Text style={[styles.label, { color: theme.text }]}>
+                        Override LMS Slots
+                      </Text>
+                      <Text
+                        style={[
+                          styles.helperText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        Use your own weekly schedule instead of LMS data.
+                      </Text>
+                    </View>
+                    <Switch
+                      value={overrideLmsSlots}
+                      onValueChange={handleOverrideToggle}
+                      trackColor={{
+                        false: theme.border,
+                        true: Colors.status.success,
+                      }}
+                      thumbColor={Colors.white}
+                    />
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.sectionBlock}>
+                {!overrideLmsSlots && autoSlots.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.label, { color: theme.text }]}>
+                        LMS Slots
+                      </Text>
+                      <View
+                        style={[
+                          styles.badge,
+                          { backgroundColor: selectedColor + "30" },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.badgeText, { color: selectedColor }]}
+                        >
+                          AUTO
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.slotsList}>
+                      {autoSlots.map((slot, index) => (
+                        <View
+                          key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}
+                          style={[
+                            styles.slotItem,
+                            { backgroundColor: theme.backgroundSecondary },
+                          ]}
+                        >
+                          <View style={styles.slotInfo}>
+                            <Text
+                              style={[styles.slotText, { color: theme.text }]}
+                            >
+                              {formatSlotDisplay(slot)}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.slotType,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
+                              {slot.sessionType}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                    <Pressable
+                      onPress={handleUseLmsSlots}
+                      style={[
+                        styles.overrideAction,
+                        { borderColor: selectedColor },
+                      ]}
+                    >
+                      <Ionicons
+                        name="swap-horizontal"
+                        size={18}
+                        color={selectedColor}
+                      />
+                      <Text
+                        style={[
+                          styles.overrideActionText,
+                          { color: selectedColor },
+                        ]}
+                      >
+                        Override & Edit These Slots
+                      </Text>
+                    </Pressable>
                   </View>
                 )}
 
-                <View style={styles.editorHeader}>
-                  <Text style={[styles.subLabel, { color: theme.textSecondary }]}
-                  >
-                    {editingIndex !== null ? "Edit Slot" : "Add New Slot"}
-                  </Text>
-                  {editingIndex !== null && (
-                    <Pressable onPress={handleCancelEdit}>
-                      <Text style={{ color: selectedColor, fontSize: 13 }}>
-                        Cancel Edit
-                      </Text>
-                    </Pressable>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={[styles.label, { color: theme.text }]}>
+                      Weekly Slots
+                    </Text>
+                    {overrideLmsSlots && (
+                      <View
+                        style={[
+                          styles.badge,
+                          { backgroundColor: Colors.status.info + "20" },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.badgeText,
+                            { color: Colors.status.info },
+                          ]}
+                        >
+                          MANUAL
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {slots.length === 0 && (
+                    <Text
+                      style={[
+                        styles.helperText,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {overrideLmsSlots
+                        ? "Add your weekly timetable slots below."
+                        : "Add extra slots (LMS slots are used by default)."}
+                    </Text>
                   )}
-                </View>
 
-                <Text style={[styles.subLabel, { color: theme.textSecondary }]}
-                >
-                  Day
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.dayGrid}
-                >
-                  {DAYS.map((day) => {
-                    const isSelected = selectedDay === day.value;
-                    return (
-                      <Pressable
-                        key={day.value}
-                        onPress={() => handleDaySelect(day.value)}
-                        style={[
-                          styles.dayBtn,
-                          { borderColor: theme.border },
-                          isSelected && {
-                            backgroundColor: selectedColor,
-                            borderColor: selectedColor,
-                          },
-                        ]}
-                      >
-                        <Text
+                  {orderedSlots.length > 0 && (
+                    <View style={styles.slotsList}>
+                      {orderedSlots.map(({ slot, index }) => (
+                        <View
+                          key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}
                           style={[
-                            styles.dayText,
-                            { color: theme.textSecondary },
-                            isSelected && styles.dayTextSelected,
+                            styles.slotItem,
+                            { backgroundColor: theme.backgroundSecondary },
+                            editingIndex === index && {
+                              borderColor: selectedColor,
+                              borderWidth: 1,
+                            },
                           ]}
                         >
-                          {day.label}
+                          <Pressable
+                            style={styles.slotInfo}
+                            onPress={() => handleEditSlot(slot, index)}
+                          >
+                            <Text
+                              style={[styles.slotText, { color: theme.text }]}
+                            >
+                              {formatSlotDisplay(slot)}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.slotType,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
+                              {slot.sessionType}
+                            </Text>
+                          </Pressable>
+                          <View style={styles.slotActions}>
+                            <Pressable
+                              onPress={() => handleEditSlot(slot, index)}
+                              hitSlop={8}
+                              style={styles.slotActionBtn}
+                            >
+                              <Ionicons
+                                name="pencil"
+                                size={18}
+                                color={selectedColor}
+                              />
+                            </Pressable>
+                            <Pressable
+                              onPress={() => handleRemoveSlot(index)}
+                              hitSlop={8}
+                              style={styles.slotActionBtn}
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={18}
+                                color={Colors.status.danger}
+                              />
+                            </Pressable>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <View style={styles.editorHeader}>
+                    <Text
+                      style={[styles.subLabel, { color: theme.textSecondary }]}
+                    >
+                      {editingIndex !== null ? "Edit Slot" : "Add New Slot"}
+                    </Text>
+                    {editingIndex !== null && (
+                      <Pressable onPress={handleCancelEdit}>
+                        <Text style={{ color: selectedColor, fontSize: 13 }}>
+                          Cancel Edit
                         </Text>
                       </Pressable>
-                    );
-                  })}
-                </ScrollView>
+                    )}
+                  </View>
 
-                <Text style={[styles.subLabel, { color: theme.textSecondary }]}
-                >
-                  Start Time
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.timeGrid}
-                >
-                  {TIME_OPTIONS.slice(0, -1).map((time) => {
-                    const isSelected = selectedStartTime === time;
-                    return (
-                      <Pressable
-                        key={time}
-                        onPress={() => handleStartTimeSelect(time)}
-                        style={[
-                          styles.timeBtn,
-                          { borderColor: theme.border },
-                          isSelected && {
-                            backgroundColor: selectedColor,
-                            borderColor: selectedColor,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.timeText,
-                            { color: theme.textSecondary },
-                            isSelected && styles.timeTextSelected,
-                          ]}
-                        >
-                          {formatTime(time)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-
-                <Text style={[styles.subLabel, { color: theme.textSecondary }]}
-                >
-                  End Time
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.timeGrid}
-                >
-                  {TIME_OPTIONS.slice(1).map((time) => {
-                    const isSelected = selectedEndTime === time;
-                    const isDisabled = time <= selectedStartTime;
-                    return (
-                      <Pressable
-                        key={time}
-                        onPress={() => !isDisabled && handleEndTimeSelect(time)}
-                        style={[
-                          styles.timeBtn,
-                          { borderColor: theme.border },
-                          isSelected && {
-                            backgroundColor: selectedColor,
-                            borderColor: selectedColor,
-                          },
-                          isDisabled && styles.timeBtnDisabled,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.timeText,
-                            { color: theme.textSecondary },
-                            isSelected && styles.timeTextSelected,
-                            isDisabled && { color: theme.border },
-                          ]}
-                        >
-                          {formatTime(time)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-
-                <Text style={[styles.subLabel, { color: theme.textSecondary }]}
-                >
-                  Session Type
-                </Text>
-                <View style={styles.sessionTypeGrid}>
-                  {SESSION_TYPES.map((type) => {
-                    const isSelected = selectedSessionType === type.value;
-                    return (
-                      <Pressable
-                        key={type.value}
-                        onPress={() => handleSessionTypeSelect(type.value)}
-                        style={[
-                          styles.sessionTypeBtn,
-                          { borderColor: theme.border },
-                          isSelected && {
-                            backgroundColor: selectedColor,
-                            borderColor: selectedColor,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.sessionTypeText,
-                            { color: theme.textSecondary },
-                            isSelected && styles.sessionTypeTextSelected,
-                          ]}
-                        >
-                          {type.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                {error ? (
-                  <Text style={[styles.error, { color: Colors.status.danger }]}
+                  <Text
+                    style={[styles.subLabel, { color: theme.textSecondary }]}
                   >
-                    {error}
+                    Day
                   </Text>
-                ) : null}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.dayGrid}
+                  >
+                    {DAYS.map((day) => {
+                      const isSelected = selectedDay === day.value;
+                      return (
+                        <Pressable
+                          key={day.value}
+                          onPress={() => handleDaySelect(day.value)}
+                          style={[
+                            styles.dayBtn,
+                            { borderColor: theme.border },
+                            isSelected && {
+                              backgroundColor: selectedColor,
+                              borderColor: selectedColor,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.dayText,
+                              { color: theme.textSecondary },
+                              isSelected && styles.dayTextSelected,
+                            ]}
+                          >
+                            {day.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
 
-                <Button
-                  title={editingIndex !== null ? "Update Slot" : "Add Slot"}
-                  onPress={handleSaveSlot}
-                  style={styles.saveSlotBtn}
-                />
+                  <Text
+                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                  >
+                    Start Time
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.timeGrid}
+                  >
+                    {TIME_OPTIONS.slice(0, -1).map((time) => {
+                      const isSelected = selectedStartTime === time;
+                      return (
+                        <Pressable
+                          key={time}
+                          onPress={() => handleStartTimeSelect(time)}
+                          style={[
+                            styles.timeBtn,
+                            { borderColor: theme.border },
+                            isSelected && {
+                              backgroundColor: selectedColor,
+                              borderColor: selectedColor,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.timeText,
+                              { color: theme.textSecondary },
+                              isSelected && styles.timeTextSelected,
+                            ]}
+                          >
+                            {formatTime(time)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <Text
+                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                  >
+                    End Time
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.timeGrid}
+                  >
+                    {TIME_OPTIONS.slice(1).map((time) => {
+                      const isSelected = selectedEndTime === time;
+                      const isDisabled = time <= selectedStartTime;
+                      return (
+                        <Pressable
+                          key={time}
+                          onPress={() =>
+                            !isDisabled && handleEndTimeSelect(time)
+                          }
+                          style={[
+                            styles.timeBtn,
+                            { borderColor: theme.border },
+                            isSelected && {
+                              backgroundColor: selectedColor,
+                              borderColor: selectedColor,
+                            },
+                            isDisabled && styles.timeBtnDisabled,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.timeText,
+                              { color: theme.textSecondary },
+                              isSelected && styles.timeTextSelected,
+                              isDisabled && { color: theme.border },
+                            ]}
+                          >
+                            {formatTime(time)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <Text
+                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                  >
+                    Session Type
+                  </Text>
+                  <View style={styles.sessionTypeGrid}>
+                    {SESSION_TYPES.map((type) => {
+                      const isSelected = selectedSessionType === type.value;
+                      return (
+                        <Pressable
+                          key={type.value}
+                          onPress={() => handleSessionTypeSelect(type.value)}
+                          style={[
+                            styles.sessionTypeBtn,
+                            { borderColor: theme.border },
+                            isSelected && {
+                              backgroundColor: selectedColor,
+                              borderColor: selectedColor,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.sessionTypeText,
+                              { color: theme.textSecondary },
+                              isSelected && styles.sessionTypeTextSelected,
+                            ]}
+                          >
+                            {type.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  {error ? (
+                    <Text
+                      style={[styles.error, { color: Colors.status.danger }]}
+                    >
+                      {error}
+                    </Text>
+                  ) : null}
+
+                  <Button
+                    title={editingIndex !== null ? "Update Slot" : "Add Slot"}
+                    onPress={handleSaveSlot}
+                    style={styles.saveSlotBtn}
+                  />
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
+          </ScrollView>
 
-        {error && activeSection === "details" ? (
-          <Text style={[styles.error, { color: Colors.status.danger }]}
-          >
-            {error}
-          </Text>
-        ) : null}
+          {error && activeSection === "details" ? (
+            <Text style={[styles.error, { color: Colors.status.danger }]}>
+              {error}
+            </Text>
+          ) : null}
 
-        <View style={styles.footer}>
-          <Button
-            title="Cancel"
-            variant="secondary"
-            onPress={onClose}
-            style={styles.footerBtn}
-          />
-          <Button title="Save" onPress={handleSave} style={styles.footerBtn} />
-        </View>
+          <View style={styles.footer}>
+            <Button
+              title="Cancel"
+              variant="secondary"
+              onPress={onClose}
+              style={styles.footerBtn}
+            />
+            <Button
+              title="Save"
+              onPress={handleSave}
+              style={styles.footerBtn}
+            />
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>

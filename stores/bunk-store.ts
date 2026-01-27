@@ -1,21 +1,21 @@
 import { Colors } from "@/constants/theme";
 import { findCreditsByCode } from "@/data/credits";
 import type {
-  BunkRecord,
-  BunkState,
-  CourseBunkData,
-  CourseConfig,
-  CustomCourseInput,
-  DutyLeaveInfo,
-  ManualSlot,
-  ManualSlotInput,
+    BunkRecord,
+    BunkState,
+    CourseBunkData,
+    CourseConfig,
+    CustomCourseInput,
+    DutyLeaveInfo,
+    ManualSlot,
+    ManualSlotInput,
 } from "@/types";
+import { getRandomCourseColor } from "@/utils/course-color";
 import { extractCourseCode, extractCourseName } from "@/utils/course-name";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
 import { zustandStorage } from "./storage";
-import { getRandomCourseColor } from "./timetable-store";
 
 interface BunkStoreState extends BunkState {
   hasHydrated: boolean;
@@ -182,19 +182,18 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
               const autoCredits = findCreditsByCode(extractedCode);
               const updatedConfig: CourseConfig = existing.config
                 ? {
-                  ...existing.config,
-                  alias: extractedName,
-                  courseCode: extractedCode,
-                  overrideLmsSlots:
-                    existing.config.overrideLmsSlots ?? false,
-                }
+                    ...existing.config,
+                    alias: extractedName,
+                    courseCode: extractedCode,
+                    overrideLmsSlots: existing.config.overrideLmsSlots ?? false,
+                  }
                 : {
-                  credits: autoCredits ?? 3,
-                  alias: extractedName,
-                  courseCode: extractedCode,
-                  color: getRandomCourseColor(),
-                  overrideLmsSlots: false,
-                };
+                    credits: autoCredits ?? 3,
+                    alias: extractedName,
+                    courseCode: extractedCode,
+                    color: getRandomCourseColor(),
+                    overrideLmsSlots: false,
+                  };
 
               return {
                 courseId: course.courseId,
@@ -286,8 +285,7 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
                 alias: extractedName,
                 courseCode: extractedCode,
                 color: autoColor,
-                overrideLmsSlots:
-                  existing?.config?.overrideLmsSlots ?? false,
+                overrideLmsSlots: existing?.config?.overrideLmsSlots ?? false,
               },
               bunks: lmsBunks,
               isConfigured: autoCredits !== null,
@@ -342,11 +340,11 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId ? { ...b, note } : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId ? { ...b, note } : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -357,13 +355,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isDutyLeave: true, dutyLeaveNote: note }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isDutyLeave: true, dutyLeaveNote: note }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -374,13 +372,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isDutyLeave: false, dutyLeaveNote: "" }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isDutyLeave: false, dutyLeaveNote: "" }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -391,13 +389,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isMarkedPresent: true, presenceNote: note }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isMarkedPresent: true, presenceNote: note }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -408,13 +406,13 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                bunks: c.bunks.map((b) =>
-                  b.id === bunkId
-                    ? { ...b, isMarkedPresent: false, presenceNote: "" }
-                    : b,
-                ),
-              }
+                  ...c,
+                  bunks: c.bunks.map((b) =>
+                    b.id === bunkId
+                      ? { ...b, isMarkedPresent: false, presenceNote: "" }
+                      : b,
+                  ),
+                }
               : c,
           ),
         }));
@@ -507,11 +505,11 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                manualSlots: c.manualSlots.map((s) =>
-                  s.id === slotId ? { ...s, ...slot } : s,
-                ),
-              }
+                  ...c,
+                  manualSlots: c.manualSlots.map((s) =>
+                    s.id === slotId ? { ...s, ...slot } : s,
+                  ),
+                }
               : c,
           ),
         }));
@@ -522,9 +520,9 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
           courses: state.courses.map((c) =>
             c.courseId === courseId
               ? {
-                ...c,
-                manualSlots: c.manualSlots.filter((s) => s.id !== slotId),
-              }
+                  ...c,
+                  manualSlots: c.manualSlots.filter((s) => s.id !== slotId),
+                }
               : c,
           ),
         }));

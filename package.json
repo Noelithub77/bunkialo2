@@ -27,6 +27,7 @@
     "domutils": "^3.2.2",
     "expo": "~54.0.32",
     "expo-application": "~7.0.8",
+    "expo-auth-session": "~7.0.10",
     "expo-background-fetch": "~14.0.9",
     "expo-calendar": "~15.0.8",
     "expo-constants": "~18.0.13",

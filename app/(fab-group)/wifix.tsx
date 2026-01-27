@@ -1,3 +1,4 @@
+import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import { ExternalLink } from "@/components/shared/external-link";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -11,7 +12,6 @@ import {
   logoutFromCaptivePortal,
 } from "@/services/wifix";
 import { useWifixStore } from "@/stores/wifix-store";
-import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import type { WifixConnectionState } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -175,7 +175,9 @@ export default function WifixScreen() {
             const updated = await checkConnectivity();
             setStatus(updated.state);
             setPortalUrl(updated.portalUrl);
-            syncPortalBaseUrl(updated.portalBaseUrl ?? loginResult.portalBaseUrl);
+            syncPortalBaseUrl(
+              updated.portalBaseUrl ?? loginResult.portalBaseUrl,
+            );
             setLastCheckedAt(Date.now());
           }
         } else if (shouldLogin && result.state === "offline") {
@@ -224,12 +226,7 @@ export default function WifixScreen() {
       setIsLoggingOut(false);
       inFlightRef.current = false;
     }
-  }, [
-    portalUrl,
-    storedPortalBaseUrl,
-    portalBaseUrl,
-    syncPortalBaseUrl,
-  ]);
+  }, [portalUrl, storedPortalBaseUrl, portalBaseUrl, syncPortalBaseUrl]);
 
   return (
     <Container>
@@ -250,8 +247,11 @@ export default function WifixScreen() {
             <Ionicons name="arrow-back" size={18} color={theme.text} />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>WiFix</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}
+            <Text style={[styles.headerTitle, { color: theme.text }]}>
+              WiFix
+            </Text>
+            <Text
+              style={[styles.headerSubtitle, { color: theme.textSecondary }]}
             >
               WiFixing {formatTimestamp(now)}
             </Text>
@@ -276,18 +276,10 @@ export default function WifixScreen() {
             style={styles.logo}
             contentFit="contain"
           />
-          <Text style={[styles.heroTitle, { color: theme.text }]}>WiFix</Text>
-          <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}
-          >
-            Auto captive portal reconnect
-          </Text>
         </View>
 
         <View
-          style={[
-            styles.statusCard,
-            { borderColor: statusMeta.color + "55" },
-          ]}
+          style={[styles.statusCard, { borderColor: statusMeta.color + "55" }]}
         >
           <View style={styles.statusRow}>
             <View style={styles.statusLeft}>
@@ -297,22 +289,17 @@ export default function WifixScreen() {
                 color={statusMeta.color}
               />
               <View>
-                <Text style={[styles.statusLabel, { color: theme.text }]}
-                >
+                <Text style={[styles.statusLabel, { color: theme.text }]}>
                   {statusMeta.label}
                 </Text>
                 <Text
-                  style={[
-                    styles.statusDetail,
-                    { color: theme.textSecondary },
-                  ]}
+                  style={[styles.statusDetail, { color: theme.textSecondary }]}
                 >
                   {statusMeta.detail}
                 </Text>
               </View>
             </View>
-            <Text style={[styles.statusTime, { color: theme.textSecondary }]}
-            >
+            <Text style={[styles.statusTime, { color: theme.textSecondary }]}>
               Last check: {formatLastCheck(lastCheckedAt)}
             </Text>
           </View>
@@ -320,22 +307,22 @@ export default function WifixScreen() {
           <View style={styles.divider} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}
-            >
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
               Captive portal URL
             </Text>
-            <Text style={[styles.infoValue, { color: theme.text }]}
+            <Text
+              style={[styles.infoValue, { color: theme.text }]}
               numberOfLines={2}
             >
               {portalDisplayUrl}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}
-            >
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
               Portal base
             </Text>
-            <Text style={[styles.infoValue, { color: theme.text }]}
+            <Text
+              style={[styles.infoValue, { color: theme.text }]}
               numberOfLines={1}
             >
               {baseDisplayUrl}
@@ -343,11 +330,11 @@ export default function WifixScreen() {
           </View>
           {message && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}
-              >
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
                 Status
               </Text>
-              <Text style={[styles.infoValue, { color: theme.text }]}
+              <Text
+                style={[styles.infoValue, { color: theme.text }]}
                 numberOfLines={2}
               >
                 {message}
@@ -379,12 +366,10 @@ export default function WifixScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: theme.textSecondary }]}
-          >
+          <Text style={[styles.footerText, { color: theme.textSecondary }]}>
             Keep WiFix enabled for automatic reconnects
           </Text>
           <ExternalLink href="https://wifix.iiitk.in/" style={styles.linkRow}>
-            <Ionicons name="globe-outline" size={14} color={theme.textSecondary} />
             <Text style={[styles.linkText, { color: theme.textSecondary }]}>
               wifix.iiitk.in
             </Text>

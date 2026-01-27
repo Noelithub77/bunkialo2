@@ -1,15 +1,16 @@
-import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
 import type {
   WifixConnectivityResult,
   WifixLoginResult,
   WifixLogoutResult,
 } from "@/types";
+import { debug } from "@/utils/debug";
+import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
 
 const CONNECTIVITY_CHECK_URL =
-  "http://connectivitycheck.gstatic.com/generate_204";
+  "http://connectivitycheck.gstatic.com/generate_202";
 const DEFAULT_PORTAL_BASE_URL = "http://172.16.222.1:1000";
 const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
-const DEFAULT_LOGOUT_PATH = "/logout?09080d0309080201";
+const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
 
 const fetchWithTimeout = async (
@@ -38,9 +39,14 @@ const extractPortalBaseUrl = (portalUrl: string | null): string | null => {
 };
 
 const extractPortalUrlFromHtml = (html: string): string | null => {
-  const match = html.match(/https?:\/\/[^"'\s>]+/i);
-  if (!match) return null;
-  return match[0];
+  const windowMatch = html.match(/window\.location\s*=\s*["']([^"']+)["']/i);
+  if (windowMatch?.[1]) return windowMatch[1];
+
+  const metaMatch = html.match(/<meta[^>]+url=['"]?([^'">\s]+)/i);
+  if (metaMatch?.[1]) return metaMatch[1];
+
+  const urlMatch = html.match(/https?:\/\/[^"'\s>]+/i);
+  return urlMatch?.[0] ?? null;
 };
 
 const extractLoginFields = (
@@ -67,13 +73,18 @@ const extractLoginFields = (
 };
 
 export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
+  debug.wifix("Step 1: Checking connectivity");
   try {
     const response = await fetchWithTimeout(CONNECTIVITY_CHECK_URL, {
       method: "GET",
       cache: "no-store",
+      redirect: "manual",
     });
 
+    debug.wifix("Step 2: Response received", { status: response.status });
+
     if (response.status === 204) {
+      debug.wifix("Step 3: Online - no captive portal");
       return {
         state: "online",
         portalUrl: null,
@@ -84,13 +95,27 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     }
 
     let portalUrl: string | null = null;
-    if (response.url && response.url !== CONNECTIVITY_CHECK_URL) {
+    const locationHeader = response.headers.get("Location");
+
+    if (locationHeader) {
+      portalUrl = locationHeader;
+      debug.wifix("Step 3: Captive portal found in location header", {
+        portalUrl,
+      });
+    } else if (response.url && response.url !== CONNECTIVITY_CHECK_URL) {
       portalUrl = response.url;
+      debug.wifix("Step 3: Captive portal found in response URL", {
+        portalUrl,
+      });
     } else {
       const body = await response.text();
       portalUrl = extractPortalUrlFromHtml(body);
+      debug.wifix("Step 3: Captive portal found in HTML", { portalUrl });
     }
 
+    debug.wifix("Step 4: Connectivity check complete", {
+      state: portalUrl ? "captive" : "offline",
+    });
     return {
       state: portalUrl ? "captive" : "offline",
       portalUrl,
@@ -100,6 +125,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network error";
+    debug.wifix("Step 3: Connectivity check failed", { message });
     return {
       state: "offline",
       portalUrl: null,
@@ -116,6 +142,7 @@ export const loginToCaptivePortal = async (params: {
   portalUrl: string | null;
   portalBaseUrl: string | null;
 }): Promise<WifixLoginResult> => {
+  debug.wifix("Step 1: Starting captive portal login");
   const portalBaseUrl =
     params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
@@ -124,6 +151,7 @@ export const loginToCaptivePortal = async (params: {
     ? params.portalUrl
     : `${baseUrl}${DEFAULT_LOGIN_PATH}`;
 
+  debug.wifix("Step 2: Fetching login page", { loginUrl });
   try {
     const loginPageResponse = await fetchWithTimeout(loginUrl, {
       method: "GET",
@@ -132,6 +160,7 @@ export const loginToCaptivePortal = async (params: {
 
     const loginHtml = await loginPageResponse.text();
     const { redirect, magic } = extractLoginFields(loginHtml);
+    debug.wifix("Step 3: Extracted login fields", { redirect, magic });
 
     const formData = new URLSearchParams();
     if (redirect) formData.append("4Tredir", redirect);
@@ -141,6 +170,7 @@ export const loginToCaptivePortal = async (params: {
 
     const postUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 
+    debug.wifix("Step 4: Posting login credentials", { postUrl });
     const loginResponse = await fetchWithTimeout(postUrl, {
       method: "POST",
       headers: {
@@ -150,7 +180,7 @@ export const loginToCaptivePortal = async (params: {
     });
 
     const success = loginResponse.status >= 200 && loginResponse.status < 400;
-    return {
+    const result = {
       success,
       portalBaseUrl: baseUrl,
       statusCode: loginResponse.status,
@@ -158,8 +188,11 @@ export const loginToCaptivePortal = async (params: {
         ? "Login successful"
         : `Login failed (code ${loginResponse.status})`,
     };
+    debug.wifix("Step 5: Login complete", { success: result.success });
+    return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed";
+    debug.wifix("Step 4: Login failed", { message });
     return {
       success: false,
       portalBaseUrl: baseUrl,
@@ -173,6 +206,7 @@ export const logoutFromCaptivePortal = async (params: {
   portalUrl: string | null;
   portalBaseUrl: string | null;
 }): Promise<WifixLogoutResult> => {
+  debug.wifix("Step 1: Starting captive portal logout");
   const portalBaseUrl =
     params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
@@ -180,6 +214,7 @@ export const logoutFromCaptivePortal = async (params: {
     ? `${baseUrl}${DEFAULT_LOGOUT_PATH.slice(1)}`
     : `${baseUrl}${DEFAULT_LOGOUT_PATH}`;
 
+  debug.wifix("Step 2: Requesting logout", { logoutUrl });
   try {
     const response = await fetchWithTimeout(logoutUrl, {
       method: "GET",
@@ -187,7 +222,7 @@ export const logoutFromCaptivePortal = async (params: {
     });
 
     const success = response.status >= 200 && response.status < 400;
-    return {
+    const result = {
       success,
       portalBaseUrl: baseUrl,
       statusCode: response.status,
@@ -195,8 +230,11 @@ export const logoutFromCaptivePortal = async (params: {
         ? "Logged out of WiFi"
         : `Logout failed (code ${response.status})`,
     };
+    debug.wifix("Step 3: Logout complete", { success: result.success });
+    return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Logout failed";
+    debug.wifix("Step 2: Logout failed", { message });
     return {
       success: false,
       portalBaseUrl: baseUrl,

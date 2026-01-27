@@ -8,13 +8,15 @@ type LogCategory =
   | "SCRAPER"
   | "API"
   | "STORE"
-  | "COURSE_NAME";
+  | "COURSE_NAME"
+  | "WIFIX";
 
 const ENABLED_CATEGORIES: LogCategory[] = [
   "AUTH",
   "COOKIE",
   "API",
   "STORE",
+  "WIFIX",
   // "COURSE_NAME",
 ];
 
@@ -25,6 +27,7 @@ const CATEGORY_COLORS: Record<LogCategory, string> = {
   API: "\x1b[34m", // blue
   STORE: "\x1b[35m", // magenta
   COURSE_NAME: "\x1b[32m", // green
+  WIFIX: "\x1b[31m", // red
 };
 
 const COLOR_RESET = "\x1b[0m";
@@ -86,4 +89,5 @@ export const debug = {
   scraper: (_message: string, _data?: unknown) => {}, // intentionally disabled
   api: (message: string, data?: unknown) => debug.log("API", message, data),
   store: (message: string, data?: unknown) => debug.log("STORE", message, data),
+  wifix: (message: string, data?: unknown) => debug.log("WIFIX", message, data),
 };

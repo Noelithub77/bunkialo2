@@ -116,6 +116,7 @@ export default function SettingsScreen() {
 
   const [newReminder, setNewReminder] = useState("");
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -188,10 +189,11 @@ export default function SettingsScreen() {
   };
 
   const handleCheckForUpdates = async () => {
-    if (__DEV__) {
+    if (__DEV__ || !Updates.isEnabled) {
       setInfoModalContent({
         title: "Dev Mode",
-        message: "Updates are not available in development mode.",
+        message:
+          "Updates are not available in development mode or when updates are disabled.",
       });
       setShowInfoModal(true);
       return;
@@ -228,8 +230,29 @@ export default function SettingsScreen() {
   };
 
   const handleUpdateConfirm = async () => {
-    await Updates.fetchUpdateAsync();
-    await Updates.reloadAsync();
+    if (isApplyingUpdate) return;
+    setIsApplyingUpdate(true);
+    setShowUpdateModal(false);
+    try {
+      const result = await Updates.fetchUpdateAsync();
+      if (!result.isNew) {
+        setInfoModalContent({
+          title: "No New Update",
+          message: "This update is already downloaded.",
+        });
+        setShowInfoModal(true);
+        return;
+      }
+      await Updates.reloadAsync();
+    } catch {
+      setInfoModalContent({
+        title: "Update Failed",
+        message: "Could not download the update. Try again on a stable network.",
+      });
+      setShowInfoModal(true);
+    } finally {
+      setIsApplyingUpdate(false);
+    }
   };
 
   const handleTestNotification = async () => {

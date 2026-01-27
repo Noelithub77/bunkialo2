@@ -1,5 +1,6 @@
 import { DaySchedule } from "@/components/timetable/day-schedule";
 import { DaySelector } from "@/components/timetable/day-selector";
+import { GoogleExportModal } from "@/components/timetable/google-export-modal";
 import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
@@ -9,6 +10,7 @@ import { useAttendanceStore } from "@/stores/attendance-store";
 import { useTimetableStore } from "@/stores/timetable-store";
 import type { DayOfWeek } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +23,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { FAB, Portal } from "react-native-paper";
 
 export default function TimetableScreen() {
   const colorScheme = useColorScheme();
@@ -35,7 +38,10 @@ export default function TimetableScreen() {
     isLoading: isAttendanceLoading,
   } = useAttendanceStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showFabMenu, setShowFabMenu] = useState(false);
+  const [showGoogleExport, setShowGoogleExport] = useState(false);
   const hasGenerated = useRef(false);
+  const isFocused = useIsFocused();
 
   // recompute day on focus
   const getDefaultDay = (): DayOfWeek => {
@@ -47,6 +53,7 @@ export default function TimetableScreen() {
   useFocusEffect(
     useCallback(() => {
       setSelectedDay(getDefaultDay());
+      return () => setShowFabMenu(false);
     }, []),
   );
 
@@ -189,6 +196,43 @@ export default function TimetableScreen() {
           </>
         )}
       </ScrollView>
+
+      {isFocused && (
+        <Portal>
+          <FAB.Group
+            open={showFabMenu}
+            visible={true}
+            icon={showFabMenu ? "close" : "menu"}
+            color={isDark ? Colors.gray[200] : Colors.gray[700]}
+            style={{ position: "absolute", right: 0, bottom: 80 }}
+            backdropColor="rgba(0,0,0,0.45)"
+            fabStyle={{
+              backgroundColor: showFabMenu
+                ? Colors.gray[800]
+                : theme.backgroundSecondary,
+            }}
+            actions={[
+              {
+                icon: "google",
+                label: "Sync to Google Calendar",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  setShowGoogleExport(true);
+                },
+              },
+            ]}
+            onStateChange={({ open }) => setShowFabMenu(open)}
+          />
+        </Portal>
+      )}
+
+      <GoogleExportModal
+        visible={showGoogleExport}
+        onClose={() => setShowGoogleExport(false)}
+        slots={slots}
+      />
     </Container>
   );
 }

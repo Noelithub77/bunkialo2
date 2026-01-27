@@ -3,9 +3,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -85,7 +85,7 @@ export default function RootLayout() {
             <Stack.Screen name="faculty/[id]" />
             <Stack.Screen name="settings" />
             <Stack.Screen
-              name="gpa"
+              name="(fab-group)/gpa"
               options={{
                 presentation: "modal",
                 animation: "slide_from_bottom",
@@ -94,7 +94,7 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
-              name="acad-cal"
+              name="(fab-group)/acad-cal"
               options={{
                 presentation: "modal",
                 animation: "slide_from_bottom",
@@ -103,7 +103,7 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
-              name="wifix"
+              name="(fab-group)/wifix"
               options={{
                 presentation: "modal",
                 animation: "slide_from_bottom",

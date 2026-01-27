@@ -1,4 +1,3 @@
-import { Colors } from "@/constants/theme";
 import type {
   DayOfWeek,
   SessionType,
@@ -15,10 +14,7 @@ import { zustandStorage } from "./storage";
 interface TimetableActions {
   generateTimetable: () => void;
   clearTimetable: () => void;
-  resolveConflict: (
-    conflictIndex: number,
-    keep: "manual" | "auto",
-  ) => void;
+  resolveConflict: (conflictIndex: number, keep: "manual" | "auto") => void;
   clearConflicts: () => void;
 }
 
@@ -91,13 +87,6 @@ const getSessionType = (
 
 const generateId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
-// get random course color
-export const getRandomCourseColor = (): string => {
-  return Colors.courseColors[
-    Math.floor(Math.random() * Colors.courseColors.length)
-  ];
-};
 
 // check if two time ranges overlap
 const timesOverlap = (
@@ -330,14 +319,14 @@ export const getDayName = (day: DayOfWeek, short = true): string => {
   const names = short
     ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     : [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
   return names[day];
 };
 
