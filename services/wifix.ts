@@ -1,10 +1,15 @@
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
-import type { WifixConnectivityResult, WifixLoginResult } from "@/types";
+import type {
+  WifixConnectivityResult,
+  WifixLoginResult,
+  WifixLogoutResult,
+} from "@/types";
 
 const CONNECTIVITY_CHECK_URL =
   "http://connectivitycheck.gstatic.com/generate_204";
 const DEFAULT_PORTAL_BASE_URL = "http://172.16.222.1:1000";
 const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
+const DEFAULT_LOGOUT_PATH = "/logout?09080d0309080201";
 const REQUEST_TIMEOUT_MS = 8000;
 
 const fetchWithTimeout = async (
@@ -155,6 +160,43 @@ export const loginToCaptivePortal = async (params: {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed";
+    return {
+      success: false,
+      portalBaseUrl: baseUrl,
+      statusCode: null,
+      message,
+    };
+  }
+};
+
+export const logoutFromCaptivePortal = async (params: {
+  portalUrl: string | null;
+  portalBaseUrl: string | null;
+}): Promise<WifixLogoutResult> => {
+  const portalBaseUrl =
+    params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
+  const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
+  const logoutUrl = baseUrl.endsWith("/")
+    ? `${baseUrl}${DEFAULT_LOGOUT_PATH.slice(1)}`
+    : `${baseUrl}${DEFAULT_LOGOUT_PATH}`;
+
+  try {
+    const response = await fetchWithTimeout(logoutUrl, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const success = response.status >= 200 && response.status < 400;
+    return {
+      success,
+      portalBaseUrl: baseUrl,
+      statusCode: response.status,
+      message: success
+        ? "Logged out of WiFi"
+        : `Logout failed (code ${response.status})`,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Logout failed";
     return {
       success: false,
       portalBaseUrl: baseUrl,

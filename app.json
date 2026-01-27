@@ -17,7 +17,6 @@
     "android": {
       "versionCode": 17,
       "permissions": ["RECEIVE_BOOT_COMPLETED"],
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

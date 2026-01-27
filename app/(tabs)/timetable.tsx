@@ -10,6 +10,7 @@ import { useTimetableStore } from "@/stores/timetable-store";
 import type { DayOfWeek } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,11 +36,17 @@ export default function TimetableScreen() {
   } = useAttendanceStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  // default to current day (Mon-Fri only, fallback to Monday)
-  const currentDay = new Date().getDay() as DayOfWeek;
-  const defaultDay = currentDay >= 1 && currentDay <= 5 ? currentDay : 1;
-  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(
-    defaultDay as DayOfWeek,
+  // recompute day on focus
+  const getDefaultDay = (): DayOfWeek => {
+    const day = new Date().getDay() as DayOfWeek;
+    return day >= 1 && day <= 5 ? day : 1;
+  };
+  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(getDefaultDay);
+
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedDay(getDefaultDay());
+    }, []),
   );
 
   // generate timetable on first load

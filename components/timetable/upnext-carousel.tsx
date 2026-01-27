@@ -10,6 +10,7 @@ import type { TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
@@ -38,14 +39,22 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
+  // recompute time on focus
+  const [focusKey, setFocusKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setFocusKey((k) => k + 1);
+    }, []),
+  );
+
   const getCourseColor = (courseId: string): string => {
     const course = bunkCourses.find((c) => c.courseId === courseId);
     return course?.config?.color || Colors.courseColors[0];
   };
 
-  const nearbySlots = useMemo(() => getNearbySlots(slots), [slots]);
+  const now = useMemo(() => new Date(), [focusKey]);
+  const nearbySlots = useMemo(() => getNearbySlots(slots, now), [slots, now]);
 
-  const now = new Date();
   const currentDay = now.getDay();
   const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
@@ -250,7 +259,9 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
                   { backgroundColor: Colors.status.info + "40" },
                 ]}
               >
-                <Text style={[styles.manualText, { color: Colors.status.info }]}>
+                <Text
+                  style={[styles.manualText, { color: Colors.status.info }]}
+                >
                   Manual
                 </Text>
               </View>

@@ -8,6 +8,7 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
@@ -40,7 +41,15 @@ export function MealCarousel() {
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>(null);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
-  const now = useMemo(() => new Date(), []);
+  // recompute time on focus
+  const [focusKey, setFocusKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setFocusKey((k) => k + 1);
+    }, []),
+  );
+
+  const now = useMemo(() => new Date(), [focusKey]);
   const { meals, initialIndex } = useMemo(() => getNearbyMeals(now), [now]);
 
   const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
@@ -213,10 +222,7 @@ export function MealCarousel() {
               {item.items.map((menuItem, i) => (
                 <View
                   key={i}
-                  style={[
-                    styles.itemChip,
-                    { backgroundColor: chipBackground },
-                  ]}
+                  style={[styles.itemChip, { backgroundColor: chipBackground }]}
                 >
                   <Text style={[styles.itemText, { color: theme.text }]}>
                     {menuItem}

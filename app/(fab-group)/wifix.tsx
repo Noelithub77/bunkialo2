@@ -1,5 +1,6 @@
-import { Container } from "@/components/ui/container";
+import { ExternalLink } from "@/components/shared/external-link";
 import { Button } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getCredentials } from "@/services/auth";
@@ -7,6 +8,7 @@ import {
   checkConnectivity,
   getDefaultPortalBaseUrl,
   loginToCaptivePortal,
+  logoutFromCaptivePortal,
 } from "@/services/wifix";
 import { useWifixStore } from "@/stores/wifix-store";
 import { syncWifixBackgroundTask } from "@/background/wifix-background";
@@ -15,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -113,6 +115,9 @@ export default function WifixScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const inFlightRef = useRef(false);
+  const lastAttemptRef = useRef(0);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -134,72 +139,97 @@ export default function WifixScreen() {
 
   const runConnectivityCheck = useCallback(
     async (shouldLogin: boolean) => {
-      if (isConnecting) return;
+      const nowMs = Date.now();
+      if (inFlightRef.current) return;
+      if (shouldLogin && nowMs - lastAttemptRef.current < 15000) return;
+      inFlightRef.current = true;
+      lastAttemptRef.current = nowMs;
       setIsConnecting(true);
       setStatus("checking");
       setMessage(null);
+      try {
+        const result = await checkConnectivity();
+        setStatus(result.state);
+        setPortalUrl(result.portalUrl);
+        syncPortalBaseUrl(result.portalBaseUrl);
+        setLastCheckedAt(Date.now());
 
-      const result = await checkConnectivity();
-      setStatus(result.state);
-      setPortalUrl(result.portalUrl);
-      syncPortalBaseUrl(result.portalBaseUrl);
-      setLastCheckedAt(Date.now());
+        if (shouldLogin && result.state === "captive") {
+          const credentials = await getCredentials();
+          if (!credentials) {
+            setMessage("Login to Bunkialo first to save WiFi credentials.");
+            return;
+          }
 
-      if (shouldLogin && result.state === "captive") {
-        const credentials = await getCredentials();
-        if (!credentials) {
-          setMessage("Login to Bunkialo first to save WiFi credentials.");
-          setIsConnecting(false);
-          return;
+          const loginResult = await loginToCaptivePortal({
+            username: credentials.username,
+            password: credentials.password,
+            portalUrl: result.portalUrl,
+            portalBaseUrl: result.portalBaseUrl ?? storedPortalBaseUrl,
+          });
+
+          setMessage(loginResult.message);
+          syncPortalBaseUrl(loginResult.portalBaseUrl);
+
+          if (loginResult.success) {
+            const updated = await checkConnectivity();
+            setStatus(updated.state);
+            setPortalUrl(updated.portalUrl);
+            syncPortalBaseUrl(updated.portalBaseUrl ?? loginResult.portalBaseUrl);
+            setLastCheckedAt(Date.now());
+          }
+        } else if (shouldLogin && result.state === "offline") {
+          setMessage("No captive portal detected.");
         }
-
-        const loginResult = await loginToCaptivePortal({
-          username: credentials.username,
-          password: credentials.password,
-          portalUrl: result.portalUrl,
-          portalBaseUrl: result.portalBaseUrl ?? storedPortalBaseUrl,
-        });
-
-        setMessage(loginResult.message);
-        syncPortalBaseUrl(loginResult.portalBaseUrl);
-
-        if (loginResult.success) {
-          const updated = await checkConnectivity();
-          setStatus(updated.state);
-          setPortalUrl(updated.portalUrl);
-          syncPortalBaseUrl(updated.portalBaseUrl ?? loginResult.portalBaseUrl);
-          setLastCheckedAt(Date.now());
-        }
-      } else if (shouldLogin && result.state === "offline") {
-        setMessage("No captive portal detected.");
+      } finally {
+        setIsConnecting(false);
+        inFlightRef.current = false;
       }
-
-      setIsConnecting(false);
     },
-    [
-      isConnecting,
-      storedPortalBaseUrl,
-      syncPortalBaseUrl,
-      setPortalUrl,
-      setStatus,
-    ],
+    [storedPortalBaseUrl, syncPortalBaseUrl],
   );
 
   useEffect(() => {
     runConnectivityCheck(false);
   }, [runConnectivityCheck]);
 
-  useEffect(() => {
-    if (!autoReconnectEnabled) return;
-    const id = setInterval(() => {
-      runConnectivityCheck(true);
-    }, 45000);
-    return () => clearInterval(id);
-  }, [autoReconnectEnabled, runConnectivityCheck]);
+  // Background task handles auto reconnect; avoid polling on this screen.
 
   const portalDisplayUrl = portalUrl ?? "Not detected";
   const baseDisplayUrl =
     portalBaseUrl ?? storedPortalBaseUrl ?? getDefaultPortalBaseUrl();
+  const isBusy = isConnecting || isLoggingOut;
+
+  const handleLogoutInternet = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setIsLoggingOut(true);
+    setStatus("checking");
+    setMessage(null);
+
+    try {
+      const logoutResult = await logoutFromCaptivePortal({
+        portalUrl,
+        portalBaseUrl: storedPortalBaseUrl ?? portalBaseUrl,
+      });
+      setMessage(logoutResult.message);
+      syncPortalBaseUrl(logoutResult.portalBaseUrl);
+
+      const updated = await checkConnectivity();
+      setStatus(updated.state);
+      setPortalUrl(updated.portalUrl);
+      syncPortalBaseUrl(updated.portalBaseUrl ?? logoutResult.portalBaseUrl);
+      setLastCheckedAt(Date.now());
+    } finally {
+      setIsLoggingOut(false);
+      inFlightRef.current = false;
+    }
+  }, [
+    portalUrl,
+    storedPortalBaseUrl,
+    portalBaseUrl,
+    syncPortalBaseUrl,
+  ]);
 
   return (
     <Container>
@@ -209,7 +239,17 @@ export default function WifixScreen() {
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[
+              styles.backIcon,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={18} color={theme.text} />
+          </Pressable>
+          <View style={styles.headerText}>
             <Text style={[styles.headerTitle, { color: theme.text }]}>WiFix</Text>
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}
             >
@@ -321,29 +361,34 @@ export default function WifixScreen() {
             title={isConnecting ? "Reconnecting..." : "Reconnect"}
             onPress={() => runConnectivityCheck(true)}
             loading={isConnecting}
+            disabled={isBusy}
           />
           <Button
             title="Check Status"
             onPress={() => runConnectivityCheck(false)}
             variant="secondary"
+            disabled={isBusy}
+          />
+          <Button
+            title={isLoggingOut ? "Logging out..." : "Logout Internet"}
+            onPress={handleLogoutInternet}
+            variant="danger"
+            loading={isLoggingOut}
+            disabled={isBusy}
           />
         </View>
 
         <View style={styles.footer}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={16} color={theme.textSecondary} />
-            <Text style={[styles.backText, { color: theme.textSecondary }]}
-            >
-              Back to Dashboard
-            </Text>
-          </Pressable>
           <Text style={[styles.footerText, { color: theme.textSecondary }]}
           >
             Keep WiFix enabled for automatic reconnects
           </Text>
+          <ExternalLink href="https://wifix.iiitk.in/" style={styles.linkRow}>
+            <Ionicons name="globe-outline" size={14} color={theme.textSecondary} />
+            <Text style={[styles.linkText, { color: theme.textSecondary }]}>
+              wifix.iiitk.in
+            </Text>
+          </ExternalLink>
         </View>
       </ScrollView>
     </Container>
@@ -360,8 +405,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: Spacing.lg,
+    gap: Spacing.sm,
   },
-  headerLeft: {
+  backIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerText: {
     flex: 1,
   },
   headerTitle: {
@@ -443,15 +496,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
   },
-  backButton: {
+  linkRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
   },
-  backText: {
-    fontSize: 12,
-  },
   footerText: {
     fontSize: 11,
+  },
+  linkText: {
+    fontSize: 12,
+    textDecorationLine: "underline",
   },
 });

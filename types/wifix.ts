@@ -21,6 +21,13 @@ export interface WifixLoginResult {
   message: string;
 }
 
+export interface WifixLogoutResult {
+  success: boolean;
+  portalBaseUrl: string;
+  statusCode: number | null;
+  message: string;
+}
+
 export interface WifixSettings {
   autoReconnectEnabled: boolean;
   backgroundIntervalMinutes: number;
