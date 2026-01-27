@@ -2,7 +2,11 @@ import { create } from "zustand";
 import {
   cancelAllScheduledNotifications,
   stopBackgroundRefresh,
-} from "@/services/background-tasks";
+} from "@/background/dashboard-background";
+import {
+  syncWifixBackgroundTask,
+  unregisterWifixBackgroundTask,
+} from "@/background/wifix-background";
 import * as authService from "@/services/auth";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
@@ -31,6 +35,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       const success = await authService.login(username, password);
       if (success) {
         set({ isLoggedIn: true, username, isLoading: false });
+        try {
+          await syncWifixBackgroundTask();
+        } catch (error) {
+          console.error("Failed to start WiFix background task", error);
+        }
         return true;
       }
       set({ error: "Invalid credentials", isLoading: false });
@@ -50,6 +59,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
         await cancelAllScheduledNotifications();
       } catch (error) {
         console.error("Failed to cancel notifications during logout", error);
+      }
+      try {
+        await unregisterWifixBackgroundTask();
+      } catch (error) {
+        console.error("Failed to stop WiFix background task", error);
       }
 
       useAttendanceStore.getState().clearAttendance();
@@ -80,6 +94,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
           username: credentials?.username ?? null,
           isLoading: false,
         });
+        try {
+          await syncWifixBackgroundTask();
+        } catch (error) {
+          console.error("Failed to start WiFix background task", error);
+        }
       } else {
         set({ isLoggedIn: false, isLoading: false });
       }

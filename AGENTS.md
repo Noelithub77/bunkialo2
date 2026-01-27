@@ -6,7 +6,7 @@
 
 **LMS**: `https://lmsug24.iiitkottayam.ac.in`
 
-**Key Features**: Secure auth, Dashboard with timeline, Attendance tracking, Bunk management, Timetable generation, Mess menu, Background refresh, Local notifications, Offline cache.
+**Key Features**: Secure auth, Dashboard with timeline, Attendance tracking, Bunk management, Timetable generation, Mess menu, Academic calendar, GPA calculator, Background refresh, Local notifications, Offline cache, ICS export.
 
 ## Tech Stack
 
@@ -17,6 +17,10 @@
 - **Parser**: htmlparser2
 - **Storage**: expo-secure-store (credentials), AsyncStorage (cache)
 - **Notifications**: expo-notifications
+- **Calendar**: react-native-calendars, expo-calendar
+- **Date Utils**: date-fns
+- **UI**: react-native-paper (Material Design)
+- **Search**: fuse.js (fuzzy search)
 
 ## Project Structure
 
@@ -25,6 +29,9 @@ app/                    # Expo Router screens
   ├── _layout.tsx      # Root layout, auth routing
   ├── login.tsx        # Login screen
   ├── settings.tsx     # Settings screen
+  ├── (fab-group)/     # FAB modal routes
+  │   ├── acad-cal.tsx # Academic calendar
+  │   └── gpa.tsx      # GPA calculator
   ├── faculty/         # Faculty detail page
   │   └── [id].tsx     # Dynamic route for faculty details
   └── (tabs)/
@@ -36,6 +43,15 @@ app/                    # Expo Router screens
       └── _layout.tsx   # Tab navigator config
 
 components/            # React components organized by tab
+  ├── acad-cal/       # Academic calendar components
+  │   ├── changes-modal.tsx
+  │   ├── event-editor-modal.tsx
+  │   ├── export-calendar-modal.tsx
+  │   ├── constants.ts
+  │   ├── sub_tabs/
+  │   │   ├── calendar-content.tsx
+  │   │   └── upnext-content.tsx
+  │   └── index.ts
   ├── dashboard/      # Dashboard-specific components
   │   ├── event-card.tsx
   │   ├── quick-glance-card.tsx
@@ -107,29 +123,39 @@ hooks/                 # Custom React hooks
 services/              # Business logic (NO React)
   ├── api.ts          # Axios + cookie interceptors
   ├── auth.ts         # Login/logout
-  ├── background-tasks.ts # Refresh & Notifications
   ├── baseurl.ts      # LMS base URL configuration
   ├── cookie-store.ts # Cookie management utilities
   ├── dashboard.ts     # Moodle Timeline/Events API
-  └── scraper.ts      # Moodle API + HTML parsing
+  ├── scraper.ts      # Moodle API + HTML parsing
+  └── wifix.ts        # Captive portal login helpers
+
+background/
+  ├── dashboard-background.ts # Refresh & Notifications
+  └── wifix-background.ts     # WiFix background login
 
 stores/                # Zustand stores
-  ├── auth-store.ts
+  ├── acad-cal-ui-store.ts      # Academic calendar UI state
+  ├── academic-calendar-store.ts # Academic calendar data
   ├── attendance-store.ts
   ├── attendance-ui-store.ts
+  ├── auth-store.ts
   ├── bunk-store.ts
   ├── dashboard-store.ts # Events, logs, sync state
   ├── faculty-store.ts    # Faculty directory state
+  ├── gpa-store.ts         # GPA calculator state
   ├── settings-store.ts  # Refresh interval, reminders
   ├── storage.ts          # AsyncStorage wrapper
-  └── timetable-store.ts  # Generated timetable state
+  ├── timetable-store.ts  # Generated timetable state
+  └── wifix-store.ts       # WiFix settings state
 
 data/                  # Static data
+  ├── acad-cal.ts      # Academic calendar events
   ├── credits.ts      # Course credits data
   ├── faculty.ts      # Faculty directory data
   └── mess.ts         # Mess menu data and helpers
 
 types/                 # TypeScript types (split by domain)
+  ├── academic-calendar.ts
   ├── attendance.ts
   ├── auth.ts
   ├── bunk.ts
@@ -137,16 +163,22 @@ types/                 # TypeScript types (split by domain)
   ├── common.ts
   ├── dashboard.ts
   ├── faculty.ts
+  ├── gpa.ts
   ├── index.ts         # Central re-exports
   ├── lms.ts
-  └── timetable.ts
+  ├── timetable.ts
+  └── wifix.ts
 
 utils/                 # Utility functions
   ├── attendance-helpers.ts # Attendance-specific helpers
   ├── course-name.ts  # Course name utilities
   ├── debug.ts        # Debug logging
   ├── html-parser.ts  # HTML parsing helpers
+  ├── ics-export.ts   # ICS calendar export
   └── notifications.ts # Notification helpers
+
+constants/             # App constants
+  └── theme.ts        # Theme colors, gradients, spacing
 ```
 
 ## Key Types (`types/index.ts`)
@@ -170,6 +202,44 @@ interface CourseAttendance {
   attended;
   percentage;
   records;
+}
+
+// Academic Calendar (types/academic-calendar.ts)
+type AcademicTermId = "even-2025-26" | "odd-2026-27";
+type AcademicEventCategory = "academic" | "exam" | "holiday" | "committee" | "project" | "sports" | "festival" | "admin" | "result";
+interface AcademicTermInfo {
+  id;
+  title;
+  shortTitle;
+  semesterLabel;
+  startDate;
+  endDate;
+}
+interface AcademicEvent {
+  id;
+  title;
+  date;
+  endDate?;
+  category;
+  termId;
+  note?;
+  isTentative?;
+}
+
+// GPA Calculator (types/gpa.ts)
+type GradeLetter = "A" | "A-" | "B" | "B-" | "C" | "C-" | "D" | "F";
+interface SemesterGpaEntry {
+  id;
+  label;
+  sgpa;
+  credits;
+}
+interface GpaCourseItem {
+  courseId;
+  courseName;
+  courseCode;
+  credits;
+  grade;
 }
 
 // Dashboard (types/dashboard.ts)
@@ -231,6 +301,7 @@ Components are organized by the tab they belong to:
 
 ```
 components/
+├── acad-cal/          # Components used in Academic Calendar (FAB)
 ├── dashboard/          # Components used in Dashboard tab
 ├── attendance/         # Components used in Attendance tab (includes bunk management)
 ├── timetable/          # Components used in Timetable tab
@@ -252,19 +323,25 @@ components/
    import { EventCard } from "@/components/dashboard";
    ```
 
-2. **Shared components**: Import from shared directory
+2. **FAB feature imports**: Import from acad-cal directory
+
+   ```tsx
+   import { ChangesModal } from "@/components/acad-cal";
+   ```
+
+3. **Shared components**: Import from shared directory
 
    ```tsx
    import { ConfirmModal } from "@/components/shared";
    ```
 
-3. **UI components**: Import from ui directory
+4. **UI components**: Import from ui directory
 
    ```tsx
    import { Button } from "@/components/ui";
    ```
 
-4. **Convenience imports**: Use the main index for multiple imports
+5. **Convenience imports**: Use the main index for multiple imports
    ```tsx
    import { EventCard, TimelineSection, Button } from "@/components";
    ```
@@ -272,6 +349,7 @@ components/
 ### Notes
 
 - Bunk management functionality is part of the `attendance` directory as it's accessed from the Attendance tab
+- Academic Calendar and GPA Calculator are accessed via FAB (Floating Action Button) modal routes
 - Modal components are re-exported from the `modals` directory for convenience
 - Theme components (`themed-text.tsx`, `themed-view.tsx`) remain at the root as they're fundamental utilities
 
@@ -311,10 +389,26 @@ components/
 3. Carousel display for upcoming meals with expandable items.
 4. Daily schedule view with timeline visualization.
 
+### Academic Calendar
+
+1. Academic terms and events stored in `data/acad-cal.ts`.
+2. Two sub-tabs: Calendar view and Up Next view.
+3. Event categories with color coding and icons.
+4. Event editing modal with date range support.
+5. ICS export functionality for calendar apps.
+6. Term-based filtering (Even/Odd semesters).
+
+### GPA Calculator
+
+1. Semester-based GPA entry with course breakdown.
+2. Grade letters: A, A-, B, B-, C, C-, D, F.
+3. Credit-weighted GPA calculation.
+4. Automatic CGPA computation from all semesters.
+
 ## Background Tasks & Notifications
 
 ```typescript
-// services/background-tasks.ts
+// background/dashboard-background.ts
 startBackgroundRefresh(); // Starts setInterval for sync
 scheduleAllEventNotifications(); // schedules reminders before deadlines
 ```
@@ -333,6 +427,7 @@ debug.scraper("Dashboard refresh triggered", data);
 3. **No `any` types**
 4. **Initial Route** - `index` (dashboard) is the default tab
 5. **Functional components only**
+6. **FAB Routes** - Academic Calendar and GPA Calculator are modal routes accessed via FAB\*\*
 
 ## Common Errors
 

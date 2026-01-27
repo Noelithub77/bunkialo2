@@ -102,6 +102,15 @@ export default function RootLayout() {
                 fullScreenGestureEnabled: true,
               }}
             />
+            <Stack.Screen
+              name="wifix"
+              options={{
+                presentation: "modal",
+                animation: "slide_from_bottom",
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+              }}
+            />
           </Stack>
           <StatusBar style={isDark ? "light" : "dark"} />
         </ThemeProvider>

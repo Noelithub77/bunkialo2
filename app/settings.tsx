@@ -1,3 +1,4 @@
+import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
 import { SelectionModal } from "@/components/modals/selection-modal";
 import { LogsSection } from "@/components/shared/logs-section";
@@ -9,6 +10,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useBunkStore } from "@/stores/bunk-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useWifixStore } from "@/stores/wifix-store";
 import { requestNotificationPermissionsWithExplanation } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import * as Application from "expo-application";
@@ -102,6 +104,12 @@ export default function SettingsScreen() {
     removeReminder,
     toggleNotifications,
   } = useSettingsStore();
+  const {
+    backgroundIntervalMinutes,
+    setBackgroundIntervalMinutes,
+    autoReconnectEnabled,
+    setAutoReconnectEnabled,
+  } = useWifixStore();
 
   const [newReminder, setNewReminder] = useState("");
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
@@ -112,6 +120,7 @@ export default function SettingsScreen() {
   const [showResetBunksModal, setShowResetBunksModal] = useState(false);
   const [showRefreshIntervalModal, setShowRefreshIntervalModal] =
     useState(false);
+  const [showWifixIntervalModal, setShowWifixIntervalModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [availableUpdateInfo, setAvailableUpdateInfo] = useState<{
     message?: string;
@@ -161,6 +170,10 @@ export default function SettingsScreen() {
 
   const handleSetRefreshInterval = () => {
     setShowRefreshIntervalModal(true);
+  };
+
+  const handleSetWifixInterval = () => {
+    setShowWifixIntervalModal(true);
   };
 
   const handleAddReminder = () => {
@@ -240,13 +253,13 @@ export default function SettingsScreen() {
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 2,
+          seconds: 1,
         },
       });
 
       setInfoModalContent({
         title: "Test Scheduled",
-        message: "A test notification will appear in 2 seconds.",
+        message: "A test notification will appear in a seconds.",
       });
       setShowInfoModal(true);
     } catch (error) {
@@ -322,6 +335,39 @@ export default function SettingsScreen() {
               label="Test Notification"
               onPress={handleTestNotification}
               loading={isTestingNotification}
+              theme={theme}
+            />
+          </View>
+
+          {/* WiFix Settings */}
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            WiFix
+          </Text>
+          <View style={[styles.list, { borderColor: theme.border }]}>
+            <SettingRow
+              icon="wifi"
+              label="Auto Reconnect"
+              theme={theme}
+              rightElement={
+                <Switch
+                  value={autoReconnectEnabled}
+                  onValueChange={(enabled) => {
+                    setAutoReconnectEnabled(enabled);
+                    syncWifixBackgroundTask();
+                  }}
+                  trackColor={{
+                    false: theme.border,
+                    true: Colors.status.info,
+                  }}
+                  thumbColor={Colors.white}
+                />
+              }
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingRow
+              icon="time-outline"
+              label={`Background login: ${backgroundIntervalMinutes} min`}
+              onPress={handleSetWifixInterval}
               theme={theme}
             />
           </View>
@@ -514,6 +560,25 @@ export default function SettingsScreen() {
         onClose={() => setShowRefreshIntervalModal(false)}
         onSelect={(value) => {
           if (typeof value === "number") setRefreshInterval(value);
+        }}
+      />
+
+      <SelectionModal
+        visible={showWifixIntervalModal}
+        title="WiFix Background Interval"
+        message="Choose how often WiFix attempts background login"
+        icon="wifi"
+        options={[
+          { label: "30 min", value: 30 },
+          { label: "60 min", value: 60 },
+          { label: "120 min", value: 120 },
+        ]}
+        onClose={() => setShowWifixIntervalModal(false)}
+        onSelect={(value) => {
+          if (typeof value === "number") {
+            setBackgroundIntervalMinutes(value);
+            syncWifixBackgroundTask();
+          }
         }}
       />
 

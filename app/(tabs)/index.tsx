@@ -5,7 +5,7 @@ import { DevInfoModal } from "@/components/modals/dev-info-modal";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { startBackgroundRefresh } from "@/services/background-tasks";
+import { startBackgroundRefresh } from "@/background/dashboard-background";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { initializeNotifications } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
@@ -224,6 +224,16 @@ export default function DashboardScreen() {
                 : theme.backgroundSecondary,
             }}
             actions={[
+              {
+                icon: "wifi",
+                label: "WiFix",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  router.push("/wifix");
+                },
+              },
               {
                 icon: "calculator-variant",
                 label: "GPA Calculator",
