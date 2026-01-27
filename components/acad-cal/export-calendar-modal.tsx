@@ -4,11 +4,17 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { AcademicEvent } from "@/types";
 import { generateICSContent } from "@/utils/ics-export";
 import { Ionicons } from "@expo/vector-icons";
-import { documentDirectory, writeAsStringAsync } from "expo-file-system/legacy";
+import {
+  documentDirectory,
+  getContentUriAsync,
+  writeAsStringAsync,
+} from "expo-file-system/legacy";
+import { startActivityAsync } from "expo-intent-launcher";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
 import { useState } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -47,14 +53,26 @@ export const ExportCalendarModal = ({
 
       await writeAsStringAsync(filePath, icsContent);
 
-      const canShare = await isAvailableAsync();
-      if (canShare) {
-        await shareAsync(filePath, {
-          mimeType: "text/calendar",
-          dialogTitle: "Export Calendar",
-          UTI: "public.calendar-event",
+      if (Platform.OS === "android") {
+        // android: open with app chooser
+        const contentUri = await getContentUriAsync(filePath);
+        await startActivityAsync("android.intent.action.VIEW", {
+          data: contentUri,
+          type: "text/calendar",
+          flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
         });
         setExportSuccess(true);
+      } else {
+        // iOS: use share sheet
+        const canShare = await isAvailableAsync();
+        if (canShare) {
+          await shareAsync(filePath, {
+            mimeType: "text/calendar",
+            dialogTitle: "Export Calendar",
+            UTI: "public.calendar-event",
+          });
+          setExportSuccess(true);
+        }
       }
     } catch {
       // handle silently

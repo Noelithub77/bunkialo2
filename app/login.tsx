@@ -45,7 +45,7 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.text }]}>Bunkialo</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              IIIT Kottayam LMS Attendance
+              Please enter your LMS creds
             </Text>
           </View>
 
