@@ -8,12 +8,14 @@ interface SettingsState extends DashboardSettings {
   addReminder: (minutes: number) => void;
   removeReminder: (minutes: number) => void;
   toggleNotifications: (enabled: boolean) => void;
+  setDevDashboardSyncEnabled: (enabled: boolean) => void;
 }
 
 const DEFAULT_SETTINGS: DashboardSettings = {
   refreshIntervalMinutes: 30,
   reminders: [30, 10],
   notificationsEnabled: true,
+  devDashboardSyncEnabled: false,
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -36,6 +38,9 @@ export const useSettingsStore = create<SettingsState>()(
         })),
 
       toggleNotifications: (enabled) => set({ notificationsEnabled: enabled }),
+
+      setDevDashboardSyncEnabled: (enabled) =>
+        set({ devDashboardSyncEnabled: enabled }),
     }),
     {
       name: "settings-storage",

@@ -1,3 +1,4 @@
+import { syncDashboardBackgroundTask } from "@/background/dashboard-background";
 import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
 import { SelectionModal } from "@/components/modals/selection-modal";
@@ -103,6 +104,8 @@ export default function SettingsScreen() {
     addReminder,
     removeReminder,
     toggleNotifications,
+    devDashboardSyncEnabled,
+    setDevDashboardSyncEnabled,
   } = useSettingsStore();
   const {
     backgroundIntervalMinutes,
@@ -259,7 +262,7 @@ export default function SettingsScreen() {
 
       setInfoModalContent({
         title: "Test Scheduled",
-        message: "A test notification will appear in a seconds.",
+        message: "A test notification will appear in a second.",
       });
       setShowInfoModal(true);
     } catch (error) {
@@ -337,6 +340,29 @@ export default function SettingsScreen() {
               loading={isTestingNotification}
               theme={theme}
             />
+            {__DEV__ && (
+              <>
+                <View
+                  style={[styles.divider, { backgroundColor: theme.border }]}
+                />
+                <SettingRow
+                  icon="bug-outline"
+                  label="Dev Sync Alerts"
+                  theme={theme}
+                  rightElement={
+                    <Switch
+                      value={devDashboardSyncEnabled}
+                      onValueChange={setDevDashboardSyncEnabled}
+                      trackColor={{
+                        false: theme.border,
+                        true: Colors.status.info,
+                      }}
+                      thumbColor={Colors.white}
+                    />
+                  }
+                />
+              </>
+            )}
           </View>
 
           {/* WiFix Settings */}
@@ -560,6 +586,7 @@ export default function SettingsScreen() {
         onClose={() => setShowRefreshIntervalModal(false)}
         onSelect={(value) => {
           if (typeof value === "number") setRefreshInterval(value);
+          void syncDashboardBackgroundTask();
         }}
       />
 

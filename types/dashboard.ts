@@ -51,4 +51,5 @@ export interface DashboardSettings {
   refreshIntervalMinutes: number;
   reminders: number[];
   notificationsEnabled: boolean;
+  devDashboardSyncEnabled: boolean;
 }
