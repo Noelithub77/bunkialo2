@@ -2,12 +2,6 @@
  * Google Calendar API types
  */
 
-export interface GoogleAuthTokens {
-  accessToken: string;
-  refreshToken: string | null;
-  expiresAt: number;
-}
-
 export interface GoogleCalendar {
   id: string;
   summary: string;

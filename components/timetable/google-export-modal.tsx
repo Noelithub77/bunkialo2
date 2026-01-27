@@ -3,19 +3,13 @@ import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   exportToGoogleCalendar,
-  getValidAccessToken,
-  GOOGLE_CLIENT_ID,
-  saveGoogleTokens,
+  getAccessToken,
+  getSignInErrorMessage,
+  signIn,
 } from "@/services/google-calendar";
 import type { GoogleExportStatus, TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  makeRedirectUri,
-  ResponseType,
-  useAuthRequest,
-} from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -24,14 +18,6 @@ import {
   Text,
   View,
 } from "react-native";
-
-WebBrowser.maybeCompleteAuthSession();
-
-// Google OAuth discovery document
-const discovery = {
-  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
-  tokenEndpoint: "https://oauth2.googleapis.com/token",
-};
 
 interface GoogleExportModalProps {
   visible: boolean;
@@ -53,81 +39,48 @@ export const GoogleExportModal = ({
   const [error, setError] = useState<string | null>(null);
   const [eventsCreated, setEventsCreated] = useState(0);
 
-  // use Expo auth proxy for Expo Go compatibility
-  const redirectUri = makeRedirectUri({
-    scheme: "bunkialo",
-  });
-
-  const [request, response, promptAsync] = useAuthRequest(
-    {
-      clientId: GOOGLE_CLIENT_ID,
-      scopes: ["https://www.googleapis.com/auth/calendar"],
-      redirectUri,
-      responseType: ResponseType.Token, // implicit flow - get token directly
-      usePKCE: false, // Google implicit flow doesn't support PKCE
-    },
-    discovery,
-  );
-
-  // handle auth response
-  useEffect(() => {
-    if (response?.type === "success" && response.params.access_token) {
-      handleAuthSuccess(response.params.access_token);
-    } else if (response?.type === "error") {
-      setStatus("error");
-      setError(response.error?.message ?? "Authentication failed");
-    }
-  }, [response]);
-
-  const handleAuthSuccess = async (accessToken: string) => {
-    try {
-      // save token for future use
-      await saveGoogleTokens({
+  const runExport = useCallback(
+    async (accessToken: string) => {
+      const result = await exportToGoogleCalendar(
+        slots,
         accessToken,
-        refreshToken: null,
-        expiresAt: Date.now() + 3600 * 1000, // 1 hour
-      });
-      await startExport(accessToken);
-    } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "Authentication failed");
-    }
-  };
+        (statusUpdate, current, total) => {
+          setStatus(statusUpdate as GoogleExportStatus);
+          if (current !== undefined && total !== undefined) {
+            setProgress({ current, total });
+          }
+        },
+      );
 
-  const startExport = async (accessToken: string) => {
-    const result = await exportToGoogleCalendar(
-      slots,
-      accessToken,
-      (statusUpdate, current, total) => {
-        setStatus(statusUpdate as GoogleExportStatus);
-        if (current !== undefined && total !== undefined) {
-          setProgress({ current, total });
-        }
-      },
-    );
-
-    if (result.success) {
-      setStatus("success");
-      setEventsCreated(result.eventsCreated);
-    } else {
-      setStatus("error");
-      setError(result.error ?? "Export failed");
-    }
-  };
+      if (result.success) {
+        setStatus("success");
+        setEventsCreated(result.eventsCreated);
+      } else {
+        setStatus("error");
+        setError(result.error ?? "Export failed");
+      }
+    },
+    [slots],
+  );
 
   const handleExport = async () => {
     setStatus("authenticating");
     setError(null);
 
-    // check for existing valid token
-    const existingToken = await getValidAccessToken();
-    if (existingToken) {
-      await startExport(existingToken);
-      return;
-    }
+    try {
+      // try existing token first
+      let accessToken = await getAccessToken();
 
-    // need to authenticate
-    promptAsync();
+      // need sign-in
+      if (!accessToken) {
+        accessToken = await signIn();
+      }
+
+      await runExport(accessToken);
+    } catch (err) {
+      setStatus("error");
+      setError(getSignInErrorMessage(err));
+    }
   };
 
   const handleClose = () => {
@@ -138,7 +91,7 @@ export const GoogleExportModal = ({
     onClose();
   };
 
-  const getStatusMessage = (): string => {
+  const statusMessage = (() => {
     switch (status) {
       case "authenticating":
         return "Signing in with Google...";
@@ -155,7 +108,7 @@ export const GoogleExportModal = ({
       default:
         return "";
     }
-  };
+  })();
 
   const isLoading = [
     "authenticating",
@@ -257,7 +210,7 @@ export const GoogleExportModal = ({
                     },
                   ]}
                 >
-                  {getStatusMessage()}
+                  {statusMessage}
                 </Text>
               </View>
             )}
@@ -295,7 +248,7 @@ export const GoogleExportModal = ({
                     : "Sync"
               }
               onPress={status === "success" ? handleClose : handleExport}
-              disabled={isLoading || slots.length === 0 || !request}
+              disabled={isLoading || slots.length === 0}
               style={styles.footerBtn}
             />
           </View>

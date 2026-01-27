@@ -1,6 +1,5 @@
 import type {
   DayOfWeek,
-  GoogleAuthTokens,
   GoogleCalendar,
   GoogleCalendarEvent,
   GoogleCalendarListResponse,
@@ -8,100 +7,154 @@ import type {
   TimetableSlot,
 } from "@/types";
 import { debug } from "@/utils/debug";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
 
 // config
-const GOOGLE_TOKENS_KEY = "google_calendar_tokens";
 const CALENDAR_NAME = "bunkialo-timetable";
 const TIMEZONE = "Asia/Kolkata";
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
+const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 
-// env config
-export const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+// env
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
 
-// token storage
-export const saveGoogleTokens = async (tokens: GoogleAuthTokens) => {
-  await SecureStore.setItemAsync(GOOGLE_TOKENS_KEY, JSON.stringify(tokens));
-  debug.scraper("Google tokens saved");
+// ─── Auth Configuration ──────────────────────────────────────────────────────
+
+let isConfigured = false;
+
+export const configureGoogleSignIn = () => {
+  if (isConfigured) return;
+
+  GoogleSignin.configure({
+    webClientId: WEB_CLIENT_ID,
+    scopes: [CALENDAR_SCOPE],
+    offlineAccess: false,
+  });
+  isConfigured = true;
+  debug.scraper("Google Sign-In configured");
 };
 
-export const getGoogleTokens = async (): Promise<GoogleAuthTokens | null> => {
-  const stored = await SecureStore.getItemAsync(GOOGLE_TOKENS_KEY);
-  if (!stored) return null;
-  return JSON.parse(stored) as GoogleAuthTokens;
-};
+// ─── Auth Methods ────────────────────────────────────────────────────────────
 
-export const clearGoogleTokens = async () => {
-  await SecureStore.deleteItemAsync(GOOGLE_TOKENS_KEY);
-  debug.scraper("Google tokens cleared");
-};
+export const signIn = async (): Promise<string> => {
+  configureGoogleSignIn();
 
-export const isTokenExpired = (tokens: GoogleAuthTokens): boolean => {
-  return Date.now() >= tokens.expiresAt - 60000; // 1 min buffer
-};
+  await GoogleSignin.hasPlayServices();
 
-export const getValidAccessToken = async (): Promise<string | null> => {
-  const tokens = await getGoogleTokens();
-  if (!tokens) return null;
-
-  if (!isTokenExpired(tokens)) {
+  // try silent sign-in first
+  const silentResponse = await GoogleSignin.signInSilently();
+  if (silentResponse.type === "success") {
+    const tokens = await GoogleSignin.getTokens();
+    debug.scraper("Silent sign-in successful");
     return tokens.accessToken;
   }
 
-  // token expired, clear it (Google provider handles refresh)
-  await clearGoogleTokens();
-  return null;
+  // need interactive sign-in
+  const response = await GoogleSignin.signIn();
+  if (response.type !== "success") {
+    throw new Error("Sign-in cancelled");
+  }
+
+  const tokens = await GoogleSignin.getTokens();
+  debug.scraper("Interactive sign-in successful");
+  return tokens.accessToken;
 };
 
-// calendar api helpers
-const authHeader = (accessToken: string) => ({
-  Authorization: `Bearer ${accessToken}`,
-});
+export const getAccessToken = async (): Promise<string | null> => {
+  configureGoogleSignIn();
 
-export const listCalendars = async (
-  accessToken: string,
-): Promise<GoogleCalendar[]> => {
+  if (!GoogleSignin.hasPreviousSignIn()) {
+    return null;
+  }
+
+  try {
+    const tokens = await GoogleSignin.getTokens();
+    return tokens.accessToken;
+  } catch {
+    return null;
+  }
+};
+
+export const signOut = async () => {
+  try {
+    await GoogleSignin.signOut();
+    debug.scraper("Signed out from Google");
+  } catch {
+    // ignore errors
+  }
+};
+
+export const isSignedIn = (): boolean => {
+  configureGoogleSignIn();
+  return GoogleSignin.hasPreviousSignIn();
+};
+
+// ─── Error Handling ──────────────────────────────────────────────────────────
+
+export const getSignInErrorMessage = (error: unknown): string => {
+  if (typeof error !== "object" || error === null) {
+    return "Unknown error occurred";
+  }
+
+  const errorWithCode = error as { code?: string; message?: string };
+
+  switch (errorWithCode.code) {
+    case statusCodes.IN_PROGRESS:
+      return "Sign-in already in progress";
+    case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+      return "Google Play Services not available";
+    default:
+      return errorWithCode.message ?? "Sign-in failed";
+  }
+};
+
+// ─── Calendar API Helpers ────────────────────────────────────────────────────
+
+const authHeader = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+const listCalendars = async (token: string): Promise<GoogleCalendar[]> => {
   const res = await axios.get<GoogleCalendarListResponse>(
     `${CALENDAR_API}/users/me/calendarList`,
-    { headers: authHeader(accessToken) },
+    { headers: authHeader(token) },
   );
   return res.data.items ?? [];
 };
 
-export const findBunkialoCalendar = async (
-  accessToken: string,
+const findBunkialoCalendar = async (
+  token: string,
 ): Promise<GoogleCalendar | null> => {
-  const calendars = await listCalendars(accessToken);
+  const calendars = await listCalendars(token);
   return calendars.find((c) => c.summary === CALENDAR_NAME) ?? null;
 };
 
-export const createCalendar = async (
-  accessToken: string,
-): Promise<GoogleCalendar> => {
+const createCalendar = async (token: string): Promise<GoogleCalendar> => {
   const res = await axios.post<GoogleCalendar>(
     `${CALENDAR_API}/calendars`,
     { summary: CALENDAR_NAME, timeZone: TIMEZONE },
-    { headers: authHeader(accessToken) },
+    { headers: authHeader(token) },
   );
   debug.scraper(`Created calendar: ${res.data.id}`);
   return res.data;
 };
 
-export const findOrCreateCalendar = async (
-  accessToken: string,
-): Promise<GoogleCalendar> => {
-  const existing = await findBunkialoCalendar(accessToken);
+const findOrCreateCalendar = async (token: string): Promise<GoogleCalendar> => {
+  const existing = await findBunkialoCalendar(token);
   if (existing) {
     debug.scraper(`Found existing calendar: ${existing.id}`);
     return existing;
   }
-  return createCalendar(accessToken);
+  return createCalendar(token);
 };
 
-export const listAllEvents = async (
+// ─── Events API ──────────────────────────────────────────────────────────────
+
+const listAllEvents = async (
   calendarId: string,
-  accessToken: string,
+  token: string,
 ): Promise<Array<{ id: string }>> => {
   const events: Array<{ id: string }> = [];
   let pageToken: string | undefined;
@@ -110,7 +163,7 @@ export const listAllEvents = async (
     const res = await axios.get<GoogleEventsListResponse>(
       `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
       {
-        headers: authHeader(accessToken),
+        headers: authHeader(token),
         params: { pageToken, maxResults: 250 },
       },
     );
@@ -121,60 +174,53 @@ export const listAllEvents = async (
   return events;
 };
 
-export const deleteEvent = async (
+const deleteEvent = async (
   calendarId: string,
   eventId: string,
-  accessToken: string,
+  token: string,
 ): Promise<void> => {
   await axios.delete(
     `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
-    { headers: authHeader(accessToken) },
+    { headers: authHeader(token) },
   );
 };
 
-export const clearCalendarEvents = async (
+const clearCalendarEvents = async (
   calendarId: string,
-  accessToken: string,
+  token: string,
 ): Promise<number> => {
-  const events = await listAllEvents(calendarId, accessToken);
+  const events = await listAllEvents(calendarId, token);
   for (const event of events) {
-    await deleteEvent(calendarId, event.id, accessToken);
+    await deleteEvent(calendarId, event.id, token);
   }
   debug.scraper(`Cleared ${events.length} events`);
   return events.length;
 };
 
-export const createEvent = async (
+const createEvent = async (
   calendarId: string,
   event: GoogleCalendarEvent,
-  accessToken: string,
+  token: string,
 ): Promise<GoogleCalendarEvent> => {
   const res = await axios.post<GoogleCalendarEvent>(
     `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
     event,
-    { headers: authHeader(accessToken) },
+    { headers: authHeader(token) },
   );
   return res.data;
 };
 
-// semester date helpers
-export const getSemesterEndDate = (): Date => {
+// ─── Semester Date Helpers ───────────────────────────────────────────────────
+
+const getSemesterEndDate = (): Date => {
   const now = new Date();
-  const month = now.getMonth(); // 0-11
+  const month = now.getMonth();
   const year = now.getFullYear();
 
-  // Jan-Apr (0-3) -> April 30
-  // Aug-Nov (7-10) -> November 30
-  // May-Jul, Dec -> use next semester boundary
-  if (month >= 0 && month <= 3) {
-    return new Date(year, 3, 30); // April 30
-  } else if (month >= 7 && month <= 10) {
-    return new Date(year, 10, 30); // November 30
-  } else if (month >= 4 && month <= 6) {
-    return new Date(year, 10, 30); // November 30 (next sem)
-  } else {
-    return new Date(year + 1, 3, 30); // April 30 next year
-  }
+  if (month <= 3) return new Date(year, 3, 30);
+  if (month >= 7 && month <= 10) return new Date(year, 10, 30);
+  if (month <= 6) return new Date(year, 10, 30);
+  return new Date(year + 1, 3, 30);
 };
 
 const formatRRuleDate = (date: Date): string => {
@@ -194,11 +240,9 @@ const DAY_TO_RRULE: Record<DayOfWeek, string> = {
   6: "SA",
 };
 
-// find next occurrence of a day of week from today
 const getNextOccurrence = (dayOfWeek: DayOfWeek, time: string): Date => {
   const now = new Date();
-  const currentDay = now.getDay();
-  let daysUntil = dayOfWeek - currentDay;
+  let daysUntil = dayOfWeek - now.getDay();
   if (daysUntil <= 0) daysUntil += 7;
 
   const date = new Date(now);
@@ -210,12 +254,12 @@ const getNextOccurrence = (dayOfWeek: DayOfWeek, time: string): Date => {
   return date;
 };
 
-const formatDateTime = (date: Date): string => {
-  return date.toISOString().replace("Z", "");
-};
+const formatDateTime = (date: Date): string =>
+  date.toISOString().replace("Z", "");
 
-// convert slot to google calendar event
-export const slotToEvent = (slot: TimetableSlot): GoogleCalendarEvent => {
+// ─── Slot to Event Conversion ────────────────────────────────────────────────
+
+const slotToEvent = (slot: TimetableSlot): GoogleCalendarEvent => {
   const startDate = getNextOccurrence(slot.dayOfWeek, slot.startTime);
   const endDate = getNextOccurrence(slot.dayOfWeek, slot.endTime);
   const semesterEnd = getSemesterEndDate();
@@ -223,26 +267,33 @@ export const slotToEvent = (slot: TimetableSlot): GoogleCalendarEvent => {
   return {
     summary: slot.courseName,
     description: slot.sessionType,
-    start: {
-      dateTime: formatDateTime(startDate),
-      timeZone: TIMEZONE,
-    },
-    end: {
-      dateTime: formatDateTime(endDate),
-      timeZone: TIMEZONE,
-    },
+    start: { dateTime: formatDateTime(startDate), timeZone: TIMEZONE },
+    end: { dateTime: formatDateTime(endDate), timeZone: TIMEZONE },
     recurrence: [
       `RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_RRULE[slot.dayOfWeek]};UNTIL=${formatRRuleDate(semesterEnd)}`,
     ],
   };
 };
 
-// main export function
+// ─── Main Export Function ────────────────────────────────────────────────────
+
+type ProgressCallback = (
+  status: string,
+  current?: number,
+  total?: number,
+) => void;
+
+interface ExportResult {
+  success: boolean;
+  eventsCreated: number;
+  error?: string;
+}
+
 export const exportToGoogleCalendar = async (
   slots: TimetableSlot[],
   accessToken: string,
-  onProgress?: (status: string, current?: number, total?: number) => void,
-): Promise<{ success: boolean; eventsCreated: number; error?: string }> => {
+  onProgress?: ProgressCallback,
+): Promise<ExportResult> => {
   try {
     onProgress?.("creating_calendar");
     const calendar = await findOrCreateCalendar(accessToken);
@@ -252,6 +303,7 @@ export const exportToGoogleCalendar = async (
 
     onProgress?.("adding_events", 0, slots.length);
     let created = 0;
+
     for (const slot of slots) {
       const event = slotToEvent(slot);
       await createEvent(calendar.id, event, accessToken);
