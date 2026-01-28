@@ -1,30 +1,30 @@
 import { getCredentials } from "@/services/auth";
 import { checkConnectivity, loginToCaptivePortal } from "@/services/wifix";
 import { useWifixStore } from "@/stores/wifix-store";
-import * as BackgroundFetch from "expo-background-fetch";
+import * as BackgroundTask from "expo-background-task";
 import * as TaskManager from "expo-task-manager";
 
 const WIFIX_TASK_NAME = "wifix-background-login";
 
 const runWifixLogin =
-  async (): Promise<BackgroundFetch.BackgroundFetchResult> => {
+  async (): Promise<BackgroundTask.BackgroundTaskResult> => {
     const { autoReconnectEnabled, portalBaseUrl } = useWifixStore.getState();
     if (!autoReconnectEnabled) {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      return BackgroundTask.BackgroundTaskResult.Success;
     }
 
     const credentials = await getCredentials();
     if (!credentials) {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      return BackgroundTask.BackgroundTaskResult.Success;
     }
 
     const connectivity = await checkConnectivity();
     if (connectivity.state === "online") {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      return BackgroundTask.BackgroundTaskResult.Success;
     }
 
     if (connectivity.state !== "captive") {
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      return BackgroundTask.BackgroundTaskResult.Success;
     }
 
     const loginResult = await loginToCaptivePortal({
@@ -35,60 +35,50 @@ const runWifixLogin =
     });
 
     if (!loginResult.success) {
-      return BackgroundFetch.BackgroundFetchResult.Failed;
+      return BackgroundTask.BackgroundTaskResult.Failed;
     }
 
     const verification = await checkConnectivity();
     return verification.state === "online"
-      ? BackgroundFetch.BackgroundFetchResult.NewData
-      : BackgroundFetch.BackgroundFetchResult.NoData;
+      ? BackgroundTask.BackgroundTaskResult.Success
+      : BackgroundTask.BackgroundTaskResult.Failed;
   };
 
 TaskManager.defineTask(WIFIX_TASK_NAME, async () => {
   try {
     return await runWifixLogin();
   } catch {
-    return BackgroundFetch.BackgroundFetchResult.Failed;
+    return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });
 
 export const registerWifixBackgroundTask = async (
   intervalMinutes: number,
 ): Promise<boolean> => {
-  const status = await BackgroundFetch.getStatusAsync();
+  const status = await BackgroundTask.getStatusAsync();
   if (
-    status === BackgroundFetch.BackgroundFetchStatus.Denied ||
-    status === BackgroundFetch.BackgroundFetchStatus.Restricted
+    status === BackgroundTask.BackgroundTaskStatus.Denied ||
+    status === BackgroundTask.BackgroundTaskStatus.Restricted
   ) {
     return false;
   }
 
-  const existingTasks = await TaskManager.getRegisteredTasksAsync();
-  const alreadyRegistered = existingTasks.some(
-    (task) => task.taskName === WIFIX_TASK_NAME,
-  );
-
-  if (alreadyRegistered) {
-    await BackgroundFetch.unregisterTaskAsync(WIFIX_TASK_NAME);
+  const isRegistered = await TaskManager.isTaskRegisteredAsync(WIFIX_TASK_NAME);
+  if (isRegistered) {
+    await BackgroundTask.unregisterTaskAsync(WIFIX_TASK_NAME);
   }
 
-  await BackgroundFetch.registerTaskAsync(WIFIX_TASK_NAME, {
-    minimumInterval: Math.max(15, intervalMinutes) * 60,
-    stopOnTerminate: false,
-    startOnBoot: true,
+  await BackgroundTask.registerTaskAsync(WIFIX_TASK_NAME, {
+    minimumInterval: Math.max(15, intervalMinutes),
   });
 
   return true;
 };
 
 export const unregisterWifixBackgroundTask = async (): Promise<void> => {
-  const existingTasks = await TaskManager.getRegisteredTasksAsync();
-  const alreadyRegistered = existingTasks.some(
-    (task) => task.taskName === WIFIX_TASK_NAME,
-  );
-
-  if (alreadyRegistered) {
-    await BackgroundFetch.unregisterTaskAsync(WIFIX_TASK_NAME);
+  const isRegistered = await TaskManager.isTaskRegisteredAsync(WIFIX_TASK_NAME);
+  if (isRegistered) {
+    await BackgroundTask.unregisterTaskAsync(WIFIX_TASK_NAME);
   }
 };
 

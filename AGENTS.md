@@ -2,6 +2,7 @@
 
 ## Project Overview
 
+always use npm for expo projects
 **Bunkialo** - React Native (Expo) app that scrapes attendance and assignments from IIIT Kottayam Moodle LMS.
 
 **LMS**: `https://lmsug24.iiitkottayam.ac.in`

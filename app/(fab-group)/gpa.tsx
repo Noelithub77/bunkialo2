@@ -17,8 +17,9 @@ import type {
 import { extractCourseCode, extractCourseName } from "@/utils/course-name";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -280,6 +281,14 @@ export default function GpaCalculatorScreen() {
     () => summarizePreviousSemesters(previousSemesters),
     [previousSemesters],
   );
+  const prevCgpa = prevCredits > 0 ? prevPoints / prevCredits : 0;
+  const prevSgpa = useMemo(() => {
+    for (let index = previousSemesters.length - 1; index >= 0; index -= 1) {
+      const value = previousSemesters[index]?.sgpa;
+      if (value !== null && value !== undefined) return value;
+    }
+    return null;
+  }, [previousSemesters]);
 
   const totalCreditsAll = totalCredits + prevCredits;
   const cgpa =
@@ -293,12 +302,30 @@ export default function GpaCalculatorScreen() {
 
   const deltaSgpa = sgpa - sgpaAllA;
   const deltaCgpa = cgpa - cgpaAllA;
+  const deltaCgpaPrev = cgpa - prevCgpa;
+  const deltaSgpaPrev = prevSgpa !== null ? sgpa - prevSgpa : 0;
   const { height: screenHeight } = useWindowDimensions();
   const modalMaxHeight = Math.round(screenHeight * 0.82);
+  const cgpaAnim = useRef(new Animated.Value(1)).current;
 
   const missingCreditsCount = courses.filter(
     (course) => course.credits <= 0,
   ).length;
+  const showPrevData = prevSgpa !== null;
+  const showPrevSgpaComparison = prevSgpa !== null;
+  const showPrevCgpaComparison = prevCredits > 0;
+  const prevSgpaDisplay = prevSgpa !== null ? formatGpa(prevSgpa) : "--";
+  const prevCgpaDisplay = prevCredits > 0 ? formatGpa(prevCgpa) : "--";
+
+  useEffect(() => {
+    cgpaAnim.setValue(0.96);
+    Animated.spring(cgpaAnim, {
+      toValue: 1,
+      tension: 120,
+      friction: 16,
+      useNativeDriver: true,
+    }).start();
+  }, [cgpa, prevCgpa, cgpaAnim]);
 
   const handleSemesterChange = (
     id: string,
@@ -422,6 +449,17 @@ export default function GpaCalculatorScreen() {
               <Text style={[styles.summaryValue, { color: theme.text }]}>
                 {formatGpa(sgpa)}
               </Text>
+              {showPrevData && (
+                <Animated.Text
+                  style={[
+                    styles.summaryHint,
+                    { color: theme.textSecondary },
+                    { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                  ]}
+                >
+                  Prev SGPA {prevSgpaDisplay}
+                </Animated.Text>
+              )}
               <Text
                 style={[
                   styles.summaryDelta,
@@ -435,6 +473,13 @@ export default function GpaCalculatorScreen() {
               >
                 {deltaSgpa === 0 ? "Perfect" : `${formatDelta(deltaSgpa)} vs A`}
               </Text>
+              {showPrevSgpaComparison && (
+                <View style={styles.prevDeltaPill}>
+                  <Text style={styles.prevDeltaText}>
+                    {`${formatDelta(deltaSgpaPrev)} vs Prev`}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View
@@ -447,9 +492,26 @@ export default function GpaCalculatorScreen() {
               >
                 CGPA
               </Text>
-              <Text style={[styles.summaryValue, { color: theme.text }]}>
+              <Animated.Text
+                style={[
+                  styles.summaryValue,
+                  { color: theme.text },
+                  { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                ]}
+              >
                 {formatGpa(cgpa)}
-              </Text>
+              </Animated.Text>
+              {showPrevData && (
+                <Animated.Text
+                  style={[
+                    styles.summaryHint,
+                    { color: theme.textSecondary },
+                    { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                  ]}
+                >
+                  Prev CGPA {prevCgpaDisplay}
+                </Animated.Text>
+              )}
               <Text
                 style={[
                   styles.summaryDelta,
@@ -465,6 +527,13 @@ export default function GpaCalculatorScreen() {
                   ? "Best case"
                   : `${formatDelta(deltaCgpa)} vs A`}
               </Text>
+              {showPrevCgpaComparison && (
+                <View style={styles.prevDeltaPill}>
+                  <Text style={styles.prevDeltaText}>
+                    {`${formatDelta(deltaCgpaPrev)} vs Prev`}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -668,6 +737,25 @@ export default function GpaCalculatorScreen() {
                 <Ionicons name="close" size={20} color={theme.textSecondary} />
               </Pressable>
             </View>
+            <View style={styles.modalSummaryRow}>
+              <Text
+                style={[
+                  styles.modalSummaryLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Prev CGPA
+              </Text>
+              <Animated.Text
+                style={[
+                  styles.modalSummaryValue,
+                  { color: theme.text },
+                  { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                ]}
+              >
+                {formatGpa(prevCgpa)}
+              </Animated.Text>
+            </View>
             <ScrollView
               contentContainerStyle={styles.modalContent}
               showsVerticalScrollIndicator={false}
@@ -732,9 +820,7 @@ export default function GpaCalculatorScreen() {
                 </View>
               ))}
             </ScrollView>
-            <Text
-              style={[styles.modalHint, { color: theme.textSecondary }]}
-            >
+            <Text style={[styles.modalHint, { color: theme.textSecondary }]}>
               Tip: If you&apos;re unsure, set total credits as 23{"\n"}(roughly
               the average across semesters).
             </Text>
@@ -853,6 +939,22 @@ const styles = StyleSheet.create({
   },
   summaryDelta: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+  prevDeltaPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+    backgroundColor: `${Colors.status.unknown}20`,
+  },
+  prevDeltaText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.status.unknown,
+  },
+  summaryHint: {
+    fontSize: 11,
     fontWeight: "600",
   },
   summaryDivider: {
@@ -1016,6 +1118,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+  modalSummaryLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  modalSummaryValue: {
     fontSize: 18,
     fontWeight: "700",
   },

@@ -1,7 +1,7 @@
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { TimelineEvent } from "@/types";
-import * as BackgroundFetch from "expo-background-fetch";
+import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import { Platform } from "react-native";
@@ -122,7 +122,7 @@ const notifyDevSyncResult = async (params: {
 };
 
 const runDashboardSync =
-  async (): Promise<BackgroundFetch.BackgroundFetchResult> => {
+  async (): Promise<BackgroundTask.BackgroundTaskResult> => {
     const dashboardStore = useDashboardStore.getState();
 
     try {
@@ -140,7 +140,7 @@ const runDashboardSync =
         overdueCount: overdueEvents.length,
       });
 
-      return BackgroundFetch.BackgroundFetchResult.NewData;
+      return BackgroundTask.BackgroundTaskResult.Success;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       dashboardStore.addLog(`Background sync failed: ${message}`, "error");
@@ -150,55 +150,47 @@ const runDashboardSync =
         overdueCount: 0,
         errorMessage: message,
       });
-      return BackgroundFetch.BackgroundFetchResult.Failed;
+      return BackgroundTask.BackgroundTaskResult.Failed;
     }
   };
 
-TaskManager.defineTask(DASHBOARD_TASK_NAME, async ({ error }) => {
-  if (error) {
-    return BackgroundFetch.BackgroundFetchResult.Failed;
+TaskManager.defineTask(DASHBOARD_TASK_NAME, async () => {
+  try {
+    return await runDashboardSync();
+  } catch {
+    return BackgroundTask.BackgroundTaskResult.Failed;
   }
-
-  return runDashboardSync();
 });
 
 export const registerDashboardBackgroundTask = async (
   intervalMinutes: number,
 ): Promise<boolean> => {
-  const status = await BackgroundFetch.getStatusAsync();
+  const status = await BackgroundTask.getStatusAsync();
   if (
-    status === BackgroundFetch.BackgroundFetchStatus.Denied ||
-    status === BackgroundFetch.BackgroundFetchStatus.Restricted
+    status === BackgroundTask.BackgroundTaskStatus.Denied ||
+    status === BackgroundTask.BackgroundTaskStatus.Restricted
   ) {
     return false;
   }
 
-  const existingTasks = await TaskManager.getRegisteredTasksAsync();
-  const alreadyRegistered = existingTasks.some(
-    (task) => task.taskName === DASHBOARD_TASK_NAME,
-  );
-
-  if (alreadyRegistered) {
-    await BackgroundFetch.unregisterTaskAsync(DASHBOARD_TASK_NAME);
+  const isRegistered =
+    await TaskManager.isTaskRegisteredAsync(DASHBOARD_TASK_NAME);
+  if (isRegistered) {
+    await BackgroundTask.unregisterTaskAsync(DASHBOARD_TASK_NAME);
   }
 
-  await BackgroundFetch.registerTaskAsync(DASHBOARD_TASK_NAME, {
-    minimumInterval: Math.max(15, intervalMinutes) * 60,
-    stopOnTerminate: false,
-    startOnBoot: true,
+  await BackgroundTask.registerTaskAsync(DASHBOARD_TASK_NAME, {
+    minimumInterval: Math.max(15, intervalMinutes),
   });
 
   return true;
 };
 
 export const unregisterDashboardBackgroundTask = async (): Promise<void> => {
-  const existingTasks = await TaskManager.getRegisteredTasksAsync();
-  const alreadyRegistered = existingTasks.some(
-    (task) => task.taskName === DASHBOARD_TASK_NAME,
-  );
-
-  if (alreadyRegistered) {
-    await BackgroundFetch.unregisterTaskAsync(DASHBOARD_TASK_NAME);
+  const isRegistered =
+    await TaskManager.isTaskRegisteredAsync(DASHBOARD_TASK_NAME);
+  if (isRegistered) {
+    await BackgroundTask.unregisterTaskAsync(DASHBOARD_TASK_NAME);
   }
 };
 
