@@ -15,4 +15,3 @@ export * from "./gpa";
 export * from "./lms";
 export * from "./timetable";
 export * from "./wifix";
-export * from "./google-calendar";

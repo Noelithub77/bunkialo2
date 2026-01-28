@@ -1,6 +1,6 @@
 import { DaySchedule } from "@/components/timetable/day-schedule";
 import { DaySelector } from "@/components/timetable/day-selector";
-import { GoogleExportModal } from "@/components/timetable/google-export-modal";
+import { TimetableExportModal } from "@/components/timetable/timetable-export-modal";
 import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
@@ -39,7 +39,7 @@ export default function TimetableScreen() {
   } = useAttendanceStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
-  const [showGoogleExport, setShowGoogleExport] = useState(false);
+  const [showTimetableExport, setShowTimetableExport] = useState(false);
   const hasGenerated = useRef(false);
   const isFocused = useIsFocused();
 
@@ -213,13 +213,13 @@ export default function TimetableScreen() {
             }}
             actions={[
               {
-                icon: "google",
-                label: "Sync to Google Calendar",
+                icon: "calendar-export",
+                label: "Export Timetable (.ics)",
                 color: theme.text,
                 style: { backgroundColor: theme.backgroundSecondary },
                 onPress: () => {
                   setShowFabMenu(false);
-                  setShowGoogleExport(true);
+                  setShowTimetableExport(true);
                 },
               },
             ]}
@@ -228,9 +228,9 @@ export default function TimetableScreen() {
         </Portal>
       )}
 
-      <GoogleExportModal
-        visible={showGoogleExport}
-        onClose={() => setShowGoogleExport(false)}
+      <TimetableExportModal
+        visible={showTimetableExport}
+        onClose={() => setShowTimetableExport(false)}
         slots={slots}
       />
     </Container>
