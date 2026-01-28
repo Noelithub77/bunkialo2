@@ -25,9 +25,8 @@ export function GradientCard({
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
-      >
-        <View style={styles.content}>{children}</View>
-      </LinearGradient>
+      />
+      <View style={styles.content}>{children}</View>
     </View>
   );
 }
@@ -40,7 +39,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
   },
   gradient: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   content: {
     padding: Spacing.md,

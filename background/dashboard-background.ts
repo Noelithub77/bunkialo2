@@ -166,10 +166,7 @@ export const registerDashboardBackgroundTask = async (
   intervalMinutes: number,
 ): Promise<boolean> => {
   const status = await BackgroundTask.getStatusAsync();
-  if (
-    status === BackgroundTask.BackgroundTaskStatus.Denied ||
-    status === BackgroundTask.BackgroundTaskStatus.Restricted
-  ) {
+  if (status === BackgroundTask.BackgroundTaskStatus.Restricted) {
     return false;
   }
 
