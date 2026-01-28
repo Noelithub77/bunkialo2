@@ -12,12 +12,16 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["fetch"]
+        "UIBackgroundModes": [
+          "fetch"
+        ]
       }
     },
     "android": {
-      "versionCode": 22,
-      "permissions": ["RECEIVE_BOOT_COMPLETED"],
+      "versionCode": 23,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -57,10 +61,12 @@
         "projectId": "7cbe49d9-9827-4df3-b86e-849443804d63"
       }
     },
-    "runtimeVersion": "0.3.0",
+    "runtimeVersion": "0.1.0",
     "updates": {
       "url": "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
-      "assetPatternsToBeBundled": ["assets/**/*"]
+      "assetPatternsToBeBundled": [
+        "assets/**/*"
+      ]
     }
   }
 }

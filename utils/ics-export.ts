@@ -1,4 +1,5 @@
 import type { AcademicEvent, DayOfWeek, TimetableSlot } from "@/types";
+import { extractCourseName } from "@/utils/course-name";
 
 const TIMEZONE = "Asia/Kolkata";
 
@@ -136,7 +137,7 @@ const buildTimetableEventBlock = (slot: TimetableSlot): string => {
     `DTSTART;TZID=${TIMEZONE}:${formatLocalDateTime(startDate)}`,
     `DTEND;TZID=${TIMEZONE}:${formatLocalDateTime(endDate)}`,
     `RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_RRULE[slot.dayOfWeek]};UNTIL=${formatUtcDateTime(until)}`,
-    `SUMMARY:${escapeICS(slot.courseName)}`,
+    `SUMMARY:${escapeICS(extractCourseName(slot.courseName))}`,
     `DESCRIPTION:${escapeICS(`${slot.sessionType} session`)}`,
   ];
 
