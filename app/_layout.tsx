@@ -3,16 +3,17 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
 } from "@react-navigation/native";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { PaperProvider } from "react-native-paper";
+import { PaperProvider, Portal } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "react-native-reanimated";
 
 // Custom dark theme with black background
@@ -38,24 +39,25 @@ const CustomLightTheme = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isLoggedIn, isLoading, checkAuth } = useAuthStore();
+  const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isCheckingAuth) {
       if (isLoggedIn) {
         router.replace("/(tabs)");
       } else {
         router.replace("/login");
       }
     }
-  }, [isLoading, isLoggedIn]);
+  }, [isCheckingAuth, isLoggedIn]);
 
-  if (isLoading) {
+  if (isCheckingAuth) {
     return (
       <View
         style={[
@@ -114,6 +116,34 @@ export default function RootLayout() {
           </Stack>
           <StatusBar style={isDark ? "light" : "dark"} />
         </ThemeProvider>
+        <Portal>
+          {isOffline && isLoggedIn && (
+            <View
+              style={[
+                styles.offlineBanner,
+                {
+                  top: insets.top + 10,
+                  backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
+                  borderColor: Colors.status.warning,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="cloud-off-outline"
+                size={14}
+                color={Colors.status.warning}
+              />
+              <Text
+                style={[
+                  styles.offlineText,
+                  { color: isDark ? Colors.gray[100] : Colors.gray[800] },
+                ]}
+              >
+                Offline - showing cached data
+              </Text>
+            </View>
+          )}
+        </Portal>
       </PaperProvider>
     </GestureHandlerRootView>
   );
@@ -124,5 +154,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  offlineBanner: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  offlineText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
 });

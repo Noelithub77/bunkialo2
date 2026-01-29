@@ -9,7 +9,7 @@ interface AttendanceStoreState extends AttendanceState {
 }
 
 interface AttendanceActions {
-  fetchAttendance: () => Promise<void>;
+  fetchAttendance: (options?: { silent?: boolean }) => Promise<void>;
   clearAttendance: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
@@ -27,21 +27,29 @@ export const useAttendanceStore = create<
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
-      fetchAttendance: async () => {
-        set({ isLoading: true, error: null });
+      fetchAttendance: async (options) => {
+        const silent = options?.silent ?? false;
+        if (silent) {
+          set((state) => ({ error: null, isLoading: state.isLoading }));
+        } else {
+          set({ isLoading: true, error: null });
+        }
         try {
           const courses = await scraper.fetchAllAttendance();
-          set({
+          set((state) => ({
             courses,
             lastSyncTime: Date.now(),
-            isLoading: false,
-          });
+            isLoading: silent ? state.isLoading : false,
+          }));
         } catch (error) {
           const message =
             error instanceof Error
               ? error.message
               : "Failed to fetch attendance";
-          set({ error: message, isLoading: false });
+          set((state) => ({
+            error: message,
+            isLoading: silent ? state.isLoading : false,
+          }));
         }
       },
 

@@ -126,7 +126,7 @@ const runDashboardSync =
     const dashboardStore = useDashboardStore.getState();
 
     try {
-      await dashboardStore.fetchDashboard();
+      await dashboardStore.fetchDashboard({ silent: true });
       const { upcomingEvents, overdueEvents } = useDashboardStore.getState();
       const { reminders, notificationsEnabled } = useSettingsStore.getState();
 

@@ -10,6 +10,8 @@ export interface Credentials {
 export interface AuthState {
   isLoggedIn: boolean;
   isLoading: boolean;
+  isCheckingAuth: boolean;
+  isOffline: boolean;
   username: string | null;
   error: string | null;
 }

@@ -6,6 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCourseActions } from "@/hooks/use-course-actions";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { selectAllDutyLeaves, useBunkStore } from "@/stores/bunk-store";
 import {
   computeUnknownCount,
@@ -15,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   InteractionManager,
   Pressable,
@@ -37,6 +38,7 @@ export default function AttendanceScreen() {
     fetchAttendance,
     hasHydrated: isAttendanceHydrated,
   } = useAttendanceStore();
+  const { isOffline, setOffline } = useAuthStore();
   const {
     courses: bunkCourses,
     syncFromLms,
@@ -53,6 +55,7 @@ export default function AttendanceScreen() {
     setShowFabMenu,
     openModal,
   } = useAttendanceUIStore();
+  const hasAutoRefreshed = useRef(false);
 
   const { handleOpenCreateCourse, handleToggleEditMode } = useCourseActions();
 
@@ -68,11 +71,16 @@ export default function AttendanceScreen() {
 
   // initial fetch on hydration
   useEffect(() => {
-    if (!isAttendanceHydrated) return;
-    if (lastSyncTime !== null) return;
-    InteractionManager.runAfterInteractions(() => {
-      fetchAttendance();
+    if (!isAttendanceHydrated || hasAutoRefreshed.current) return;
+    hasAutoRefreshed.current = true;
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (lastSyncTime === null) {
+        fetchAttendance();
+      } else {
+        fetchAttendance({ silent: true });
+      }
     });
+    return () => task.cancel();
   }, [isAttendanceHydrated, lastSyncTime, fetchAttendance]);
 
   // sync bunk store from LMS data
@@ -89,6 +97,12 @@ export default function AttendanceScreen() {
     courses.length,
     syncFromLms,
   ]);
+
+  useEffect(() => {
+    if (isOffline && lastSyncTime) {
+      setOffline(false);
+    }
+  }, [isOffline, lastSyncTime, setOffline]);
 
   // close FAB on blur
   useFocusEffect(

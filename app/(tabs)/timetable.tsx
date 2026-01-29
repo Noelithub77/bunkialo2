@@ -16,6 +16,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  InteractionManager,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -64,9 +65,13 @@ export default function TimetableScreen() {
       attendanceCourses.length > 0 &&
       slots.length === 0
     ) {
-      generateTimetable();
-      hasGenerated.current = true;
+      const task = InteractionManager.runAfterInteractions(() => {
+        generateTimetable();
+        hasGenerated.current = true;
+      });
+      return () => task.cancel();
     }
+    return undefined;
   }, [attendanceCourses.length, generateTimetable, slots.length]);
 
   const handleRefresh = useCallback(async () => {

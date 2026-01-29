@@ -6,12 +6,13 @@ import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { startBackgroundRefresh } from "@/background/dashboard-background";
+import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { initializeNotifications } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   InteractionManager,
@@ -51,28 +52,45 @@ export default function DashboardScreen() {
     fetchDashboard,
     hasHydrated,
   } = useDashboardStore();
+  const { isOffline, setOffline } = useAuthStore();
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
   const isFocused = useIsFocused();
+  const hasAutoRefreshed = useRef(false);
 
   useEffect(() => {
-    if (!hasHydrated) return;
-    if (lastSyncTime !== null) return; // cache exists; refresh only on manual
+    if (!hasHydrated || hasAutoRefreshed.current) return;
+    hasAutoRefreshed.current = true;
 
-    InteractionManager.runAfterInteractions(() => {
-      fetchDashboard();
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (lastSyncTime === null) {
+        fetchDashboard();
+      } else {
+        fetchDashboard({ silent: true });
+      }
     });
+
+    return () => task.cancel();
   }, [hasHydrated, lastSyncTime, fetchDashboard]);
 
   // Start background refresh for notifications
   useEffect(() => {
     if (hasHydrated) {
-      // Initialize notifications on first load
-      initializeNotifications();
-      startBackgroundRefresh();
+      const task = InteractionManager.runAfterInteractions(() => {
+        // Initialize notifications on first load
+        initializeNotifications();
+        startBackgroundRefresh();
+      });
+      return () => task.cancel();
     }
   }, [hasHydrated]);
+
+  useEffect(() => {
+    if (isOffline && lastSyncTime) {
+      setOffline(false);
+    }
+  }, [isOffline, lastSyncTime, setOffline]);
 
   useFocusEffect(
     useCallback(() => {

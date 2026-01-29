@@ -8,7 +8,7 @@ interface DashboardStore extends DashboardState {
   upcomingEvents: TimelineEvent[];
   overdueEvents: TimelineEvent[];
   hasHydrated: boolean;
-  fetchDashboard: () => Promise<void>;
+  fetchDashboard: (options?: { silent?: boolean }) => Promise<void>;
   addLog: (message: string, type: DashboardLog["type"]) => void;
   clearLogs: () => void;
   clearDashboard: () => void;
@@ -32,8 +32,13 @@ export const useDashboardStore = create<DashboardStore>()(
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
-      fetchDashboard: async () => {
-        set({ isLoading: true, error: null });
+      fetchDashboard: async (options) => {
+        const silent = options?.silent ?? false;
+        if (silent) {
+          set((state) => ({ error: null, isLoading: state.isLoading }));
+        } else {
+          set({ isLoading: true, error: null });
+        }
         const addLog = get().addLog;
 
         try {
@@ -43,13 +48,13 @@ export const useDashboardStore = create<DashboardStore>()(
 
           const allEvents = [...overdue, ...upcoming];
 
-          set({
+          set((state) => ({
             events: allEvents,
             upcomingEvents: upcoming,
             overdueEvents: overdue,
             lastSyncTime: Date.now(),
-            isLoading: false,
-          });
+            isLoading: silent ? state.isLoading : false,
+          }));
 
           addLog(
             `Synced ${upcoming.length} upcoming, ${overdue.length} overdue`,
@@ -58,7 +63,10 @@ export const useDashboardStore = create<DashboardStore>()(
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Unknown error";
-          set({ error: message, isLoading: false });
+          set((state) => ({
+            error: message,
+            isLoading: silent ? state.isLoading : false,
+          }));
           addLog(`Sync failed: ${message}`, "error");
         }
       },
