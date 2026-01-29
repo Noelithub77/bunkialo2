@@ -8,6 +8,7 @@ import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
+import { useSettingsStore } from "@/stores/settings-store";
 import { initializeNotifications } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -54,6 +55,9 @@ export default function DashboardScreen() {
     hasHydrated,
   } = useDashboardStore();
   const { isOffline, setOffline } = useAuthStore();
+  const refreshIntervalMinutes = useSettingsStore(
+    (state) => state.refreshIntervalMinutes,
+  );
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
@@ -62,7 +66,14 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (!hasHydrated || hasAutoRefreshed.current) return;
+    if (isOffline && lastSyncTime === null) return;
     hasAutoRefreshed.current = true;
+    if (isOffline) return;
+
+    const staleAfterMs = Math.max(5, refreshIntervalMinutes) * 60 * 1000;
+    const shouldRefresh =
+      lastSyncTime === null || Date.now() - lastSyncTime > staleAfterMs;
+    if (!shouldRefresh) return;
 
     const task = InteractionManager.runAfterInteractions(() => {
       if (lastSyncTime === null) {
@@ -73,7 +84,13 @@ export default function DashboardScreen() {
     });
 
     return () => task.cancel();
-  }, [hasHydrated, lastSyncTime, fetchDashboard]);
+  }, [
+    fetchDashboard,
+    hasHydrated,
+    isOffline,
+    lastSyncTime,
+    refreshIntervalMinutes,
+  ]);
 
   // Start background refresh for notifications
   useEffect(() => {

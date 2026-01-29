@@ -1,20 +1,27 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAttendanceStore } from "@/stores/attendance-store";
+import { useBunkStore } from "@/stores/bunk-store";
+import { useDashboardStore } from "@/stores/dashboard-store";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider, Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "react-native-reanimated";
+
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 // Custom dark theme with black background
 const CustomDarkTheme = {
@@ -40,8 +47,18 @@ const CustomLightTheme = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
+  const { hasHydrated: dashboardHydrated } = useDashboardStore();
+  const { hasHydrated: attendanceHydrated } = useAttendanceStore();
+  const { hasHydrated: bunkHydrated } = useBunkStore();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
+  });
+  const splashHiddenRef = useRef(false);
+  const fontsReady = fontsLoaded || Boolean(fontError);
+  const appHydrated = dashboardHydrated && attendanceHydrated && bunkHydrated;
 
   useEffect(() => {
     checkAuth();
@@ -56,6 +73,24 @@ export default function RootLayout() {
       }
     }
   }, [isCheckingAuth, isLoggedIn]);
+
+  useEffect(() => {
+    if (!fontsReady || isCheckingAuth || !appHydrated) return;
+    if (splashHiddenRef.current) return;
+    splashHiddenRef.current = true;
+    SplashScreen.hideAsync().catch(() => undefined);
+  }, [appHydrated, fontsReady, isCheckingAuth]);
+
+  useEffect(() => {
+    if (!fontsReady || isCheckingAuth) return;
+    const timeoutId = setTimeout(() => {
+      if (splashHiddenRef.current) return;
+      splashHiddenRef.current = true;
+      SplashScreen.hideAsync().catch(() => undefined);
+    }, 1200);
+
+    return () => clearTimeout(timeoutId);
+  }, [fontsReady, isCheckingAuth]);
 
   if (isCheckingAuth) {
     return (

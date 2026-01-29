@@ -56,6 +56,7 @@ export default function AttendanceScreen() {
     openModal,
   } = useAttendanceUIStore();
   const hasAutoRefreshed = useRef(false);
+  const attendanceStaleMs = 30 * 60 * 1000;
 
   const { handleOpenCreateCourse, handleToggleEditMode } = useCourseActions();
 
@@ -72,7 +73,13 @@ export default function AttendanceScreen() {
   // initial fetch on hydration
   useEffect(() => {
     if (!isAttendanceHydrated || hasAutoRefreshed.current) return;
+    if (isOffline && lastSyncTime === null) return;
     hasAutoRefreshed.current = true;
+    if (isOffline) return;
+
+    const shouldRefresh =
+      lastSyncTime === null || Date.now() - lastSyncTime > attendanceStaleMs;
+    if (!shouldRefresh) return;
     const task = InteractionManager.runAfterInteractions(() => {
       if (lastSyncTime === null) {
         fetchAttendance();
@@ -81,7 +88,13 @@ export default function AttendanceScreen() {
       }
     });
     return () => task.cancel();
-  }, [isAttendanceHydrated, lastSyncTime, fetchAttendance]);
+  }, [
+    attendanceStaleMs,
+    fetchAttendance,
+    isAttendanceHydrated,
+    isOffline,
+    lastSyncTime,
+  ]);
 
   // sync bunk store from LMS data
   useEffect(() => {
