@@ -1,3 +1,4 @@
+import { startBackgroundRefresh } from "@/background/dashboard-background";
 import { EventCard } from "@/components/dashboard/event-card";
 import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { UpNextSection } from "@/components/dashboard/up-next-section";
@@ -5,7 +6,6 @@ import { DevInfoModal } from "@/components/modals/dev-info-modal";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { startBackgroundRefresh } from "@/background/dashboard-background";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { initializeNotifications } from "@/utils/notifications";
@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   InteractionManager,
+  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -260,6 +261,16 @@ export default function DashboardScreen() {
                 onPress: () => {
                   setShowFabMenu(false);
                   router.push("/gpa");
+                },
+              },
+              {
+                icon: "open-in-new",
+                label: "Outpass",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  Linking.openURL("https://outpass.iiitkottayam.ac.in/app");
                 },
               },
               {
