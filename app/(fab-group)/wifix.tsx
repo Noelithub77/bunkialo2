@@ -247,9 +247,19 @@ export default function WifixScreen() {
             <Ionicons name="arrow-back" size={18} color={theme.text} />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>
-              WiFix
-            </Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>
+                WiFix
+              </Text>
+              <View
+                style={[
+                  styles.betaBadge,
+                  { backgroundColor: Colors.status.warning },
+                ]}
+              >
+                <Text style={styles.betaText}>BETA</Text>
+              </View>
+            </View>
             <Text
               style={[styles.headerSubtitle, { color: theme.textSecondary }]}
             >
@@ -402,9 +412,25 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  betaBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  betaText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Colors.black,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
