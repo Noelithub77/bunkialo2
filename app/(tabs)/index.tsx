@@ -25,6 +25,7 @@ import {
   Text,
   View,
 } from "react-native";
+
 import { FAB, Portal } from "react-native-paper";
 
 const formatSyncTime = (timestamp: number | null): string => {
@@ -123,6 +124,19 @@ export default function DashboardScreen() {
   const hasOverdue = overdueEvents.length > 0;
   const isEmpty = upcomingEvents.length === 0 && overdueEvents.length === 0;
   const isHydratingFromCache = !hasHydrated && isEmpty;
+
+  const actionLabelStyle = {
+    color: theme.text,
+    fontSize: 13,
+    fontWeight: "600" as const,
+  };
+
+  const actionContainerStyle = {
+    backgroundColor: isDark ? "rgba(24,24,24,0.92)" : "rgba(255,255,255,0.95)",
+    borderRadius: 999,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+  };
 
   return (
     <Container>
@@ -253,7 +267,7 @@ export default function DashboardScreen() {
             icon={showFabMenu ? "close" : "menu"}
             color={isDark ? Colors.gray[200] : Colors.gray[700]}
             style={{ position: "absolute", right: 0, bottom: 80 }}
-            backdropColor="rgba(0,0,0,0.45)"
+            backdropColor={isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.15)"}
             fabStyle={{
               backgroundColor: showFabMenu
                 ? Colors.gray[800]
@@ -265,6 +279,8 @@ export default function DashboardScreen() {
                 label: "WiFix",
                 color: theme.text,
                 style: { backgroundColor: theme.backgroundSecondary },
+                labelStyle: actionLabelStyle,
+                containerStyle: actionContainerStyle,
                 onPress: () => {
                   setShowFabMenu(false);
                   router.push("/wifix");
@@ -275,6 +291,8 @@ export default function DashboardScreen() {
                 label: "GPA Calculator",
                 color: theme.text,
                 style: { backgroundColor: theme.backgroundSecondary },
+                labelStyle: actionLabelStyle,
+                containerStyle: actionContainerStyle,
                 onPress: () => {
                   setShowFabMenu(false);
                   router.push("/gpa");
@@ -285,6 +303,8 @@ export default function DashboardScreen() {
                 label: "Outpass",
                 color: theme.text,
                 style: { backgroundColor: theme.backgroundSecondary },
+                labelStyle: actionLabelStyle,
+                containerStyle: actionContainerStyle,
                 onPress: () => {
                   setShowFabMenu(false);
                   Linking.openURL("https://outpass.iiitkottayam.ac.in/app");
@@ -295,6 +315,8 @@ export default function DashboardScreen() {
                 label: "Academic Calendar",
                 color: theme.text,
                 style: { backgroundColor: theme.backgroundSecondary },
+                labelStyle: actionLabelStyle,
+                containerStyle: actionContainerStyle,
                 onPress: () => {
                   setShowFabMenu(false);
                   router.push("/acad-cal");
