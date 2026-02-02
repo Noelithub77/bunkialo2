@@ -18,7 +18,7 @@
       }
     },
     "android": {
-      "versionCode": 26,
+      "versionCode": 27,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED"
       ],

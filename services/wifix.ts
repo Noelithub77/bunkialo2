@@ -14,6 +14,53 @@ const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
 
+const normalizeUrlForCompare = (url: string): string | null => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return null;
+  }
+};
+
+const isConnectivityCheckUrl = (url: string | null): boolean => {
+  if (!url) return false;
+  const normalizedTarget = normalizeUrlForCompare(CONNECTIVITY_CHECK_URL);
+  const normalizedUrl = normalizeUrlForCompare(url);
+  return Boolean(
+    normalizedTarget &&
+      normalizedUrl &&
+      normalizedTarget === normalizedUrl,
+  );
+};
+
+const resolveAbsoluteUrl = (
+  candidate: string,
+  baseUrl: string | null,
+): string | null => {
+  try {
+    if (baseUrl) {
+      return new URL(candidate, baseUrl).toString();
+    }
+    return new URL(candidate).toString();
+  } catch {
+    if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+      return candidate;
+    }
+    return null;
+  }
+};
+
+const normalizePortalCandidate = (
+  candidate: string | null,
+  baseUrl: string | null = null,
+): string | null => {
+  if (!candidate) return null;
+  const resolved = resolveAbsoluteUrl(candidate, baseUrl);
+  if (!resolved) return null;
+  return isConnectivityCheckUrl(resolved) ? null : resolved;
+};
+
 const fetchWithTimeout = async (
   url: string,
   options: RequestInit = {},
@@ -43,8 +90,25 @@ const extractPortalUrlFromHtml = (html: string): string | null => {
   const windowMatch = html.match(/window\.location\s*=\s*["']([^"']+)["']/i);
   if (windowMatch?.[1]) return windowMatch[1];
 
-  const metaMatch = html.match(/<meta[^>]+url=['"]?([^'">\s]+)/i);
-  if (metaMatch?.[1]) return metaMatch[1];
+  const metaRefreshMatch = html.match(
+    /http-equiv=["']?refresh["']?[^>]*content=["'][^"']*url=([^"']+)["']/i,
+  );
+  if (metaRefreshMatch?.[1]) return metaRefreshMatch[1];
+
+  const metaUrlMatch = html.match(/<meta[^>]+url=['"]?([^'">\s]+)/i);
+  if (metaUrlMatch?.[1]) return metaUrlMatch[1];
+
+  const doc = parseHtml(html);
+  const baseHref = getAttr(querySelector(doc, "base[href]"), "href");
+  const formAction = getAttr(querySelector(doc, "form[action]"), "action");
+  const linkHref = getAttr(querySelector(doc, "a[href]"), "href");
+
+  const candidates = [formAction, baseHref, linkHref];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const resolved = resolveAbsoluteUrl(candidate, baseHref);
+    if (resolved) return resolved;
+  }
 
   const urlMatch = html.match(/https?:\/\/[^"'\s>]+/i);
   return urlMatch?.[0] ?? null;
@@ -78,6 +142,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
   wifixLogger.info("Starting connectivity check...");
 
   try {
+    wifixLogger.info(`Connectivity check URL: ${CONNECTIVITY_CHECK_URL}`);
     const response = await fetchWithTimeout(CONNECTIVITY_CHECK_URL, {
       method: "GET",
       cache: "no-store",
@@ -103,42 +168,76 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     const locationHeader = response.headers.get("Location");
 
     if (locationHeader) {
-      portalUrl = locationHeader;
+      wifixLogger.info(`Location header detected: ${locationHeader}`);
+    } else {
+      wifixLogger.info("No Location header in response");
+    }
+
+    if (response.url) {
+      wifixLogger.info(`Response URL: ${response.url}`);
+    } else {
+      wifixLogger.info("No response URL reported by fetch");
+    }
+
+    const portalFromLocation = normalizePortalCandidate(locationHeader);
+    const portalFromResponseUrl = normalizePortalCandidate(response.url);
+
+    if (locationHeader && !portalFromLocation) {
+      wifixLogger.info("Location header ignored (matches connectivity URL)");
+    }
+
+    if (response.url && !portalFromResponseUrl) {
+      wifixLogger.info("Response URL ignored (matches connectivity URL)");
+    }
+
+    if (portalFromLocation) {
+      portalUrl = portalFromLocation;
       debug.wifix("Step 3: Captive portal found in location header", {
         portalUrl,
       });
       wifixLogger.info(`Captive portal detected in location header`);
-    } else if (response.url && response.url !== CONNECTIVITY_CHECK_URL) {
-      portalUrl = response.url;
+    } else if (portalFromResponseUrl) {
+      portalUrl = portalFromResponseUrl;
       debug.wifix("Step 3: Captive portal found in response URL", {
         portalUrl,
       });
       wifixLogger.info(`Captive portal detected in response URL`);
     } else {
       const body = await response.text();
-      portalUrl = extractPortalUrlFromHtml(body);
+      wifixLogger.info(
+        `HTML body length: ${body.length} characters (extracting portal URL)`,
+      );
+      const portalFromHtml = normalizePortalCandidate(
+        extractPortalUrlFromHtml(body),
+      );
+      portalUrl = portalFromHtml;
       debug.wifix("Step 3: Captive portal found in HTML", { portalUrl });
       if (portalUrl) {
         wifixLogger.info(`Captive portal detected in HTML content`);
+      } else {
+        wifixLogger.info("No portal URL found in HTML content");
       }
     }
 
+    const state = "captive";
     debug.wifix("Step 4: Connectivity check complete", {
-      state: portalUrl ? "captive" : "offline",
+      state,
     });
 
     if (portalUrl) {
       wifixLogger.success(`Captive portal detected: ${portalUrl}`);
     } else {
-      wifixLogger.error("No captive portal detected - offline");
+      wifixLogger.info("Captive portal detected (no portal URL in response)");
     }
 
     return {
-      state: portalUrl ? "captive" : "offline",
+      state,
       portalUrl,
       portalBaseUrl: extractPortalBaseUrl(portalUrl),
       statusCode: response.status,
-      message: portalUrl ? "Captive portal detected" : "Offline",
+      message: portalUrl
+        ? "Captive portal detected"
+        : "Captive portal detected (no portal URL)",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network error";

@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "EAS Update Production",
+      "label": "OTA update ",
       "type": "shell",
       "command": "eas",
       "args": [
@@ -13,8 +13,7 @@
         "${input:updateMessage}"
       ],
       "group": {
-        "kind": "build",
-        "isDefault": true
+        "kind": "build"
       },
       "problemMatcher": [],
       "presentation": {
@@ -26,11 +25,7 @@
       "label": "Build AAB",
       "type": "shell",
       "command": "gh",
-      "args": [
-        "workflow",
-        "run",
-        "android-production-release.yml"
-      ],
+      "args": ["workflow", "run", "android-production-release.yml"],
       "group": {
         "kind": "build"
       },
@@ -44,10 +39,27 @@
       "label": "Build APK",
       "type": "shell",
       "command": "gh",
+      "args": ["workflow", "run", "android-preview-release.yml"],
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "build + submit",
+      "type": "shell",
+      "command": "eas",
       "args": [
-        "workflow",
-        "run",
-        "android-preview-release.yml"
+        "build",
+        "--platform",
+        "android",
+        "--profile",
+        "production",
+        "--auto-submit"
       ],
       "group": {
         "kind": "build"
