@@ -1,5 +1,9 @@
 import { getCredentials } from "@/services/auth";
-import { checkConnectivity, loginToCaptivePortal } from "@/services/wifix";
+import {
+  checkConnectivity,
+  loginToCaptivePortal,
+  resolvePortalSelection,
+} from "@/services/wifix";
 import { useWifixStore } from "@/stores/wifix-store";
 import { wifixLogger } from "@/utils/wifix-logger";
 import * as BackgroundTask from "expo-background-task";
@@ -9,7 +13,8 @@ const WIFIX_TASK_NAME = "wifix-background-login";
 
 const runWifixLogin =
   async (): Promise<BackgroundTask.BackgroundTaskResult> => {
-    const { autoReconnectEnabled, portalBaseUrl } = useWifixStore.getState();
+    const { autoReconnectEnabled, portalBaseUrl, portalSource, manualPortalUrl } =
+      useWifixStore.getState();
 
     if (!autoReconnectEnabled) {
       return BackgroundTask.BackgroundTaskResult.Success;
@@ -36,11 +41,18 @@ const runWifixLogin =
     }
 
     wifixLogger.info("Background task: Attempting login");
+    const selection = resolvePortalSelection({
+      detectedPortalUrl: connectivity.portalUrl,
+      detectedPortalBaseUrl: connectivity.portalBaseUrl,
+      manualPortalUrl,
+      portalSource,
+    });
+
     const loginResult = await loginToCaptivePortal({
       username: credentials.username,
       password: credentials.password,
-      portalUrl: connectivity.portalUrl,
-      portalBaseUrl: connectivity.portalBaseUrl ?? portalBaseUrl,
+      portalUrl: selection.portalUrl,
+      portalBaseUrl: selection.portalBaseUrl ?? portalBaseUrl,
     });
 
     if (!loginResult.success) {

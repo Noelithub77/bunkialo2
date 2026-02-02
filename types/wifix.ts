@@ -6,6 +6,8 @@ export type WifixConnectionState =
   | "offline"
   | "error";
 
+export type WifixPortalSource = "auto" | "manual";
+
 export interface WifixConnectivityResult {
   state: WifixConnectionState;
   portalUrl: string | null;
@@ -32,4 +34,6 @@ export interface WifixSettings {
   autoReconnectEnabled: boolean;
   backgroundIntervalMinutes: number;
   portalBaseUrl: string | null;
+  manualPortalUrl: string | null;
+  portalSource: WifixPortalSource;
 }

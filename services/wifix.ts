@@ -1,7 +1,9 @@
+import { WIFIX_DEFAULT_PORT, WIFIX_KEEPALIVE_PATH } from "@/constants/wifix";
 import type {
-    WifixConnectivityResult,
-    WifixLoginResult,
-    WifixLogoutResult,
+  WifixConnectivityResult,
+  WifixLoginResult,
+  WifixLogoutResult,
+  WifixPortalSource,
 } from "@/types";
 import { debug } from "@/utils/debug";
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
@@ -13,6 +15,16 @@ const DEFAULT_PORTAL_BASE_URL = "http://172.16.222.1:1000";
 const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
+
+export const getPortalBaseUrl = (portalUrl: string | null): string | null => {
+  if (!portalUrl) return null;
+  try {
+    const url = new URL(portalUrl);
+    return url.origin;
+  } catch {
+    return null;
+  }
+};
 
 const normalizeUrlForCompare = (url: string): string | null => {
   try {
@@ -61,6 +73,105 @@ const normalizePortalCandidate = (
   return isConnectivityCheckUrl(resolved) ? null : resolved;
 };
 
+export const normalizePortalUrlInput = (input: string | null): string | null => {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  let candidate = trimmed;
+  if (!/^https?:\/\//i.test(candidate)) {
+    candidate = `http://${candidate}`;
+  }
+
+  try {
+    const url = new URL(candidate);
+    if (!url.port) {
+      url.port = WIFIX_DEFAULT_PORT;
+    }
+
+    const [keepalivePath, keepaliveQuery] =
+      WIFIX_KEEPALIVE_PATH.split("?");
+    const hasPath = url.pathname && url.pathname !== "/";
+    if (!hasPath) {
+      url.pathname = keepalivePath || "/keepalive";
+      url.search = keepaliveQuery ? `?${keepaliveQuery}` : "";
+    } else if (url.pathname === (keepalivePath || "/keepalive") && !url.search) {
+      url.search = keepaliveQuery ? `?${keepaliveQuery}` : "";
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
+export const resolvePortalSelection = (params: {
+  detectedPortalUrl: string | null;
+  detectedPortalBaseUrl: string | null;
+  manualPortalUrl: string | null;
+  portalSource: WifixPortalSource;
+}): {
+  portalUrl: string | null;
+  portalBaseUrl: string | null;
+  source: WifixPortalSource;
+  normalizedManualUrl: string | null;
+} => {
+  const normalizedManualUrl = normalizePortalUrlInput(params.manualPortalUrl);
+  const manualBaseUrl = getPortalBaseUrl(normalizedManualUrl);
+  const autoBaseUrl =
+    params.detectedPortalBaseUrl ?? getPortalBaseUrl(params.detectedPortalUrl);
+
+  if (params.portalSource === "manual") {
+    if (normalizedManualUrl) {
+      return {
+        portalUrl: normalizedManualUrl,
+        portalBaseUrl: manualBaseUrl,
+        source: "manual",
+        normalizedManualUrl,
+      };
+    }
+    if (params.detectedPortalUrl || autoBaseUrl) {
+      return {
+        portalUrl: params.detectedPortalUrl,
+        portalBaseUrl: autoBaseUrl,
+        source: "auto",
+        normalizedManualUrl,
+      };
+    }
+    return {
+      portalUrl: null,
+      portalBaseUrl: null,
+      source: "manual",
+      normalizedManualUrl,
+    };
+  }
+
+  if (params.detectedPortalUrl || autoBaseUrl) {
+    return {
+      portalUrl: params.detectedPortalUrl,
+      portalBaseUrl: autoBaseUrl,
+      source: "auto",
+      normalizedManualUrl,
+    };
+  }
+
+  if (normalizedManualUrl) {
+    return {
+      portalUrl: normalizedManualUrl,
+      portalBaseUrl: manualBaseUrl,
+      source: "manual",
+      normalizedManualUrl,
+    };
+  }
+
+  return {
+    portalUrl: null,
+    portalBaseUrl: null,
+    source: "auto",
+    normalizedManualUrl,
+  };
+};
+
 const fetchWithTimeout = async (
   url: string,
   options: RequestInit = {},
@@ -73,16 +184,6 @@ const fetchWithTimeout = async (
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
     clearTimeout(timeoutId);
-  }
-};
-
-const extractPortalBaseUrl = (portalUrl: string | null): string | null => {
-  if (!portalUrl) return null;
-  try {
-    const url = new URL(portalUrl);
-    return url.origin;
-  } catch {
-    return null;
   }
 };
 
@@ -233,7 +334,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     return {
       state,
       portalUrl,
-      portalBaseUrl: extractPortalBaseUrl(portalUrl),
+      portalBaseUrl: getPortalBaseUrl(portalUrl),
       statusCode: response.status,
       message: portalUrl
         ? "Captive portal detected"
@@ -263,7 +364,7 @@ export const loginToCaptivePortal = async (params: {
   wifixLogger.info("Starting captive portal login...");
 
   const portalBaseUrl =
-    params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
+    params.portalBaseUrl ?? getPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
 
   const loginUrl = params.portalUrl?.includes("/login")
@@ -344,7 +445,7 @@ export const logoutFromCaptivePortal = async (params: {
   wifixLogger.info("Starting captive portal logout...");
 
   const portalBaseUrl =
-    params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
+    params.portalBaseUrl ?? getPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
   const logoutUrl = baseUrl.endsWith("/")
     ? `${baseUrl}${DEFAULT_LOGOUT_PATH.slice(1)}`

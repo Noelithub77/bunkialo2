@@ -1,18 +1,26 @@
 import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import { ExternalLink } from "@/components/shared/external-link";
 import { Container } from "@/components/ui/container";
+import { Input } from "@/components/ui/input";
 import { WifixLogModal } from "@/components/wifix";
 import { Colors, Radius, Spacing } from "@/constants/theme";
+import {
+  DEFAULT_MANUAL_PORTAL_URL,
+  WIFIX_PORTAL_PRESETS,
+} from "@/constants/wifix";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getCredentials } from "@/services/auth";
 import {
   checkConnectivity,
   getDefaultPortalBaseUrl,
+  getPortalBaseUrl,
   loginToCaptivePortal,
   logoutFromCaptivePortal,
+  normalizePortalUrlInput,
+  resolvePortalSelection,
 } from "@/services/wifix";
 import { useWifixStore } from "@/stores/wifix-store";
-import type { WifixConnectionState } from "@/types";
+import type { WifixConnectionState, WifixPortalSource } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import NetInfo from "@react-native-community/netinfo";
 import { Image } from "expo-image";
@@ -22,6 +30,7 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -96,8 +105,12 @@ export default function WifixScreen() {
   const {
     autoReconnectEnabled,
     portalBaseUrl: storedPortalBaseUrl,
+    manualPortalUrl,
+    portalSource,
     setAutoReconnectEnabled,
     setPortalBaseUrl,
+    setManualPortalUrl,
+    setPortalSource,
   } = useWifixStore();
 
   const [now, setNow] = useState(() => new Date());
@@ -106,10 +119,15 @@ export default function WifixScreen() {
   const [portalBaseUrl, setPortalBaseUrlLocal] = useState<string | null>(
     storedPortalBaseUrl,
   );
+  const [manualInput, setManualInput] = useState<string>(
+    manualPortalUrl ?? DEFAULT_MANUAL_PORTAL_URL,
+  );
+  const [manualError, setManualError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showMobileDataWarning, setShowMobileDataWarning] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const inFlightRef = useRef(false);
   const lastAttemptRef = useRef(0);
@@ -119,7 +137,39 @@ export default function WifixScreen() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (!manualPortalUrl) {
+      if (manualInput !== DEFAULT_MANUAL_PORTAL_URL) {
+        setManualInput(DEFAULT_MANUAL_PORTAL_URL);
+      }
+      return;
+    }
+    if (manualPortalUrl !== manualInput) {
+      setManualInput(manualPortalUrl);
+    }
+  }, [manualPortalUrl, manualInput]);
+
   const statusMeta = useMemo(() => getStatusMeta(status), [status]);
+  const normalizedManualPreview = useMemo(
+    () => normalizePortalUrlInput(manualInput),
+    [manualInput],
+  );
+  const resolvedSelection = useMemo(
+    () =>
+      resolvePortalSelection({
+        detectedPortalUrl: portalUrl,
+        detectedPortalBaseUrl: getPortalBaseUrl(portalUrl),
+        manualPortalUrl,
+        portalSource,
+      }),
+    [manualPortalUrl, portalSource, portalUrl],
+  );
+  const selectedPortalUrl = resolvedSelection.portalUrl;
+  const selectedPortalBaseUrl =
+    resolvedSelection.portalBaseUrl ??
+    storedPortalBaseUrl ??
+    getDefaultPortalBaseUrl();
+  const effectivePortalSource = resolvedSelection.source;
 
   const syncPortalBaseUrl = useCallback(
     (nextBaseUrl: string | null) => {
@@ -130,6 +180,66 @@ export default function WifixScreen() {
       }
     },
     [setPortalBaseUrl, storedPortalBaseUrl],
+  );
+
+  const resolveSelectionFor = useCallback(
+    (detectedUrl: string | null, detectedBaseUrl: string | null) =>
+      resolvePortalSelection({
+        detectedPortalUrl: detectedUrl,
+        detectedPortalBaseUrl: detectedBaseUrl,
+        manualPortalUrl,
+        portalSource,
+      }),
+    [manualPortalUrl, portalSource],
+  );
+
+  const handleApplyManualUrl = useCallback(() => {
+    const normalized = normalizePortalUrlInput(manualInput);
+    if (!normalized) {
+      setManualError("Enter a valid URL or IP address.");
+      return;
+    }
+    setManualError(null);
+    setManualInput(normalized);
+    setManualPortalUrl(normalized);
+    setPortalSource("manual");
+    syncPortalBaseUrl(getPortalBaseUrl(normalized));
+  }, [manualInput, setManualPortalUrl, setPortalSource, syncPortalBaseUrl]);
+
+  const handlePresetSelect = useCallback(
+    (presetUrl: string) => {
+      const normalized = normalizePortalUrlInput(presetUrl) ?? presetUrl;
+      setManualError(null);
+      setManualInput(normalized);
+      setManualPortalUrl(normalized);
+      setPortalSource("manual");
+      syncPortalBaseUrl(getPortalBaseUrl(normalized));
+    },
+    [setManualPortalUrl, setPortalSource, syncPortalBaseUrl],
+  );
+
+  const handleSelectPortalSource = useCallback(
+    (source: WifixPortalSource) => {
+      setPortalSource(source);
+      if (source === "manual") {
+        const fallbackManual =
+          manualPortalUrl ??
+          normalizePortalUrlInput(manualInput) ??
+          DEFAULT_MANUAL_PORTAL_URL;
+        if (!manualPortalUrl) {
+          setManualPortalUrl(fallbackManual);
+          setManualInput(fallbackManual);
+        }
+        syncPortalBaseUrl(getPortalBaseUrl(fallbackManual));
+      }
+    },
+    [
+      manualPortalUrl,
+      manualInput,
+      setManualPortalUrl,
+      setPortalSource,
+      syncPortalBaseUrl,
+    ],
   );
 
   const runConnectivityCheck = useCallback(
@@ -146,7 +256,11 @@ export default function WifixScreen() {
         const result = await checkConnectivity();
         setStatus(result.state);
         setPortalUrl(result.portalUrl);
-        syncPortalBaseUrl(result.portalBaseUrl);
+        const selection = resolveSelectionFor(
+          result.portalUrl,
+          result.portalBaseUrl,
+        );
+        syncPortalBaseUrl(selection.portalBaseUrl ?? result.portalBaseUrl);
 
         // Check if mobile data might interfere
         if (result.state === "captive") {
@@ -168,8 +282,9 @@ export default function WifixScreen() {
           const loginResult = await loginToCaptivePortal({
             username: credentials.username,
             password: credentials.password,
-            portalUrl: result.portalUrl,
-            portalBaseUrl: result.portalBaseUrl ?? storedPortalBaseUrl,
+            portalUrl: selection.portalUrl,
+            portalBaseUrl:
+              selection.portalBaseUrl ?? storedPortalBaseUrl ?? portalBaseUrl,
           });
 
           setMessage(loginResult.message);
@@ -179,8 +294,12 @@ export default function WifixScreen() {
             const updated = await checkConnectivity();
             setStatus(updated.state);
             setPortalUrl(updated.portalUrl);
+            const updatedSelection = resolveSelectionFor(
+              updated.portalUrl,
+              updated.portalBaseUrl,
+            );
             syncPortalBaseUrl(
-              updated.portalBaseUrl ?? loginResult.portalBaseUrl,
+              updatedSelection.portalBaseUrl ?? loginResult.portalBaseUrl,
             );
           }
         } else if (shouldLogin && result.state === "offline") {
@@ -191,7 +310,12 @@ export default function WifixScreen() {
         inFlightRef.current = false;
       }
     },
-    [storedPortalBaseUrl, syncPortalBaseUrl],
+    [
+      portalBaseUrl,
+      resolveSelectionFor,
+      storedPortalBaseUrl,
+      syncPortalBaseUrl,
+    ],
   );
 
   useEffect(() => {
@@ -200,10 +324,13 @@ export default function WifixScreen() {
 
   // Background task handles auto reconnect; avoid polling on this screen.
 
-  const portalDisplayUrl = portalUrl ?? "Not detected";
-  const baseDisplayUrl =
-    portalBaseUrl ?? storedPortalBaseUrl ?? getDefaultPortalBaseUrl();
+  const portalDisplayUrl = selectedPortalUrl ?? "Not available";
+  const baseDisplayUrl = selectedPortalBaseUrl;
   const isBusy = isConnecting || isLoggingOut;
+  const selectedSourceLabel =
+    portalSource === "auto" ? "Auto-detected" : "Manual";
+  const effectiveSourceLabel =
+    effectivePortalSource === "auto" ? "Auto-detected" : "Manual";
 
   const handleLogoutInternet = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -213,9 +340,14 @@ export default function WifixScreen() {
     setMessage(null);
 
     try {
-      const logoutResult = await logoutFromCaptivePortal({
+      const selection = resolveSelectionFor(
         portalUrl,
-        portalBaseUrl: storedPortalBaseUrl ?? portalBaseUrl,
+        getPortalBaseUrl(portalUrl),
+      );
+      const logoutResult = await logoutFromCaptivePortal({
+        portalUrl: selection.portalUrl,
+        portalBaseUrl:
+          selection.portalBaseUrl ?? storedPortalBaseUrl ?? portalBaseUrl,
       });
       setMessage(logoutResult.message);
       syncPortalBaseUrl(logoutResult.portalBaseUrl);
@@ -223,12 +355,18 @@ export default function WifixScreen() {
       const updated = await checkConnectivity();
       setStatus(updated.state);
       setPortalUrl(updated.portalUrl);
-      syncPortalBaseUrl(updated.portalBaseUrl ?? logoutResult.portalBaseUrl);
+      const updatedSelection = resolveSelectionFor(
+        updated.portalUrl,
+        updated.portalBaseUrl,
+      );
+      syncPortalBaseUrl(
+        updatedSelection.portalBaseUrl ?? logoutResult.portalBaseUrl,
+      );
     } finally {
       setIsLoggingOut(false);
       inFlightRef.current = false;
     }
-  }, [portalUrl, storedPortalBaseUrl, portalBaseUrl, syncPortalBaseUrl]);
+  }, [portalUrl, storedPortalBaseUrl, resolveSelectionFor, syncPortalBaseUrl]);
 
   return (
     <Container>
@@ -268,18 +406,30 @@ export default function WifixScreen() {
               WiFixing {formatTimestamp(now)}
             </Text>
           </View>
-          <Switch
-            value={autoReconnectEnabled}
-            onValueChange={(enabled) => {
-              setAutoReconnectEnabled(enabled);
-              syncWifixBackgroundTask();
-            }}
-            trackColor={{
-              false: Colors.gray[700],
-              true: Colors.status.info,
-            }}
-            thumbColor={Colors.white}
-          />
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => setShowConfigModal(true)}
+              style={[
+                styles.configButton,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
+              hitSlop={8}
+            >
+              <Ionicons name="settings-outline" size={18} color={theme.text} />
+            </Pressable>
+            <Switch
+              value={autoReconnectEnabled}
+              onValueChange={(enabled) => {
+                setAutoReconnectEnabled(enabled);
+                syncWifixBackgroundTask();
+              }}
+              trackColor={{
+                false: Colors.gray[700],
+                true: Colors.status.info,
+              }}
+              thumbColor={Colors.white}
+            />
+          </View>
         </View>
 
         <View style={styles.hero}>
@@ -367,7 +517,7 @@ export default function WifixScreen() {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
-              Captive portal URL
+              Selected portal URL
             </Text>
             <View style={styles.infoRowRight}>
               <Text
@@ -393,6 +543,14 @@ export default function WifixScreen() {
                 )}
               </Pressable>
             </View>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+              Selected source
+            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {effectiveSourceLabel}
+            </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
@@ -481,6 +639,181 @@ export default function WifixScreen() {
         visible={showLogModal}
         onClose={() => setShowLogModal(false)}
       />
+
+      <Modal
+        visible={showConfigModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfigModal(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowConfigModal(false)}
+        />
+        <View style={styles.modalSheetWrap}>
+          <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+            <View style={styles.modalTopRow}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Portal
+              </Text>
+              <View style={styles.modalTopActions}>
+                <Pressable
+                  onPress={handleApplyManualUrl}
+                  style={styles.modalIconButton}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={Colors.status.success}
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={() => setShowConfigModal(false)}
+                  style={styles.modalIconButton}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={20} color={theme.text} />
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.modalRow}>
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>
+                Source
+              </Text>
+              <View style={styles.modalChips}>
+                <Pressable
+                  onPress={() => handleSelectPortalSource("auto")}
+                  style={[
+                    styles.chip,
+                    portalSource === "auto" && styles.chipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color:
+                          portalSource === "auto"
+                            ? Colors.black
+                            : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    Auto
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => handleSelectPortalSource("manual")}
+                  style={[
+                    styles.chip,
+                    portalSource === "manual" && styles.chipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color:
+                          portalSource === "manual"
+                            ? Colors.black
+                            : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    Manual
+                  </Text>
+                </Pressable>
+              </View>
+              <View style={styles.modalRowRight}>
+                <Text style={[styles.modalValue, { color: theme.text }]}>
+                  Using: {effectiveSourceLabel}
+                </Text>
+              </View>
+            </View>
+
+            {effectivePortalSource !== portalSource && (
+              <Text style={[styles.modalHint, { color: theme.textSecondary }]}>
+                Selected source unavailable; using {effectiveSourceLabel}.
+              </Text>
+            )}
+
+            <View style={styles.modalRow}>
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>
+                Preset
+              </Text>
+              <View style={styles.modalChips}>
+                {WIFIX_PORTAL_PRESETS.map((preset) => {
+                  const isActive = manualPortalUrl === preset.url;
+                  return (
+                    <Pressable
+                      key={preset.id}
+                      onPress={() => handlePresetSelect(preset.url)}
+                      style={[styles.chip, isActive && styles.chipActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          {
+                            color: isActive
+                              ? Colors.black
+                              : theme.textSecondary,
+                          },
+                        ]}
+                      >
+                        {preset.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <Input
+              label="Manual URL or IP"
+              value={manualInput}
+              onChangeText={(value) => {
+                setManualInput(value);
+                if (manualError) setManualError(null);
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="172.16.222.1 or http://..."
+              error={manualError ?? undefined}
+            />
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+              Auto-adds http://, :1000 and /keepalive.
+            </Text>
+            {normalizedManualPreview &&
+              normalizedManualPreview !== manualInput && (
+                <Text style={[styles.normalizedText, { color: theme.text }]}>
+                  Normalized: {normalizedManualPreview}
+                </Text>
+              )}
+
+            <View style={styles.modalFooterRow}>
+              <View style={styles.modalFooterInfo}>
+                <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>
+                  Active
+                </Text>
+                <Text style={[styles.modalValue, { color: theme.text }]}>
+                  {portalDisplayUrl}
+                </Text>
+              </View>
+              <Pressable
+                onPress={handleApplyManualUrl}
+                style={({ pressed }) => [
+                  styles.manualButton,
+                  pressed && styles.manualButtonPressed,
+                ]}
+              >
+                <Text style={styles.manualButtonText}>Apply</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Container>
   );
 }
@@ -497,7 +830,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
   backIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  configButton: {
     width: 36,
     height: 36,
     borderRadius: Radius.full,
@@ -581,6 +926,114 @@ const styles = StyleSheet.create({
   statusTime: {
     fontSize: 11,
     marginTop: Spacing.sm,
+  },
+  helperText: {
+    fontSize: 12,
+  },
+  normalizedText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  manualButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.status.info,
+  },
+  manualButtonPressed: {
+    opacity: 0.7,
+  },
+  manualButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.black,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+  },
+  modalSheetWrap: {
+    flex: 1,
+    justifyContent: "flex-end",
+    padding: Spacing.lg,
+  },
+  modalSheet: {
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray[800],
+    gap: Spacing.md,
+  },
+  modalTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalTopActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  modalIconButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  modalRowRight: {
+    marginLeft: "auto",
+  },
+  modalLabel: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  modalValue: {
+    fontSize: 12,
+  },
+  modalHint: {
+    fontSize: 12,
+  },
+  modalChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.gray[700],
+  },
+  chipActive: {
+    backgroundColor: Colors.status.warning,
+    borderColor: Colors.status.warning,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  modalFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  modalFooterInfo: {
+    flex: 1,
   },
   divider: {
     height: 1,
