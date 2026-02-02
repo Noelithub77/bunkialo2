@@ -1,6 +1,7 @@
 import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import { ExternalLink } from "@/components/shared/external-link";
 import { Container } from "@/components/ui/container";
+import { WifixLogModal } from "@/components/wifix";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getCredentials } from "@/services/auth";
@@ -13,8 +14,10 @@ import {
 import { useWifixStore } from "@/stores/wifix-store";
 import type { WifixConnectionState } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import NetInfo from "@react-native-community/netinfo";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -106,6 +109,8 @@ export default function WifixScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showMobileDataWarning, setShowMobileDataWarning] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
   const inFlightRef = useRef(false);
   const lastAttemptRef = useRef(0);
 
@@ -142,6 +147,16 @@ export default function WifixScreen() {
         setStatus(result.state);
         setPortalUrl(result.portalUrl);
         syncPortalBaseUrl(result.portalBaseUrl);
+
+        // Check if mobile data might interfere
+        if (result.state === "captive") {
+          const netInfo = await NetInfo.fetch();
+          if (netInfo.details?.isConnectionExpensive === true) {
+            setShowMobileDataWarning(true);
+            setMessage("Mobile data is active. Please disable it to login.");
+            return;
+          }
+        }
 
         if (shouldLogin && result.state === "captive") {
           const credentials = await getCredentials();
@@ -268,12 +283,62 @@ export default function WifixScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Image
-            source={require("../assets/icons/wifix.png")}
-            style={styles.logo}
-            contentFit="contain"
-          />
+          <Pressable onPress={() => setShowLogModal(true)} hitSlop={20}>
+            <Image
+              source={require("../assets/icons/wifix.png")}
+              style={styles.logo}
+              contentFit="contain"
+            />
+          </Pressable>
+          {/* <Text style={[styles.logoHint, { color: theme.textSecondary }]}>
+            Tap logo to view logs
+          </Text> */}
         </View>
+
+        {showMobileDataWarning && (
+          <View
+            style={[styles.warningCard, { borderColor: Colors.status.warning }]}
+          >
+            <Ionicons name="warning" size={24} color={Colors.status.warning} />
+            <View style={styles.warningContent}>
+              <Text style={[styles.warningTitle, { color: theme.text }]}>
+                Mobile Data Detected
+              </Text>
+              <Text
+                style={[styles.warningText, { color: theme.textSecondary }]}
+              >
+                Mobile data may prevent WiFi login. Please disable it in
+                settings and retry.
+              </Text>
+              <View style={styles.warningActions}>
+                <Pressable
+                  onPress={() => Linking.openSettings()}
+                  style={[
+                    styles.warningButton,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
+                  <Text
+                    style={[styles.warningButtonText, { color: theme.text }]}
+                  >
+                    Open Settings
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setShowMobileDataWarning(false);
+                    runConnectivityCheck(true);
+                  }}
+                  style={[styles.warningButton, styles.warningButtonPrimary]}
+                >
+                  <Text style={styles.warningButtonTextPrimary}>
+                    I&apos;ve Disabled It
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
 
         <View
           style={[styles.statusCard, { borderColor: statusMeta.color + "55" }]}
@@ -411,6 +476,11 @@ export default function WifixScreen() {
           </ExternalLink>
         </View>
       </ScrollView>
+
+      <WifixLogModal
+        visible={showLogModal}
+        onClose={() => setShowLogModal(false)}
+      />
     </Container>
   );
 }
@@ -470,6 +540,11 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     marginBottom: Spacing.md,
+    opacity: 0.9,
+  },
+  logoHint: {
+    fontSize: 12,
+    opacity: 0.6,
   },
   heroTitle: {
     fontSize: 28,
@@ -578,5 +653,46 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 12,
     textDecorationLine: "underline",
+  },
+  warningCard: {
+    flexDirection: "row",
+    padding: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    backgroundColor: "rgba(255, 193, 7, 0.1)",
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  warningText: {
+    fontSize: 14,
+    marginBottom: Spacing.sm,
+  },
+  warningActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  warningButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.sm,
+  },
+  warningButtonPrimary: {
+    backgroundColor: Colors.status.warning,
+  },
+  warningButtonText: {
+    fontSize: 14,
+  },
+  warningButtonTextPrimary: {
+    fontSize: 14,
+    color: Colors.black,
+    fontWeight: "500",
   },
 });

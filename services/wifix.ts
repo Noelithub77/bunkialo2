@@ -1,10 +1,11 @@
 import type {
-  WifixConnectivityResult,
-  WifixLoginResult,
-  WifixLogoutResult,
+    WifixConnectivityResult,
+    WifixLoginResult,
+    WifixLogoutResult,
 } from "@/types";
 import { debug } from "@/utils/debug";
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
+import { wifixLogger } from "@/utils/wifix-logger";
 
 const CONNECTIVITY_CHECK_URL =
   "http://connectivitycheck.gstatic.com/generate_204";
@@ -74,6 +75,8 @@ const extractLoginFields = (
 
 export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
   debug.wifix("Step 1: Checking connectivity");
+  wifixLogger.info("Starting connectivity check...");
+
   try {
     const response = await fetchWithTimeout(CONNECTIVITY_CHECK_URL, {
       method: "GET",
@@ -82,9 +85,11 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     });
 
     debug.wifix("Step 2: Response received", { status: response.status });
+    wifixLogger.info(`Response received: ${response.status}`);
 
     if (response.status === 204) {
       debug.wifix("Step 3: Online - no captive portal");
+      wifixLogger.success("Connection successful: Online (no captive portal)");
       return {
         state: "online",
         portalUrl: null,
@@ -102,20 +107,32 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
       debug.wifix("Step 3: Captive portal found in location header", {
         portalUrl,
       });
+      wifixLogger.info(`Captive portal detected in location header`);
     } else if (response.url && response.url !== CONNECTIVITY_CHECK_URL) {
       portalUrl = response.url;
       debug.wifix("Step 3: Captive portal found in response URL", {
         portalUrl,
       });
+      wifixLogger.info(`Captive portal detected in response URL`);
     } else {
       const body = await response.text();
       portalUrl = extractPortalUrlFromHtml(body);
       debug.wifix("Step 3: Captive portal found in HTML", { portalUrl });
+      if (portalUrl) {
+        wifixLogger.info(`Captive portal detected in HTML content`);
+      }
     }
 
     debug.wifix("Step 4: Connectivity check complete", {
       state: portalUrl ? "captive" : "offline",
     });
+
+    if (portalUrl) {
+      wifixLogger.success(`Captive portal detected: ${portalUrl}`);
+    } else {
+      wifixLogger.error("No captive portal detected - offline");
+    }
+
     return {
       state: portalUrl ? "captive" : "offline",
       portalUrl,
@@ -126,6 +143,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network error";
     debug.wifix("Step 3: Connectivity check failed", { message });
+    wifixLogger.error(`Connectivity check failed: ${message}`);
     return {
       state: "offline",
       portalUrl: null,
@@ -143,6 +161,8 @@ export const loginToCaptivePortal = async (params: {
   portalBaseUrl: string | null;
 }): Promise<WifixLoginResult> => {
   debug.wifix("Step 1: Starting captive portal login");
+  wifixLogger.info("Starting captive portal login...");
+
   const portalBaseUrl =
     params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
@@ -152,6 +172,8 @@ export const loginToCaptivePortal = async (params: {
     : `${baseUrl}${DEFAULT_LOGIN_PATH}`;
 
   debug.wifix("Step 2: Fetching login page", { loginUrl });
+  wifixLogger.info(`Fetching login page: ${loginUrl}`);
+
   try {
     const loginPageResponse = await fetchWithTimeout(loginUrl, {
       method: "GET",
@@ -161,6 +183,9 @@ export const loginToCaptivePortal = async (params: {
     const loginHtml = await loginPageResponse.text();
     const { redirect, magic } = extractLoginFields(loginHtml);
     debug.wifix("Step 3: Extracted login fields", { redirect, magic });
+    wifixLogger.info(
+      `Extracted login fields - redirect: ${redirect ? "found" : "not found"}, magic: ${magic ? "found" : "not found"}`,
+    );
 
     const formData = new URLSearchParams();
     if (redirect) formData.append("4Tredir", redirect);
@@ -171,6 +196,8 @@ export const loginToCaptivePortal = async (params: {
     const postUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 
     debug.wifix("Step 4: Posting login credentials", { postUrl });
+    wifixLogger.info(`Posting login credentials to: ${postUrl}`);
+
     const loginResponse = await fetchWithTimeout(postUrl, {
       method: "POST",
       headers: {
@@ -189,10 +216,18 @@ export const loginToCaptivePortal = async (params: {
         : `Login failed (code ${loginResponse.status})`,
     };
     debug.wifix("Step 5: Login complete", { success: result.success });
+
+    if (success) {
+      wifixLogger.success(`Login successful! Status: ${loginResponse.status}`);
+    } else {
+      wifixLogger.error(`Login failed: Status ${loginResponse.status}`);
+    }
+
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed";
     debug.wifix("Step 4: Login failed", { message });
+    wifixLogger.error(`Login error: ${message}`);
     return {
       success: false,
       portalBaseUrl: baseUrl,
@@ -207,6 +242,8 @@ export const logoutFromCaptivePortal = async (params: {
   portalBaseUrl: string | null;
 }): Promise<WifixLogoutResult> => {
   debug.wifix("Step 1: Starting captive portal logout");
+  wifixLogger.info("Starting captive portal logout...");
+
   const portalBaseUrl =
     params.portalBaseUrl ?? extractPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
@@ -215,6 +252,8 @@ export const logoutFromCaptivePortal = async (params: {
     : `${baseUrl}${DEFAULT_LOGOUT_PATH}`;
 
   debug.wifix("Step 2: Requesting logout", { logoutUrl });
+  wifixLogger.info(`Requesting logout: ${logoutUrl}`);
+
   try {
     const response = await fetchWithTimeout(logoutUrl, {
       method: "GET",
@@ -231,10 +270,18 @@ export const logoutFromCaptivePortal = async (params: {
         : `Logout failed (code ${response.status})`,
     };
     debug.wifix("Step 3: Logout complete", { success: result.success });
+
+    if (success) {
+      wifixLogger.success(`Logout successful! Status: ${response.status}`);
+    } else {
+      wifixLogger.error(`Logout failed: Status ${response.status}`);
+    }
+
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Logout failed";
     debug.wifix("Step 2: Logout failed", { message });
+    wifixLogger.error(`Logout error: ${message}`);
     return {
       success: false,
       portalBaseUrl: baseUrl,

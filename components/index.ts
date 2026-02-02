@@ -19,5 +19,8 @@ export * from "./shared";
 // UI components
 export * from "./ui";
 
+// WiFix components
+export * from "./wifix";
+
 // All modals (re-exported from modals directory)
 export * from "./modals";
