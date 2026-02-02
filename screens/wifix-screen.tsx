@@ -1,6 +1,5 @@
 import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import { ExternalLink } from "@/components/shared/external-link";
-import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -19,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,15 +34,6 @@ const formatTimestamp = (date: Date): string => {
   const minutes = date.getMinutes().toString().padStart(2, "0");
   const seconds = date.getSeconds().toString().padStart(2, "0");
   return `${day}/${month}, ${hours}:${minutes}:${seconds}`;
-};
-
-const formatLastCheck = (timestamp: number | null): string => {
-  if (!timestamp) return "Not checked yet";
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 type StatusIconName =
@@ -113,7 +104,6 @@ export default function WifixScreen() {
     storedPortalBaseUrl,
   );
   const [message, setMessage] = useState<string | null>(null);
-  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const inFlightRef = useRef(false);
@@ -152,7 +142,6 @@ export default function WifixScreen() {
         setStatus(result.state);
         setPortalUrl(result.portalUrl);
         syncPortalBaseUrl(result.portalBaseUrl);
-        setLastCheckedAt(Date.now());
 
         if (shouldLogin && result.state === "captive") {
           const credentials = await getCredentials();
@@ -178,7 +167,6 @@ export default function WifixScreen() {
             syncPortalBaseUrl(
               updated.portalBaseUrl ?? loginResult.portalBaseUrl,
             );
-            setLastCheckedAt(Date.now());
           }
         } else if (shouldLogin && result.state === "offline") {
           setMessage("No captive portal detected.");
@@ -221,7 +209,6 @@ export default function WifixScreen() {
       setStatus(updated.state);
       setPortalUrl(updated.portalUrl);
       syncPortalBaseUrl(updated.portalBaseUrl ?? logoutResult.portalBaseUrl);
-      setLastCheckedAt(Date.now());
     } finally {
       setIsLoggingOut(false);
       inFlightRef.current = false;
@@ -309,9 +296,6 @@ export default function WifixScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={[styles.statusTime, { color: theme.textSecondary }]}>
-              Last check: {formatLastCheck(lastCheckedAt)}
-            </Text>
           </View>
 
           <View style={styles.divider} />
@@ -320,12 +304,30 @@ export default function WifixScreen() {
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
               Captive portal URL
             </Text>
-            <Text
-              style={[styles.infoValue, { color: theme.text }]}
-              numberOfLines={2}
-            >
-              {portalDisplayUrl}
-            </Text>
+            <View style={styles.infoRowRight}>
+              <Text
+                style={[styles.infoValue, { color: theme.text }]}
+                numberOfLines={2}
+              >
+                {portalDisplayUrl}
+              </Text>
+              <Pressable
+                onPress={() => runConnectivityCheck(false)}
+                disabled={isBusy}
+                style={styles.refreshIconButton}
+                hitSlop={8}
+              >
+                {isConnecting ? (
+                  <ActivityIndicator size="small" color={theme.textSecondary} />
+                ) : (
+                  <Ionicons
+                    name="refresh"
+                    size={16}
+                    color={isBusy ? Colors.gray[500] : theme.textSecondary}
+                  />
+                )}
+              </Pressable>
+            </View>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
@@ -354,25 +356,48 @@ export default function WifixScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button
-            title={isConnecting ? "Reconnecting..." : "Reconnect"}
-            onPress={() => runConnectivityCheck(true)}
-            loading={isConnecting}
-            disabled={isBusy}
-          />
-          <Button
-            title="Check Status"
-            onPress={() => runConnectivityCheck(false)}
-            variant="secondary"
-            disabled={isBusy}
-          />
-          <Button
-            title={isLoggingOut ? "Logging out..." : "Logout Internet"}
-            onPress={handleLogoutInternet}
-            variant="danger"
-            loading={isLoggingOut}
-            disabled={isBusy}
-          />
+          <View style={styles.iconActions}>
+            <Pressable
+              onPress={() => runConnectivityCheck(true)}
+              disabled={isBusy}
+              style={({ pressed }) => [
+                styles.iconButton,
+                styles.iconButtonLarge,
+                { backgroundColor: theme.backgroundSecondary },
+                isBusy && styles.iconButtonDisabled,
+                pressed && styles.iconButtonPressed,
+              ]}
+              hitSlop={16}
+            >
+              {isConnecting ? (
+                <ActivityIndicator size="small" color={theme.text} />
+              ) : (
+                <Ionicons name="refresh" size={28} color={theme.text} />
+              )}
+            </Pressable>
+            <Pressable
+              onPress={handleLogoutInternet}
+              disabled={isBusy}
+              style={({ pressed }) => [
+                styles.iconButton,
+                styles.iconButtonLarge,
+                { backgroundColor: Colors.status.danger + "22" },
+                isBusy && styles.iconButtonDisabled,
+                pressed && styles.iconButtonPressed,
+              ]}
+              hitSlop={16}
+            >
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color={Colors.status.danger} />
+              ) : (
+                <Ionicons
+                  name="log-out"
+                  size={28}
+                  color={Colors.status.danger}
+                />
+              )}
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -490,6 +515,12 @@ const styles = StyleSheet.create({
   infoRow: {
     marginBottom: Spacing.sm,
   },
+  infoRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
   infoLabel: {
     fontSize: 11,
     textTransform: "uppercase",
@@ -498,10 +529,39 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 14,
+    flex: 1,
   },
   actions: {
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
+  },
+  iconActions: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  iconButton: {
+    borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconButtonLarge: {
+    width: 64,
+    height: 64,
+  },
+  iconButtonDisabled: {
+    opacity: 0.5,
+  },
+  iconButtonPressed: {
+    transform: [{ scale: 0.9 }],
+  },
+  refreshIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   footer: {
     alignItems: "center",

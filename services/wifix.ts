@@ -7,7 +7,7 @@ import { debug } from "@/utils/debug";
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
 
 const CONNECTIVITY_CHECK_URL =
-  "http://connectivitycheck.gstatic.com/generate_202";
+  "http://connectivitycheck.gstatic.com/generate_204";
 const DEFAULT_PORTAL_BASE_URL = "http://172.16.222.1:1000";
 const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
