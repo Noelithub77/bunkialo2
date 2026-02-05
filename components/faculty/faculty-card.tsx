@@ -1,11 +1,11 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Faculty } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface FacultyCardProps {
   faculty: Faculty;
@@ -41,46 +41,46 @@ export const FacultyCard = memo(function FacultyCard({
 
   return (
     <Pressable
-      style={[styles.card, { backgroundColor: theme.backgroundSecondary }]}
+      className="flex-row items-center justify-between gap-4 rounded-xl p-4"
+      style={{ backgroundColor: theme.backgroundSecondary }}
       onPress={onPress}
     >
-      <View style={styles.header}>
+      <View className="flex-1 flex-row items-center gap-4">
         {faculty.imageUrl ? (
           <Image
             source={{ uri: faculty.imageUrl }}
-            style={styles.avatar}
+            className="h-12 w-12 rounded-full"
             contentFit="cover"
+            style={{ height: 48, width: 48, borderRadius: 999 }}
           />
         ) : (
           <View
-            style={[
-              styles.avatar,
-              styles.avatarPlaceholder,
-              { backgroundColor: theme.border },
-            ]}
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.border }}
           >
             <Ionicons name="person" size={24} color={theme.textSecondary} />
           </View>
         )}
 
-        <View style={styles.info}>
-          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+        <View className="flex-1">
+          <Text className="text-[15px] font-semibold" style={{ color: theme.text }} numberOfLines={1}>
             {faculty.name}
           </Text>
           <Text
-            style={[styles.designation, { color: theme.textSecondary }]}
+            className="text-[12px]"
+            style={{ color: theme.textSecondary }}
             numberOfLines={1}
           >
             {faculty.designation}
           </Text>
           {faculty.contact.room && (
-            <View style={styles.roomRow}>
+            <View className="mt-0.5 flex-row items-center gap-1">
               <Ionicons
                 name="location-outline"
                 size={12}
                 color={Colors.status.info}
               />
-              <Text style={[styles.room, { color: Colors.status.info }]}>
+              <Text className="text-[11px] font-medium" style={{ color: Colors.status.info }}>
                 {faculty.contact.room}
               </Text>
             </View>
@@ -88,13 +88,11 @@ export const FacultyCard = memo(function FacultyCard({
         </View>
       </View>
 
-      <View style={styles.actions}>
+      <View className="flex-row gap-2">
         {faculty.contact.phone && (
           <Pressable
-            style={[
-              styles.actionBtn,
-              { backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] },
-            ]}
+            className="h-9 w-9 items-center justify-center rounded-full"
+            style={{ backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] }}
             onPress={handlePhone}
             hitSlop={8}
           >
@@ -103,10 +101,8 @@ export const FacultyCard = memo(function FacultyCard({
         )}
         {faculty.contact.email && (
           <Pressable
-            style={[
-              styles.actionBtn,
-              { backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] },
-            ]}
+            className="h-9 w-9 items-center justify-center rounded-full"
+            style={{ backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] }}
             onPress={handleEmail}
             hitSlop={8}
           >
@@ -115,10 +111,8 @@ export const FacultyCard = memo(function FacultyCard({
         )}
         {faculty.page.link && (
           <Pressable
-            style={[
-              styles.actionBtn,
-              { backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] },
-            ]}
+            className="h-9 w-9 items-center justify-center rounded-full"
+            style={{ backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200] }}
             onPress={handleWebpage}
             hitSlop={8}
           >
@@ -128,62 +122,4 @@ export const FacultyCard = memo(function FacultyCard({
       </View>
     </Pressable>
   );
-});
-
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    gap: Spacing.md,
-  },
-  header: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.full,
-  },
-  avatarPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  info: {
-    flex: 1,
-    gap: 2,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  designation: {
-    fontSize: 12,
-  },
-  roomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
-  room: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  actions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });

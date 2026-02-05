@@ -18,7 +18,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider, Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -97,10 +97,8 @@ export default function RootLayout() {
   if (isCheckingAuth) {
     return (
       <View
-        style={[
-          styles.loading,
-          { backgroundColor: isDark ? Colors.black : Colors.white },
-        ]}
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: isDark ? Colors.black : Colors.white }}
       >
         <ActivityIndicator
           size="large"
@@ -156,14 +154,12 @@ export default function RootLayout() {
         <Portal>
           {isOffline && isLoggedIn && (
             <View
-              style={[
-                styles.offlineBanner,
-                {
-                  top: insets.top + 10,
-                  backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
-                  borderColor: Colors.status.warning,
-                },
-              ]}
+              className="absolute self-center flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 shadow-sm"
+              style={{
+                top: insets.top + 10,
+                backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
+                borderColor: Colors.status.warning,
+              }}
             >
               <MaterialCommunityIcons
                 name="cloud-off-outline"
@@ -171,10 +167,8 @@ export default function RootLayout() {
                 color={Colors.status.warning}
               />
               <Text
-                style={[
-                  styles.offlineText,
-                  { color: isDark ? Colors.gray[100] : Colors.gray[800] },
-                ]}
+                className="text-[12px] font-semibold tracking-[0.2px]"
+                style={{ color: isDark ? Colors.gray[100] : Colors.gray[800] }}
               >
                 Offline - showing cached data
               </Text>
@@ -186,30 +180,3 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  offlineBanner: {
-    position: "absolute",
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  offlineText: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-});

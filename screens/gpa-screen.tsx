@@ -1,7 +1,7 @@
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { Input } from "@/components/ui/input";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { findCreditsByCode } from "@/data/credits";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
@@ -25,7 +25,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -362,32 +361,32 @@ export default function GpaCalculatorScreen() {
 
   return (
     <Container>
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
+      <View className="flex-1 gap-4 p-4">
+        <View className="flex-row items-center gap-4">
           <Pressable
             onPress={() => router.back()}
-            style={[
-              styles.backIcon,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.backgroundSecondary }}
             hitSlop={8}
           >
             <Ionicons name="arrow-back" size={20} color={theme.text} />
           </Pressable>
-          <View style={styles.headerText}>
-            <Text style={[styles.title, { color: theme.text }]}>GPA</Text>
+          <View className="flex-1 gap-[2px]">
+            <Text
+              className="text-[28px] font-bold"
+              style={{ color: theme.text }}
+            >
+              GPA
+            </Text>
           </View>
-          <View style={styles.headerActions}>
+          <View className="flex-row items-center gap-1">
             <Pressable
               onPress={() => setShowPrevSemModal(true)}
-              style={[
-                styles.prevSemIconButton,
-                {
-                  borderColor: theme.border,
-                  backgroundColor: theme.backgroundSecondary,
-                },
-              ]}
+              className="h-8 flex-row items-center justify-center gap-1.5 rounded-full border px-2.5"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundSecondary,
+              }}
             >
               <Ionicons
                 name="albums-outline"
@@ -395,20 +394,19 @@ export default function GpaCalculatorScreen() {
                 color={theme.textSecondary}
               />
               <Text
-                style={[styles.prevSemIconText, { color: theme.textSecondary }]}
+                className="text-[11px] font-semibold tracking-[0.2px]"
+                style={{ color: theme.textSecondary }}
               >
                 Prev
               </Text>
             </Pressable>
             <Pressable
               onPress={handleResetAllGrades}
-              style={[
-                styles.resetIconButton,
-                {
-                  borderColor: theme.border,
-                  backgroundColor: theme.backgroundSecondary,
-                },
-              ]}
+              className="h-8 w-8 items-center justify-center rounded-full border"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundSecondary,
+              }}
               hitSlop={6}
             >
               <Ionicons
@@ -420,62 +418,74 @@ export default function GpaCalculatorScreen() {
           </View>
         </View>
 
-        <GradientCard style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Text style={[styles.summaryTitle, { color: theme.text }]}>
+        <GradientCard style={{ minHeight: 160 }}>
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text
+              className="text-[16px] font-semibold"
+              style={{ color: theme.text }}
+            >
               This Semester
             </Text>
-            <View style={styles.summaryMeta}>
+            <View className="flex-row items-center gap-1.5">
               <Ionicons
                 name="grid-outline"
                 size={14}
                 color={theme.textSecondary}
               />
               <Text
-                style={[styles.summaryMetaText, { color: theme.textSecondary }]}
+                className="text-[12px] font-medium"
+                style={{ color: theme.textSecondary }}
               >
                 Credits {totalCredits}
               </Text>
             </View>
           </View>
 
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
+          <View className="flex-row items-center gap-6">
+            <View className="flex-1 gap-1">
               <Text
-                style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                className="text-[12px] uppercase tracking-[0.4px]"
+                style={{ color: theme.textSecondary }}
               >
                 SGPA
               </Text>
-              <Text style={[styles.summaryValue, { color: theme.text }]}>
+              <Text
+                className="text-[28px] font-bold"
+                style={{ color: theme.text }}
+              >
                 {formatGpa(sgpa)}
               </Text>
               {showPrevData && (
                 <Animated.Text
                   style={[
-                    styles.summaryHint,
                     { color: theme.textSecondary },
                     { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                    { fontSize: 11, fontWeight: "600" },
                   ]}
                 >
                   Prev SGPA {prevSgpaDisplay}
                 </Animated.Text>
               )}
               <Text
-                style={[
-                  styles.summaryDelta,
-                  {
-                    color:
-                      deltaSgpa < 0
-                        ? Colors.status.danger
-                        : Colors.status.success,
-                  },
-                ]}
+                className="text-[12px] font-semibold"
+                style={{
+                  color:
+                    deltaSgpa < 0
+                      ? Colors.status.danger
+                      : Colors.status.success,
+                }}
               >
                 {deltaSgpa === 0 ? "Perfect" : `${formatDelta(deltaSgpa)} vs A`}
               </Text>
               {showPrevSgpaComparison && (
-                <View style={styles.prevDeltaPill}>
-                  <Text style={styles.prevDeltaText}>
+                <View
+                  className="self-start rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: `${Colors.status.unknown}20` }}
+                >
+                  <Text
+                    className="text-[11px] font-semibold"
+                    style={{ color: Colors.status.unknown }}
+                  >
                     {`${formatDelta(deltaSgpaPrev)} vs Prev`}
                   </Text>
                 </View>
@@ -483,20 +493,22 @@ export default function GpaCalculatorScreen() {
             </View>
 
             <View
-              style={[styles.summaryDivider, { backgroundColor: theme.border }]}
+              className="h-14 w-px opacity-30"
+              style={{ backgroundColor: theme.border }}
             />
 
-            <View style={styles.summaryItem}>
+            <View className="flex-1 gap-1">
               <Text
-                style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                className="text-[12px] uppercase tracking-[0.4px]"
+                style={{ color: theme.textSecondary }}
               >
                 CGPA
               </Text>
               <Animated.Text
                 style={[
-                  styles.summaryValue,
                   { color: theme.text },
                   { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                  { fontSize: 28, fontWeight: "700" },
                 ]}
               >
                 {formatGpa(cgpa)}
@@ -504,32 +516,36 @@ export default function GpaCalculatorScreen() {
               {showPrevData && (
                 <Animated.Text
                   style={[
-                    styles.summaryHint,
                     { color: theme.textSecondary },
                     { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                    { fontSize: 11, fontWeight: "600" },
                   ]}
                 >
                   Prev CGPA {prevCgpaDisplay}
                 </Animated.Text>
               )}
               <Text
-                style={[
-                  styles.summaryDelta,
-                  {
-                    color:
-                      deltaCgpa < 0
-                        ? Colors.status.danger
-                        : Colors.status.success,
-                  },
-                ]}
+                className="text-[12px] font-semibold"
+                style={{
+                  color:
+                    deltaCgpa < 0
+                      ? Colors.status.danger
+                      : Colors.status.success,
+                }}
               >
                 {deltaCgpa === 0
                   ? "Best case"
                   : `${formatDelta(deltaCgpa)} vs A`}
               </Text>
               {showPrevCgpaComparison && (
-                <View style={styles.prevDeltaPill}>
-                  <Text style={styles.prevDeltaText}>
+                <View
+                  className="self-start rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: `${Colors.status.unknown}20` }}
+                >
+                  <Text
+                    className="text-[11px] font-semibold"
+                    style={{ color: Colors.status.unknown }}
+                  >
                     {`${formatDelta(deltaCgpaPrev)} vs Prev`}
                   </Text>
                 </View>
@@ -538,51 +554,52 @@ export default function GpaCalculatorScreen() {
           </View>
 
           {missingCreditsCount > 0 && (
-            <View style={styles.missingCredits}>
+            <View className="mt-2 flex-row items-center gap-1.5">
               <Ionicons
                 name="alert-circle-outline"
                 size={14}
                 color={Colors.status.warning}
               />
               <Text
-                style={[
-                  styles.missingCreditsText,
-                  { color: theme.textSecondary },
-                ]}
+                className="text-[12px]"
+                style={{ color: theme.textSecondary }}
               >
                 Some courses have missing credits.
               </Text>
             </View>
           )}
 
-          <View style={styles.summaryActions} />
+          <View className="mt-2" />
         </GradientCard>
 
-        {/* Courses */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        <View className="flex-row items-center justify-between gap-2">
+          <Text
+            className="text-[18px] font-semibold"
+            style={{ color: theme.text }}
+          >
             Courses
           </Text>
         </View>
 
         <ScrollView
-          style={styles.courseScroll}
-          contentContainerStyle={styles.courseList}
+          className="flex-1"
+          contentContainerClassName="gap-2 pb-8"
           showsVerticalScrollIndicator={false}
         >
           {courses.length === 0 && (
             <View
-              style={[
-                styles.emptyState,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="items-center gap-2 rounded-xl p-6"
+              style={{ backgroundColor: theme.backgroundSecondary }}
             >
               <Ionicons
                 name="school-outline"
                 size={28}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-center text-[13px]"
+                style={{ color: theme.textSecondary }}
+              >
                 No courses yet. Sync attendance to get started.
               </Text>
             </View>
@@ -601,44 +618,41 @@ export default function GpaCalculatorScreen() {
             return (
               <View
                 key={course.courseId}
-                style={[
-                  styles.courseCard,
-                  { backgroundColor: theme.backgroundSecondary },
-                ]}
+                className="gap-1.5 rounded-2xl p-2"
+                style={{ backgroundColor: theme.backgroundSecondary }}
               >
-                <View style={styles.courseHeader}>
-                  <View style={styles.courseInfo}>
-                    <Text style={[styles.courseName, { color: theme.text }]}>
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="flex-1 gap-1">
+                    <Text
+                      className="text-[16px] font-semibold"
+                      style={{ color: theme.text }}
+                    >
                       {course.courseName}
                       <Text
-                        style={[
-                          styles.creditInline,
-                          { color: Colors.status.info },
-                        ]}
+                        className="text-[13px] font-semibold tracking-[0.2px]"
+                        style={{ color: Colors.status.info }}
                       >
-                        {" "}
-                        ({course.credits})
+                        {" "}({course.credits})
                       </Text>
                     </Text>
                   </View>
                   <View
-                    style={[
-                      styles.gradeBadge,
-                      {
-                        backgroundColor: `${gradeColor}20`,
-                        borderColor: gradeColor,
-                      },
-                    ]}
+                    className="rounded-full border px-2.5 py-1.5"
+                    style={{
+                      backgroundColor: `${gradeColor}20`,
+                      borderColor: gradeColor,
+                    }}
                   >
                     <Text
-                      style={[styles.gradeBadgeText, { color: gradeColor }]}
+                      className="text-[12px] font-bold"
+                      style={{ color: gradeColor }}
                     >
                       {course.grade}
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.gradeRow}>
+                <View className="flex-row justify-between gap-1">
                   {GRADE_OPTIONS.map((grade) => {
                     const isSelected = grade === course.grade;
                     const chipColor = getGradeColor(grade);
@@ -646,8 +660,8 @@ export default function GpaCalculatorScreen() {
                       <Pressable
                         key={grade}
                         onPress={() => setCourseGrade(course.courseId, grade)}
+                        className="flex-1 items-center rounded-xl border py-1.5"
                         style={({ pressed }) => [
-                          styles.gradeChip,
                           {
                             borderColor: isSelected ? chipColor : theme.border,
                             backgroundColor: isSelected
@@ -658,10 +672,8 @@ export default function GpaCalculatorScreen() {
                         ]}
                       >
                         <Text
-                          style={[
-                            styles.gradeChipText,
-                            { color: isSelected ? chipColor : theme.text },
-                          ]}
+                          className="text-[12px] font-semibold"
+                          style={{ color: isSelected ? chipColor : theme.text }}
                         >
                           {grade}
                         </Text>
@@ -671,35 +683,30 @@ export default function GpaCalculatorScreen() {
                 </View>
 
                 {showImpact && (
-                  <View style={styles.impactRow}>
-                    <View style={styles.impactLabel}>
+                  <View className="flex-row items-center justify-between gap-2">
+                    <View className="flex-row items-center gap-1.5">
                       <Ionicons
                         name="pulse-outline"
                         size={14}
                         color={theme.textSecondary}
                       />
                       <Text
-                        style={[
-                          styles.impactText,
-                          { color: theme.textSecondary },
-                        ]}
+                        className="text-[12px]"
+                        style={{ color: theme.textSecondary }}
                       >
                         Impact
                       </Text>
                     </View>
                     <Text
-                      style={[
-                        styles.impactValue,
-                        {
-                          color:
-                            impactSgpa < 0
-                              ? Colors.status.danger
-                              : theme.textSecondary,
-                        },
-                      ]}
+                      className="text-[12px] font-semibold"
+                      style={{
+                        color:
+                          impactSgpa < 0
+                            ? Colors.status.danger
+                            : theme.textSecondary,
+                      }}
                     >
-                      {formatDelta(impactSgpa)} SGPA • {formatDelta(impactCgpa)}{" "}
-                      CGPA
+                      {formatDelta(impactSgpa)} SGPA | {formatDelta(impactCgpa)} CGPA
                     </Text>
                   </View>
                 )}
@@ -717,63 +724,63 @@ export default function GpaCalculatorScreen() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "position"}
-          style={styles.modalOverlay}
+          className="flex-1 justify-end bg-black/50"
         >
           <Pressable
-            style={styles.modalBackdrop}
+            className="absolute inset-0"
             onPress={() => setShowPrevSemModal(false)}
           />
           <View
-            style={[
-              styles.modalSheet,
-              { backgroundColor: theme.background, maxHeight: modalMaxHeight },
-            ]}
+            className="rounded-t-2xl p-4 pb-8"
+            style={{ backgroundColor: theme.background, maxHeight: modalMaxHeight }}
           >
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
+            <View className="mb-1 flex-row items-center justify-between">
+              <Text
+                className="text-[18px] font-bold"
+                style={{ color: theme.text }}
+              >
                 Previous Semesters
               </Text>
               <Pressable onPress={() => setShowPrevSemModal(false)} hitSlop={8}>
                 <Ionicons name="close" size={20} color={theme.textSecondary} />
               </Pressable>
             </View>
-            <View style={styles.modalSummaryRow}>
+            <View className="mb-2 flex-row items-center justify-between">
               <Text
-                style={[
-                  styles.modalSummaryLabel,
-                  { color: theme.textSecondary },
-                ]}
+                className="text-[12px] font-semibold uppercase tracking-[0.3px]"
+                style={{ color: theme.textSecondary }}
               >
                 Prev CGPA
               </Text>
               <Animated.Text
                 style={[
-                  styles.modalSummaryValue,
                   { color: theme.text },
                   { opacity: cgpaAnim, transform: [{ scale: cgpaAnim }] },
+                  { fontSize: 18, fontWeight: "700" },
                 ]}
               >
                 {formatGpa(prevCgpa)}
               </Animated.Text>
             </View>
             <ScrollView
-              contentContainerStyle={styles.modalContent}
+              contentContainerClassName="gap-2 pb-4 px-2"
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
               {previousSemesters.map((semester, index) => (
                 <View
                   key={semester.id}
-                  style={[
-                    styles.semesterCard,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
+                  className="gap-2 rounded-2xl p-2"
+                  style={{ backgroundColor: theme.backgroundSecondary }}
                 >
-                  <View style={styles.semesterRow}>
-                    <Text style={[styles.semesterTitle, { color: theme.text }]}>
+                  <View className="flex-row items-center justify-between gap-2">
+                    <Text
+                      className="text-[15px] font-semibold"
+                      style={{ color: theme.text }}
+                    >
                       {semester.label || `Sem ${index + 1}`}
                     </Text>
-                    <View style={styles.semesterFields}>
+                    <View className="flex-1 flex-row justify-end gap-2">
                       <Input
                         keyboardType="decimal-pad"
                         inputMode="decimal"
@@ -785,7 +792,7 @@ export default function GpaCalculatorScreen() {
                         onChangeText={(value) =>
                           handleSemesterChange(semester.id, "sgpa", value)
                         }
-                        style={styles.semesterInput}
+                        style={{ flex: 1, height: 44 }}
                       />
                       <Input
                         keyboardType="decimal-pad"
@@ -800,7 +807,7 @@ export default function GpaCalculatorScreen() {
                         onChangeText={(value) =>
                           handleSemesterChange(semester.id, "credits", value)
                         }
-                        style={styles.semesterInput}
+                        style={{ flex: 1, height: 44 }}
                       />
                     </View>
                     {previousSemesters.length > 1 &&
@@ -820,39 +827,42 @@ export default function GpaCalculatorScreen() {
                 </View>
               ))}
             </ScrollView>
-            <Text style={[styles.modalHint, { color: theme.textSecondary }]}>
+            <Text
+              className="text-center text-[10px] font-medium opacity-55"
+              style={{ color: theme.textSecondary }}
+            >
               Tip: If you&apos;re unsure, set total credits as 23{"\n"}(roughly
               the average across semesters).
             </Text>
 
-            <View style={styles.modalActions}>
+            <View className="flex-row gap-2 pt-2">
               <Pressable
                 onPress={handleAddSemester}
+                className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border"
                 style={({ pressed }) => [
-                  styles.modalSecondaryButton,
                   { borderColor: theme.border },
                   pressed && { opacity: 0.9 },
                 ]}
               >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={18}
-                  color={theme.text}
-                />
+                <Ionicons name="add-circle-outline" size={18} color={theme.text} />
                 <Text
-                  style={[styles.modalSecondaryText, { color: theme.text }]}
+                  className="text-[15px] font-bold tracking-[0.3px]"
+                  style={{ color: theme.text }}
                 >
                   Add semester
                 </Text>
               </Pressable>
               <Pressable
                 onPress={() => setShowPrevSemModal(false)}
+                className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl"
                 style={({ pressed }) => [
-                  styles.modalPrimaryButton,
+                  { backgroundColor: Colors.gray[800] },
                   pressed && { opacity: 0.9 },
                 ]}
               >
-                <Text style={styles.modalPrimaryText}>Save</Text>
+                <Text className="text-[15px] font-bold tracking-[0.3px]" style={{ color: Colors.white }}>
+                  Save
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -861,360 +871,3 @@ export default function GpaCalculatorScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  backIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: {
-    flex: 1,
-    gap: 2,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  summaryCard: {
-    minHeight: 160,
-  },
-  summaryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  summaryMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  summaryMetaText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.lg,
-  },
-  summaryItem: {
-    flex: 1,
-    gap: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
-  summaryValue: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  summaryDelta: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  prevDeltaPill: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-    backgroundColor: `${Colors.status.unknown}20`,
-  },
-  prevDeltaText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.status.unknown,
-  },
-  summaryHint: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  summaryDivider: {
-    width: 1,
-    height: 56,
-    backgroundColor: Colors.gray[700],
-    opacity: 0.3,
-  },
-  summaryActions: {
-    marginTop: Spacing.sm,
-  },
-  missingCredits: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: Spacing.sm,
-  },
-  missingCreditsText: {
-    fontSize: 12,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  emptyState: {
-    padding: Spacing.lg,
-    borderRadius: Radius.md,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 13,
-    textAlign: "center",
-  },
-  courseCard: {
-    padding: Spacing.sm,
-    borderRadius: Radius.lg,
-    gap: Spacing.xs,
-  },
-  courseList: {
-    gap: Spacing.sm,
-    paddingBottom: Spacing.xl,
-  },
-  courseScroll: {
-    flex: 1,
-  },
-  courseHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  courseInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  courseName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  creditInline: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-  gradeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-  },
-  gradeBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  gradeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 4,
-  },
-  gradeChip: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  gradeChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  impactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  impactLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  impactText: {
-    fontSize: 12,
-  },
-  impactValue: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  prevSemIconButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    height: 32,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    justifyContent: "center",
-  },
-  prevSemIconText: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-  resetIconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalSheet: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xl,
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.xs,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  modalSummaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.sm,
-  },
-  modalSummaryLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-  },
-  modalSummaryValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: Spacing.md,
-  },
-  modalHint: {
-    fontSize: 10,
-    fontWeight: "500",
-    textAlign: "center",
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
-    opacity: 0.55,
-  },
-  modalContent: {
-    gap: Spacing.sm,
-    paddingBottom: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  modalActions: {
-    flexDirection: "row",
-    paddingTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  modalPrimaryButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.gray[800],
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  modalPrimaryText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  modalSecondaryButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: Radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-    borderWidth: 1,
-    backgroundColor: "transparent",
-  },
-  modalSecondaryText: {
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  semesterCard: {
-    padding: Spacing.sm,
-    borderRadius: Radius.lg,
-    gap: Spacing.sm,
-  },
-  semesterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  semesterTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  semesterFields: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  semesterInput: {
-    flex: 1,
-    height: 44,
-  },
-});

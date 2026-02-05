@@ -122,7 +122,7 @@ export const TimetableExportModal = ({
           </View>
 
           <ScrollView
-            contentContainerStyle={{ gap: 16, paddingBottom: 16 }}
+            contentContainerClassName="gap-4 pb-4"
             showsVerticalScrollIndicator={false}
           >
             <View
@@ -235,13 +235,13 @@ export const TimetableExportModal = ({
               title="Cancel"
               variant="secondary"
               onPress={handleClose}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
             <Button
               title={isExporting ? "Exporting..." : "Export"}
               onPress={handleExport}
               disabled={isExporting || slots.length === 0}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
           </View>
         </Pressable>

@@ -1,6 +1,6 @@
 import { FacultyCard } from "@/components/faculty/faculty-card";
 import { Container } from "@/components/ui/container";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     getTopFaculty,
@@ -11,15 +11,7 @@ import type { Faculty } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    FlatList,
-    Keyboard,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { FlatList, Keyboard, Pressable, Text, TextInput, View } from "react-native";
 
 export default function FacultyScreen() {
   const colorScheme = useColorScheme();
@@ -99,22 +91,23 @@ export default function FacultyScreen() {
   return (
     <Container>
       {/* fixed search header - outside FlatList to prevent keyboard dismiss */}
-      <View style={styles.header}>
-        <Text style={[styles.screenTitle, { color: theme.text }]}>Faculty</Text>
+      <View className="px-4 pt-4">
+        <Text className="mb-4 text-[28px] font-bold" style={{ color: theme.text }}>
+          Faculty
+        </Text>
 
         <View
-          style={[
-            styles.searchBox,
-            {
-              backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
-              borderColor: isSearchFocused ? theme.text : "transparent",
-            },
-          ]}
+          className="h-11 flex-row items-center gap-3 rounded-xl border px-4"
+          style={{
+            backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
+            borderColor: isSearchFocused ? theme.text : "transparent",
+          }}
         >
           <Ionicons name="search" size={18} color={theme.textSecondary} />
           <TextInput
             ref={inputRef}
-            style={[styles.searchInput, { color: theme.text }]}
+            className="h-full flex-1 text-[15px]"
+            style={{ color: theme.text }}
             placeholder="Search by name, room, or expertise..."
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
@@ -138,33 +131,28 @@ export default function FacultyScreen() {
 
         {/* recent searches */}
         {showRecentSearches && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <View className="mt-6">
+            <View className="mb-2 flex-row items-center justify-between">
               <Text
-                style={[styles.sectionTitle, { color: theme.textSecondary }]}
+                className="text-[13px] font-semibold uppercase tracking-[0.5px]"
+                style={{ color: theme.textSecondary }}
               >
                 Recent Searches
               </Text>
               <Pressable onPress={clearRecentSearches} hitSlop={8}>
-                <Text
-                  style={[styles.clearBtn, { color: Colors.status.danger }]}
-                >
+                <Text className="text-[13px] font-medium" style={{ color: Colors.status.danger }}>
                   Clear
                 </Text>
               </Pressable>
             </View>
-            <View style={styles.recentList}>
+            <View className="flex-row flex-wrap gap-2">
               {recentSearches.map((query) => (
                 <Pressable
                   key={query}
-                  style={[
-                    styles.recentChip,
-                    {
-                      backgroundColor: isDark
-                        ? Colors.gray[800]
-                        : Colors.gray[200],
-                    },
-                  ]}
+                  className="flex-row items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-1.5"
+                  style={{
+                    backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200],
+                  }}
                   onPress={() => handleRecentSearchPress(query)}
                 >
                   <Ionicons
@@ -172,13 +160,13 @@ export default function FacultyScreen() {
                     size={14}
                     color={theme.textSecondary}
                   />
-                  <Text style={[styles.recentText, { color: theme.text }]}>
+                  <Text className="text-[13px]" style={{ color: theme.text }}>
                     {query}
                   </Text>
                   <Pressable
                     onPress={() => removeRecentSearch(query)}
                     hitSlop={8}
-                    style={styles.removeBtn}
+                    className="p-0.5"
                   >
                     <Ionicons
                       name="close"
@@ -194,16 +182,22 @@ export default function FacultyScreen() {
 
         {/* section labels */}
         {showTopFaculty && !showRecentSearches && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <View className="mt-6">
+            <Text
+              className="text-[13px] font-semibold uppercase tracking-[0.5px]"
+              style={{ color: theme.textSecondary }}
+            >
               Top Faculty
             </Text>
           </View>
         )}
 
         {isSearching && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <View className="mt-6">
+            <Text
+              className="text-[13px] font-semibold uppercase tracking-[0.5px]"
+              style={{ color: theme.textSecondary }}
+            >
               {searchResults.length} result
               {searchResults.length !== 1 ? "s" : ""} found
             </Text>
@@ -216,7 +210,7 @@ export default function FacultyScreen() {
         data={displayData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ItemSeparatorComponent={ItemSeparator}
         keyboardShouldPersistTaps="always"
         removeClippedSubviews={true}
@@ -224,13 +218,13 @@ export default function FacultyScreen() {
         windowSize={10}
         ListEmptyComponent={
           isSearching && searchResults.length === 0 ? (
-            <View style={styles.empty}>
+            <View className="items-center gap-4 py-8">
               <Ionicons
                 name="search-outline"
                 size={48}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              <Text className="text-center text-sm" style={{ color: theme.textSecondary }}>
                 No faculty found for &quot;{searchQuery}&quot;
               </Text>
             </View>
@@ -241,83 +235,6 @@ export default function FacultyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-  },
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: Spacing.md,
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    height: 44,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    height: "100%",
-  },
-  section: {
-    marginTop: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  clearBtn: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  recentList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  recentChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingLeft: 10,
-    paddingRight: 6,
-    borderRadius: Radius.full,
-  },
-  recentText: {
-    fontSize: 13,
-  },
-  removeBtn: {
-    padding: 2,
-  },
-  list: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  separator: {
-    height: Spacing.sm,
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
-  },
-});
+const styles = {
+  separator: { height: 8 },
+};

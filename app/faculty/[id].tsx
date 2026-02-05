@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/container";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFacultyStore } from "@/stores/faculty-store";
 import type { Faculty } from "@/types";
@@ -8,7 +8,7 @@ import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function FacultyDetailScreen() {
   const colorScheme = useColorScheme();
@@ -25,17 +25,17 @@ export default function FacultyDetailScreen() {
   if (!faculty) {
     return (
       <Container>
-        <View style={styles.notFound}>
+        <View className="flex-1 items-center justify-center gap-4">
           <Ionicons
             name="person-outline"
             size={48}
             color={theme.textSecondary}
           />
-          <Text style={[styles.notFoundText, { color: theme.textSecondary }]}>
+          <Text className="text-base" style={{ color: theme.textSecondary }}>
             Faculty not found
           </Text>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={[styles.backBtnText, { color: Colors.status.info }]}>
+          <Pressable onPress={() => router.back()} className="mt-4">
+            <Text className="text-[15px] font-medium" style={{ color: Colors.status.info }}>
               Go Back
             </Text>
           </Pressable>
@@ -66,18 +66,16 @@ export default function FacultyDetailScreen() {
   return (
     <Container>
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        className="flex-1"
+        contentContainerClassName="p-4 pb-8"
         showsVerticalScrollIndicator={false}
       >
         {/* header with back button */}
-        <View style={styles.header}>
+        <View className="mb-4">
           <Pressable
             onPress={() => router.back()}
-            style={[
-              styles.backIcon,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.backgroundSecondary }}
             hitSlop={8}
           >
             <Ionicons name="arrow-back" size={20} color={theme.text} />
@@ -85,35 +83,34 @@ export default function FacultyDetailScreen() {
         </View>
 
         {/* profile section */}
-        <View style={styles.profileSection}>
+        <View className="mb-6 items-center">
           {faculty.imageUrl ? (
             <Image
               source={{ uri: faculty.imageUrl }}
-              style={styles.avatar}
+              className="mb-4 h-[100px] w-[100px] rounded-full"
               contentFit="cover"
+              style={{ height: 100, width: 100, borderRadius: 999 }}
             />
           ) : (
             <View
-              style={[
-                styles.avatar,
-                styles.avatarPlaceholder,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="mb-4 h-[100px] w-[100px] items-center justify-center rounded-full"
+              style={{ backgroundColor: theme.backgroundSecondary }}
             >
               <Ionicons name="person" size={48} color={theme.textSecondary} />
             </View>
           )}
 
-          <Text style={[styles.name, { color: theme.text }]}>
+          <Text className="text-[22px] font-bold text-center" style={{ color: theme.text }}>
             {faculty.name}
           </Text>
-          <Text style={[styles.designation, { color: theme.textSecondary }]}>
+          <Text className="mt-1 text-[15px] text-center" style={{ color: theme.textSecondary }}>
             {faculty.designation}
           </Text>
 
           {faculty.additionalRole && (
             <Text
-              style={[styles.additionalRole, { color: Colors.status.info }]}
+              className="mt-2 text-[13px] font-medium text-center"
+              style={{ color: Colors.status.info }}
             >
               {faculty.additionalRole}
             </Text>
@@ -121,45 +118,39 @@ export default function FacultyDetailScreen() {
         </View>
 
         {/* quick actions */}
-        <View style={styles.actionsRow}>
+        <View className="mb-6 flex-row gap-4">
           {faculty.contact.phone && (
             <Pressable
-              style={[
-                styles.actionCard,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="flex-1 items-center justify-center gap-1.5 rounded-xl py-4"
+              style={{ backgroundColor: theme.backgroundSecondary }}
               onPress={handlePhone}
             >
               <Ionicons name="call" size={22} color={Colors.status.success} />
-              <Text style={[styles.actionLabel, { color: theme.text }]}>
+              <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
                 Call
               </Text>
             </Pressable>
           )}
           {faculty.contact.email && (
             <Pressable
-              style={[
-                styles.actionCard,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="flex-1 items-center justify-center gap-1.5 rounded-xl py-4"
+              style={{ backgroundColor: theme.backgroundSecondary }}
               onPress={handleEmail}
             >
               <Ionicons name="mail" size={22} color={Colors.status.info} />
-              <Text style={[styles.actionLabel, { color: theme.text }]}>
+              <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
                 Email
               </Text>
             </Pressable>
           )}
           {faculty.page.link && (
             <Pressable
-              style={[
-                styles.actionCard,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="flex-1 items-center justify-center gap-1.5 rounded-xl py-4"
+              style={{ backgroundColor: theme.backgroundSecondary }}
               onPress={handleWebpage}
             >
               <Ionicons name="globe" size={22} color={Colors.status.warning} />
-              <Text style={[styles.actionLabel, { color: theme.text }]}>
+              <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
                 Website
               </Text>
             </Pressable>
@@ -168,24 +159,28 @@ export default function FacultyDetailScreen() {
 
         {/* contact details */}
         <View
-          style={[styles.card, { backgroundColor: theme.backgroundSecondary }]}
+          className="mb-4 rounded-xl p-4"
+          style={{ backgroundColor: theme.backgroundSecondary }}
         >
-          <Text style={[styles.cardTitle, { color: theme.text }]}>Contact</Text>
+          <Text className="mb-4 text-[16px] font-semibold" style={{ color: theme.text }}>
+            Contact
+          </Text>
 
           {faculty.contact.room && (
-            <View style={styles.infoRow}>
+            <View className="mb-4 flex-row items-start gap-4">
               <Ionicons
                 name="location-outline"
                 size={18}
                 color={Colors.status.info}
               />
-              <View style={styles.infoContent}>
+              <View className="flex-1">
                 <Text
-                  style={[styles.infoLabel, { color: theme.textSecondary }]}
+                  className="mb-0.5 text-[11px] uppercase tracking-[0.5px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   Room
                 </Text>
-                <Text style={[styles.infoValue, { color: theme.text }]}>
+                <Text className="text-[14px]" style={{ color: theme.text }}>
                   {faculty.contact.room}
                 </Text>
               </View>
@@ -193,19 +188,20 @@ export default function FacultyDetailScreen() {
           )}
 
           {faculty.contact.phone && (
-            <View style={styles.infoRow}>
+            <View className="mb-4 flex-row items-start gap-4">
               <Ionicons
                 name="call-outline"
                 size={18}
                 color={theme.textSecondary}
               />
-              <View style={styles.infoContent}>
+              <View className="flex-1">
                 <Text
-                  style={[styles.infoLabel, { color: theme.textSecondary }]}
+                  className="mb-0.5 text-[11px] uppercase tracking-[0.5px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   Phone
                 </Text>
-                <Text style={[styles.infoValue, { color: theme.text }]}>
+                <Text className="text-[14px]" style={{ color: theme.text }}>
                   {faculty.contact.phone}
                 </Text>
               </View>
@@ -213,19 +209,20 @@ export default function FacultyDetailScreen() {
           )}
 
           {faculty.contact.email && (
-            <View style={styles.infoRow}>
+            <View className="flex-row items-start gap-4">
               <Ionicons
                 name="mail-outline"
                 size={18}
                 color={theme.textSecondary}
               />
-              <View style={styles.infoContent}>
+              <View className="flex-1">
                 <Text
-                  style={[styles.infoLabel, { color: theme.textSecondary }]}
+                  className="mb-0.5 text-[11px] uppercase tracking-[0.5px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   Email
                 </Text>
-                <Text style={[styles.infoValue, { color: theme.text }]}>
+                <Text className="text-[14px]" style={{ color: theme.text }}>
                   {faculty.contact.email}
                 </Text>
               </View>
@@ -236,28 +233,22 @@ export default function FacultyDetailScreen() {
         {/* areas of expertise */}
         {faculty.areas.length > 0 && (
           <View
-            style={[
-              styles.card,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="mb-4 rounded-xl p-4"
+            style={{ backgroundColor: theme.backgroundSecondary }}
           >
-            <Text style={[styles.cardTitle, { color: theme.text }]}>
+            <Text className="mb-4 text-[16px] font-semibold" style={{ color: theme.text }}>
               Areas of Expertise
             </Text>
-            <View style={styles.areasList}>
+            <View className="flex-row flex-wrap gap-2">
               {faculty.areas.map((area, index) => (
                 <View
                   key={index}
-                  style={[
-                    styles.areaChip,
-                    {
-                      backgroundColor: isDark
-                        ? Colors.gray[800]
-                        : Colors.gray[200],
-                    },
-                  ]}
+                  className="rounded-full px-4 py-1.5"
+                  style={{
+                    backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200],
+                  }}
                 >
-                  <Text style={[styles.areaText, { color: theme.text }]}>
+                  <Text className="text-[13px]" style={{ color: theme.text }}>
                     {area}
                   </Text>
                 </View>
@@ -269,16 +260,15 @@ export default function FacultyDetailScreen() {
         {/* qualification */}
         {faculty.qualification && (
           <View
-            style={[
-              styles.card,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="mb-4 rounded-xl p-4"
+            style={{ backgroundColor: theme.backgroundSecondary }}
           >
-            <Text style={[styles.cardTitle, { color: theme.text }]}>
+            <Text className="mb-4 text-[16px] font-semibold" style={{ color: theme.text }}>
               Qualification
             </Text>
             <Text
-              style={[styles.qualificationText, { color: theme.textSecondary }]}
+              className="text-[14px] leading-5"
+              style={{ color: theme.textSecondary }}
             >
               {faculty.qualification}
             </Text>
@@ -288,131 +278,3 @@ export default function FacultyDetailScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  header: {
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileSection: {
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: Radius.full,
-    marginBottom: Spacing.md,
-  },
-  avatarPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  designation: {
-    fontSize: 15,
-    marginTop: 4,
-    textAlign: "center",
-  },
-  additionalRole: {
-    fontSize: 13,
-    marginTop: 8,
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  actionsRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  actionCard: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
-    gap: 6,
-  },
-  actionLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  card: {
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: Spacing.md,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: 14,
-  },
-  areasList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  areaChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-  },
-  areaText: {
-    fontSize: 13,
-  },
-  qualificationText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  notFound: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.md,
-  },
-  notFoundText: {
-    fontSize: 16,
-  },
-  backBtn: {
-    marginTop: Spacing.md,
-  },
-  backBtnText: {
-    fontSize: 15,
-    fontWeight: "500",
-  },
-});
