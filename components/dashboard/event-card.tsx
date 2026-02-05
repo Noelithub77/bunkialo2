@@ -1,8 +1,8 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { TimelineEvent } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 
 type EventCardProps = {
   event: TimelineEvent;
@@ -57,24 +57,20 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
 
   return (
     <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.backgroundSecondary,
-          borderColor: isOverdue ? Colors.status.danger : theme.border,
-        },
-      ]}
+      className="gap-3 rounded-xl border p-4"
+      style={{
+        backgroundColor: theme.backgroundSecondary,
+        borderColor: isOverdue ? Colors.status.danger : theme.border,
+      }}
     >
-      <View style={styles.header}>
+      <View className="flex-row items-center gap-3">
         <View
-          style={[
-            styles.iconBox,
-            {
-              backgroundColor: isOverdue
-                ? Colors.status.danger
-                : Colors.status.info,
-            },
-          ]}
+          className="h-7 w-7 items-center justify-center rounded-lg"
+          style={{
+            backgroundColor: isOverdue
+              ? Colors.status.danger
+              : Colors.status.info,
+          }}
         >
           <Ionicons
             name="document-text-outline"
@@ -82,104 +78,52 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
             color={Colors.white}
           />
         </View>
-        <View style={styles.meta}>
+        <View className="flex-1 flex-row items-center justify-between">
           <Text
-            style={[styles.course, { color: theme.textSecondary }]}
+            className="text-xs font-medium"
+            style={{ color: theme.textSecondary }}
             numberOfLines={1}
           >
             {event.course.shortname}
           </Text>
           <Text
-            style={[
-              styles.time,
-              { color: isOverdue ? Colors.status.danger : theme.textSecondary },
-            ]}
+            className="text-xs font-semibold"
+            style={{
+              color: isOverdue ? Colors.status.danger : theme.textSecondary,
+            }}
           >
             {formatRelativeTime(event.timesort)}
           </Text>
         </View>
       </View>
 
-      <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
+      <Text
+        className="text-[15px] font-semibold leading-5"
+        style={{ color: theme.text }}
+        numberOfLines={2}
+      >
         {event.activityname}
       </Text>
 
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+      <Text className="text-[13px]" style={{ color: theme.textSecondary }}>
         {formatDate(event.timesort)} at {formatTime(event.timesort)}
       </Text>
 
       <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          {
-            backgroundColor: pressed ? theme.border : "transparent",
-            borderColor: theme.border,
-          },
-        ]}
+        className="mt-2 items-center justify-center rounded-lg border py-2"
+        style={({ pressed }) => ({
+          backgroundColor: pressed ? theme.border : "transparent",
+          borderColor: theme.border,
+        })}
         onPress={openOnLms}
       >
-        <Text style={[styles.buttonText, { color: theme.text }]}>
-          View on LMS
-        </Text>
-        <Ionicons name="open-outline" size={14} color={theme.textSecondary} />
+        <View className="flex-row items-center gap-2">
+          <Text className="text-[13px] font-medium" style={{ color: theme.text }}>
+            View on LMS
+          </Text>
+          <Ionicons name="open-outline" size={14} color={theme.textSecondary} />
+        </View>
       </Pressable>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  iconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  meta: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  course: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  time: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: "600",
-    lineHeight: 20,
-  },
-  subtitle: {
-    fontSize: 13,
-  },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    marginTop: Spacing.xs,
-  },
-  buttonText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-});

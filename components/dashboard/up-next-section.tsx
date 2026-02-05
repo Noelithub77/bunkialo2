@@ -1,4 +1,3 @@
-import { Spacing } from "@/constants/theme";
 import { getCurrentMeal } from "@/data/mess";
 import {
     getCurrentAndNextClass,
@@ -6,16 +5,9 @@ import {
 } from "@/stores/timetable-store";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 
 import { QuickGlanceCard } from "./quick-glance-card";
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    marginBottom: Spacing.md,
-  },
-});
 
 export function UpNextSection() {
   const { slots } = useTimetableStore();
@@ -54,7 +46,7 @@ export function UpNextSection() {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="mb-4 flex-row">
       <QuickGlanceCard
         type="class"
         data={classToShow}

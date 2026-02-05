@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { EditorMode } from "@/stores/acad-cal-ui-store";
 import { useAcadCalUIStore } from "@/stores/acad-cal-ui-store";
@@ -19,7 +19,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -240,14 +239,15 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "position"}
-        style={styles.modalOverlay}
+        className="flex-1 justify-end"
       >
-        <Pressable style={styles.modalBackdrop} onPress={closeModal} />
+        <Pressable className="absolute inset-0 bg-black/45" onPress={closeModal} />
         <View
-          style={[styles.modalSheet, { backgroundColor: theme.background }]}
+          className="max-h-[90%] rounded-t-3xl px-4 pt-4 pb-6"
+          style={{ backgroundColor: theme.background }}
         >
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
               {editorMode === "create" ? "Add Event" : "Edit Event"}
             </Text>
             <Pressable onPress={closeModal} hitSlop={8}>
@@ -255,7 +255,7 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
             </Pressable>
           </View>
           <ScrollView
-            contentContainerStyle={styles.modalContent}
+            contentContainerClassName="gap-4 pb-4"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -289,11 +289,11 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
               autoCapitalize="none"
             />
 
-            <View style={styles.modalSection}>
-              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>
+            <View className="gap-1">
+              <Text className="ml-1 text-[13px] font-medium" style={{ color: theme.textSecondary }}>
                 Category
               </Text>
-              <View style={styles.categoryRow}>
+              <View className="flex-row flex-wrap gap-2">
                 {CATEGORY_ORDER.map((category) => {
                   const meta = CATEGORY_META[category];
                   const isSelected = draft.category === category;
@@ -304,7 +304,12 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
                         setDraft((prev) => ({ ...prev, category }))
                       }
                       style={({ pressed }) => [
-                        styles.categoryChip,
+                        {
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 9999,
+                          borderWidth: 1,
+                        },
                         {
                           borderColor: isSelected ? meta.color : theme.border,
                           backgroundColor: isSelected
@@ -315,10 +320,8 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
                       ]}
                     >
                       <Text
-                        style={[
-                          styles.categoryChipText,
-                          { color: isSelected ? meta.color : theme.text },
-                        ]}
+                        className="text-xs font-semibold"
+                        style={{ color: isSelected ? meta.color : theme.text }}
                       >
                         {meta.label}
                       </Text>
@@ -336,7 +339,7 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
               }
               placeholder="Extra details"
               multiline
-              style={styles.noteInput}
+              style={{ height: 96, textAlignVertical: "top" }}
             />
 
             <Pressable
@@ -346,17 +349,16 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
                   isTentative: !prev.isTentative,
                 }))
               }
-              style={[styles.toggleRow, { borderColor: theme.border }]}
+              className="flex-row items-center gap-2 rounded-2xl border p-2"
+              style={{ borderColor: theme.border }}
             >
               <View
-                style={[
-                  styles.toggleIndicator,
-                  {
-                    backgroundColor: draft.isTentative
-                      ? Colors.status.warning
-                      : theme.backgroundSecondary,
-                  },
-                ]}
+                className="h-7 w-7 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: draft.isTentative
+                    ? Colors.status.warning
+                    : theme.backgroundSecondary,
+                }}
               >
                 <Ionicons
                   name={draft.isTentative ? "alert" : "checkmark"}
@@ -364,7 +366,7 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
                   color={draft.isTentative ? Colors.black : theme.text}
                 />
               </View>
-              <Text style={[styles.toggleText, { color: theme.text }]}>
+              <Text className="text-sm font-medium" style={{ color: theme.text }}>
                 Mark as tentative
               </Text>
             </Pressable>
@@ -372,17 +374,16 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
             {editorMode === "edit-base" && (
               <Pressable
                 onPress={() => setDraftHidden((prev) => !prev)}
-                style={[styles.toggleRow, { borderColor: theme.border }]}
+                className="flex-row items-center gap-2 rounded-2xl border p-2"
+                style={{ borderColor: theme.border }}
               >
                 <View
-                  style={[
-                    styles.toggleIndicator,
-                    {
-                      backgroundColor: draftHidden
-                        ? Colors.status.danger
-                        : theme.backgroundSecondary,
-                    },
-                  ]}
+                  className="h-7 w-7 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: draftHidden
+                      ? Colors.status.danger
+                      : theme.backgroundSecondary,
+                  }}
                 >
                   <Ionicons
                     name={draftHidden ? "eye-off" : "eye"}
@@ -390,7 +391,7 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
                     color={draftHidden ? Colors.white : theme.text}
                   />
                 </View>
-                <Text style={[styles.toggleText, { color: theme.text }]}>
+                <Text className="text-sm font-medium" style={{ color: theme.text }}>
                   Hide this base event
                 </Text>
               </Pressable>
@@ -412,17 +413,17 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
               />
             )}
           </ScrollView>
-          <View style={styles.modalFooter}>
+          <View className="mt-4 w-full flex-row gap-2">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={closeModal}
-              style={styles.modalButton}
+              className="flex-1"
             />
             <Button
               title="Save"
               onPress={handleSave}
-              style={styles.modalButton}
+              className="flex-1"
             />
           </View>
         </View>
@@ -430,90 +431,3 @@ export const EventEditorModal = ({ termId }: EventEditorModalProps) => {
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  modalSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    maxHeight: "90%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  modalContent: {
-    gap: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  modalButton: {
-    flex: 1,
-  },
-  modalSection: {
-    gap: Spacing.xs,
-  },
-  modalLabel: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginLeft: Spacing.xs,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  categoryChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-  },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  noteInput: {
-    height: 96,
-    textAlignVertical: "top",
-  },
-  toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.sm,
-  },
-  toggleIndicator: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-});

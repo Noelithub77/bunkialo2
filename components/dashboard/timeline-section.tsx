@@ -1,7 +1,7 @@
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { TimelineEvent } from "@/types";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { EventCard } from "./event-card";
 
 type TimelineSectionProps = {
@@ -36,8 +36,8 @@ export const TimelineSection = ({ events }: TimelineSectionProps) => {
 
   if (events.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+      <View className="items-center py-8">
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
           No upcoming events
         </Text>
       </View>
@@ -45,18 +45,24 @@ export const TimelineSection = ({ events }: TimelineSectionProps) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="gap-6">
       {Array.from(grouped.entries()).map(([date, dateEvents]) => (
-        <View key={date} style={styles.dateGroup}>
-          <View style={styles.dateHeader}>
+        <View key={date} className="gap-3">
+          <View className="flex-row items-center gap-3">
             <View
-              style={[styles.dot, { backgroundColor: Colors.status.info }]}
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: Colors.status.info }}
             />
-            <Text style={[styles.dateText, { color: theme.text }]}>{date}</Text>
+            <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+              {date}
+            </Text>
           </View>
-          <View style={styles.eventsColumn}>
-            <View style={[styles.line, { backgroundColor: theme.border }]} />
-            <View style={styles.eventsList}>
+          <View className="flex-row pl-1">
+            <View
+              className="mr-4 w-0.5"
+              style={{ backgroundColor: theme.border }}
+            />
+            <View className="flex-1 gap-3">
               {dateEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
@@ -67,45 +73,3 @@ export const TimelineSection = ({ events }: TimelineSectionProps) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.lg,
-  },
-  dateGroup: {
-    gap: Spacing.sm,
-  },
-  dateHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  dateText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  eventsColumn: {
-    flexDirection: "row",
-    paddingLeft: 4,
-  },
-  line: {
-    width: 2,
-    marginRight: Spacing.md,
-  },
-  eventsList: {
-    flex: 1,
-    gap: Spacing.sm,
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: Spacing.xl,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-});

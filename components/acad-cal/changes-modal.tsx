@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { ACADEMIC_EVENTS } from "@/data/acad-cal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAcadCalUIStore } from "@/stores/acad-cal-ui-store";
@@ -13,7 +13,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -111,14 +110,15 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "position"}
-        style={styles.modalOverlay}
+        className="flex-1 justify-end"
       >
-        <Pressable style={styles.modalBackdrop} onPress={closeModal} />
+        <Pressable className="absolute inset-0 bg-black/45" onPress={closeModal} />
         <View
-          style={[styles.modalSheet, { backgroundColor: theme.background }]}
+          className="max-h-[90%] rounded-t-3xl px-4 pt-4 pb-6"
+          style={{ backgroundColor: theme.background }}
         >
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
               Changes
             </Text>
             <Pressable onPress={closeModal} hitSlop={8}>
@@ -126,18 +126,16 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
             </Pressable>
           </View>
           <ScrollView
-            contentContainerStyle={styles.modalContent}
+            contentContainerClassName="gap-4 pb-4"
             showsVerticalScrollIndicator={false}
           >
             {changes.length === 0 ? (
               <View
-                style={[
-                  styles.emptyState,
-                  {
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundSecondary,
-                  },
-                ]}
+                className="flex-row items-center gap-2 rounded-2xl border p-4"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundSecondary,
+                }}
               >
                 <Ionicons
                   name="checkmark-circle-outline"
@@ -145,39 +143,34 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
                   color={theme.textSecondary}
                 />
                 <Text
-                  style={[styles.emptyText, { color: theme.textSecondary }]}
+                  className="text-[13px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   No overrides or custom events yet
                 </Text>
               </View>
             ) : (
-              <View style={styles.changeList}>
+              <View className="gap-2">
                 {changes.map((change) => (
                   <View
                     key={`${change.source}-${change.id}`}
-                    style={[
-                      styles.changeCard,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
+                    className="gap-1 rounded-2xl p-4"
+                    style={{ backgroundColor: theme.backgroundSecondary }}
                   >
-                    <View style={styles.changeHeader}>
-                      <Text style={[styles.changeTitle, { color: theme.text }]}>
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text className="flex-1 text-sm font-semibold" style={{ color: theme.text }}>
                         {change.title}
                       </Text>
                       <Text
-                        style={[
-                          styles.changeType,
-                          { color: theme.textSecondary },
-                        ]}
+                        className="text-xs"
+                        style={{ color: theme.textSecondary }}
                       >
                         {change.type}
                       </Text>
                     </View>
                     <Text
-                      style={[
-                        styles.changeDate,
-                        { color: theme.textSecondary },
-                      ]}
+                      className="text-xs"
+                      style={{ color: theme.textSecondary }}
                     >
                       {change.endDate
                         ? `${formatShortDate(change.date)} - ${formatShortDate(
@@ -185,21 +178,17 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
                           )}`
                         : formatLongDate(change.date)}
                     </Text>
-                    <View style={styles.changeActions}>
+                    <View className="mt-2 flex-row gap-2">
                       <Pressable
                         onPress={() =>
                           openChangeEditor(change.id, change.source)
                         }
-                        style={[
-                          styles.changeActionChip,
-                          { borderColor: theme.border },
-                        ]}
+                        className="rounded-full border px-3 py-1.5"
+                        style={{ borderColor: theme.border }}
                       >
                         <Text
-                          style={[
-                            styles.changeActionText,
-                            { color: theme.text },
-                          ]}
+                          className="text-xs font-semibold"
+                          style={{ color: theme.text }}
                         >
                           Edit
                         </Text>
@@ -212,19 +201,15 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
                           }
                           clearBaseOverride(change.id);
                         }}
-                        style={[
-                          styles.changeActionChip,
-                          {
-                            borderColor: Colors.status.danger,
-                            backgroundColor: Colors.status.danger + "10",
-                          },
-                        ]}
+                        className="rounded-full border px-3 py-1.5"
+                        style={{
+                          borderColor: Colors.status.danger,
+                          backgroundColor: Colors.status.danger + "10",
+                        }}
                       >
                         <Text
-                          style={[
-                            styles.changeActionText,
-                            { color: Colors.status.danger },
-                          ]}
+                          className="text-xs font-semibold"
+                          style={{ color: Colors.status.danger }}
                         >
                           {change.source === "custom" ? "Remove" : "Restore"}
                         </Text>
@@ -236,17 +221,17 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
             )}
           </ScrollView>
           {changes.length > 0 && (
-            <View style={styles.modalFooter}>
+            <View className="mt-4 w-full flex-row gap-2">
               <Button
                 title="Reset All"
                 variant="secondary"
                 onPress={resetCalendar}
-                style={styles.modalButton}
+                className="flex-1"
               />
               <Button
                 title="Done"
                 onPress={closeModal}
-                style={styles.modalButton}
+                className="flex-1"
               />
             </View>
           )}
@@ -255,95 +240,3 @@ export const ChangesModal = ({ termId }: ChangesModalProps) => {
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  modalSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    maxHeight: "90%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  modalContent: {
-    gap: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  modalButton: {
-    flex: 1,
-  },
-  emptyState: {
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 13,
-  },
-  changeList: {
-    gap: Spacing.sm,
-  },
-  changeCard: {
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  changeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  changeTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    flex: 1,
-  },
-  changeType: {
-    fontSize: 12,
-  },
-  changeDate: {
-    fontSize: 12,
-  },
-  changeActions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  changeActionChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-  },
-  changeActionText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-});

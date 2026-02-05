@@ -124,13 +124,13 @@ export default function AcademicCalendarScreen() {
           className="mb-4 flex-row rounded-full border p-1"
           style={{
             borderColor: theme.border,
-            backgroundColor: theme.backgroundSecondary,
+            backgroundColor: theme.background,
           }}
         >
           {VIEW_MODES.map((mode) => {
             const isSelected = viewMode === mode;
-            const selectedBg = isDark ? Colors.white : Colors.black;
-            const selectedText = isDark ? Colors.black : Colors.white;
+            const selectedBg = Colors.status.info;
+            const selectedText = Colors.white;
             return (
               <Pressable
                 key={mode}
@@ -139,6 +139,16 @@ export default function AcademicCalendarScreen() {
                 style={({ pressed }) => [
                   {
                     backgroundColor: isSelected ? selectedBg : "transparent",
+                    borderWidth: isSelected ? 1 : 0,
+                    borderColor: isSelected ? Colors.status.info : "transparent",
+                    zIndex: isSelected ? 1 : 0,
+                  },
+                  isSelected && {
+                    shadowColor: Colors.black,
+                    shadowOpacity: 0.2,
+                    shadowRadius: 6,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 3,
                   },
                   pressed && { opacity: 0.85 },
                 ]}

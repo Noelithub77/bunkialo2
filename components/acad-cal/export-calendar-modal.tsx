@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { AcademicEvent } from "@/types";
 import { generateICSContent } from "@/utils/ics-export";
@@ -17,7 +17,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -94,12 +93,13 @@ export const ExportCalendarModal = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable className="flex-1 justify-end bg-black/45" onPress={onClose}>
         <Pressable
-          style={[styles.sheet, { backgroundColor: theme.background }]}
+          className="max-h-[80%] rounded-t-3xl px-4 pt-4 pb-6"
+          style={{ backgroundColor: theme.background }}
         >
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
               Export to Calendar
             </Text>
             <Pressable onPress={onClose} hitSlop={8}>
@@ -108,53 +108,52 @@ export const ExportCalendarModal = ({
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.content}
+            contentContainerClassName="gap-4 pb-4"
             showsVerticalScrollIndicator={false}
           >
             <View
-              style={[
-                styles.infoBox,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="flex-row items-center gap-4 rounded-2xl p-4"
+              style={{ backgroundColor: theme.backgroundSecondary }}
             >
               <Ionicons
                 name="calendar-outline"
                 size={24}
                 color={Colors.status.info}
               />
-              <View style={styles.infoText}>
-                <Text style={[styles.infoTitle, { color: theme.text }]}>
+              <View className="flex-1">
+                <Text className="text-base font-semibold" style={{ color: theme.text }}>
                   {events.length} Events
                 </Text>
                 <Text
-                  style={[styles.infoSubtitle, { color: theme.textSecondary }]}
+                  className="mt-0.5 text-[13px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   {termName}
                 </Text>
               </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text className="text-[15px] font-semibold" style={{ color: theme.text }}>
               How to add to your calendar
             </Text>
 
-            <View style={styles.stepsList}>
+            <View className="gap-2">
               {steps.map((step, index) => (
-                <View key={index} style={styles.stepRow}>
+                <View key={index} className="flex-row items-center gap-2">
                   <View
-                    style={[
-                      styles.stepNumber,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
+                    className="h-6 w-6 items-center justify-center rounded-full"
+                    style={{ backgroundColor: theme.backgroundSecondary }}
                   >
                     <Text
-                      style={[styles.stepNumberText, { color: theme.text }]}
+                      className="text-xs font-semibold"
+                      style={{ color: theme.text }}
                     >
                       {index + 1}
                     </Text>
                   </View>
                   <Text
-                    style={[styles.stepText, { color: theme.textSecondary }]}
+                    className="flex-1 text-sm"
+                    style={{ color: theme.textSecondary }}
                   >
                     {step}
                   </Text>
@@ -162,13 +161,19 @@ export const ExportCalendarModal = ({
               ))}
             </View>
 
-            <View style={[styles.noteBox, { borderColor: theme.border }]}>
+            <View
+              className="flex-row items-start gap-2 rounded-xl border p-2"
+              style={{ borderColor: theme.border }}
+            >
               <Ionicons
                 name="information-circle-outline"
                 size={16}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.noteText, { color: theme.textSecondary }]}>
+              <Text
+                className="flex-1 text-xs leading-[18px]"
+                style={{ color: theme.textSecondary }}
+              >
                 Works with Google Calendar, Apple Calendar, Outlook, and any app
                 that supports .ics files
               </Text>
@@ -176,10 +181,8 @@ export const ExportCalendarModal = ({
 
             {exportSuccess && (
               <View
-                style={[
-                  styles.successBox,
-                  { backgroundColor: Colors.status.success + "20" },
-                ]}
+                className="flex-row items-center gap-2 rounded-xl p-2"
+                style={{ backgroundColor: Colors.status.success + "20" }}
               >
                 <Ionicons
                   name="checkmark-circle"
@@ -187,7 +190,8 @@ export const ExportCalendarModal = ({
                   color={Colors.status.success}
                 />
                 <Text
-                  style={[styles.successText, { color: Colors.status.success }]}
+                  className="text-[13px] font-medium"
+                  style={{ color: Colors.status.success }}
                 >
                   Calendar exported successfully
                 </Text>
@@ -195,18 +199,18 @@ export const ExportCalendarModal = ({
             )}
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View className="mt-4 w-full flex-row gap-2">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={onClose}
-              style={styles.footerBtn}
+              className="flex-1"
             />
             <Button
               title={isExporting ? "Exporting..." : "Export"}
               onPress={handleExport}
               disabled={isExporting || events.length === 0}
-              style={styles.footerBtn}
+              className="flex-1"
             />
           </View>
         </Pressable>
@@ -214,111 +218,3 @@ export const ExportCalendarModal = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    maxHeight: "80%",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  content: {
-    gap: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  infoBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-  },
-  infoText: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  infoSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: Spacing.sm,
-  },
-  stepsList: {
-    gap: Spacing.sm,
-  },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  stepText: {
-    fontSize: 14,
-    flex: 1,
-  },
-  noteBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-  },
-  noteText: {
-    fontSize: 12,
-    flex: 1,
-    lineHeight: 18,
-  },
-  successBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  successText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  footer: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  footerBtn: {
-    flex: 1,
-  },
-});
