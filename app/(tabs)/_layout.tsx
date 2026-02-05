@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { withLayoutContext } from "expo-router";
 import { Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { Navigator } = createMaterialTopTabNavigator();
 const MaterialBottomTabs = withLayoutContext(Navigator);
@@ -12,9 +13,11 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
-  const tabLabelStyle = { fontSize: 12, lineHeight: 14 };
+  const insets = useSafeAreaInsets();
+  const tabLabelStyle = { fontSize: 12, lineHeight: 16 };
   const iconSize = 22;
-  const tabBarHeight = iconSize + tabLabelStyle.lineHeight + 8;
+  const tabBarContentHeight = iconSize + tabLabelStyle.lineHeight + 8;
+  const tabBarHeight = tabBarContentHeight + insets.bottom;
 
   return (
     <MaterialBottomTabs
@@ -35,15 +38,15 @@ export default function TabLayout() {
             {children}
           </Text>
         ),
-        tabBarItemStyle: { paddingVertical: 0, height: tabBarHeight },
+        tabBarItemStyle: { paddingVertical: 0, height: tabBarContentHeight },
         tabBarShowIcon: true,
         tabBarIndicatorStyle: { height: 0 },
         tabBarStyle: {
           backgroundColor: isDark ? Colors.black : Colors.white,
           borderTopColor: theme.border,
           height: tabBarHeight,
-          paddingBottom: 0,
-          paddingTop: 0,
+          paddingBottom: insets.bottom,
+          paddingTop: 2,
         },
         swipeEnabled: true,
       }}
