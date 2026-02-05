@@ -11,7 +11,6 @@ import {
   selectAllDutyLeaves,
   useBunkStore,
 } from "@/stores/bunk-store";
-import type { AttendanceRecord } from "@/types";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
 import { AddBunkModal } from "../add-bunk-modal";
@@ -45,6 +44,7 @@ export const CoursesContent = () => {
     handleConfirmUnknownAbsent,
     handleRevertUnknown,
     applyUnknownPresent,
+    applyUnknownAbsent,
     updateBunkNote,
   } = useBunkActions();
 
@@ -91,8 +91,6 @@ export const CoursesContent = () => {
   const isDLInputBunkVisible = activeModal?.type === "dl-input-bunk";
   const isPresenceInputBunkVisible =
     activeModal?.type === "presence-input-bunk";
-  const isPresenceInputUnknownVisible =
-    activeModal?.type === "presence-input-unknown";
   const isDutyLeaveListVisible = activeModal?.type === "duty-leave-list";
   const isUnknownStatusVisible = activeModal?.type === "unknown-status";
   const isSlotConflictVisible = activeModal?.type === "slot-conflict";
@@ -190,26 +188,6 @@ export const CoursesContent = () => {
                 updateBunkNote(courseId, bunkId, note)
               }
               onShowUnknown={() => openModal({ type: "unknown-status" })}
-              onConfirmUnknownPresent={(
-                cId: string,
-                record: AttendanceRecord,
-              ) => {
-                openModal({
-                  type: "presence-input-unknown",
-                  courseId: cId,
-                  record,
-                });
-              }}
-              onConfirmUnknownAbsent={(
-                cId: string,
-                record: AttendanceRecord,
-              ) => {
-                openModal({
-                  type: "confirm-unknown-absent",
-                  courseId: cId,
-                  record,
-                });
-              }}
               onDeleteCustomCourse={() => {
                 if (bunkData?.isCustomCourse) {
                   handleDeleteCustomCourse(courseId);
@@ -276,7 +254,7 @@ export const CoursesContent = () => {
       />
 
       <PresenceInputModal
-        visible={isPresenceInputBunkVisible || isPresenceInputUnknownVisible}
+        visible={isPresenceInputBunkVisible}
         onClose={closeModal}
         onConfirm={(note) => {
           if (activeModal?.type === "presence-input-bunk") {
@@ -284,9 +262,6 @@ export const CoursesContent = () => {
               courseId: activeModal.courseId,
               bunkId: activeModal.bunkId,
             });
-          } else if (activeModal?.type === "presence-input-unknown") {
-            applyUnknownPresent(activeModal.courseId, activeModal.record, note);
-            closeModal();
           }
         }}
       />
@@ -306,11 +281,9 @@ export const CoursesContent = () => {
         bunkCourses={bunkCourses}
         onClose={closeModal}
         onRevert={handleRevertUnknown}
-        onConfirmPresent={(courseId, record) => {
-          openModal({ type: "presence-input-unknown", courseId, record });
-        }}
+        onConfirmPresent={applyUnknownPresent}
         onConfirmAbsent={(courseId, record) => {
-          openModal({ type: "confirm-unknown-absent", courseId, record });
+          applyUnknownAbsent(courseId, record);
         }}
       />
 

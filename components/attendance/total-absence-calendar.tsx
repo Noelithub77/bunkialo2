@@ -85,15 +85,6 @@ export function TotalAbsenceCalendar({
   const { markedDates, absenceMap } = useMemo(() => {
     const marked: MarkedDates = {};
     const absMap = new Map<string, AbsenceInfo[]>();
-    const resolvedKeysByCourse = new Map<string, Set<string>>();
-
-    for (const course of bunkCourses) {
-      const keys = new Set<string>();
-      for (const bunk of course.bunks) {
-        keys.add(buildRecordKey(bunk.date, bunk.description));
-      }
-      resolvedKeysByCourse.set(course.courseId, keys);
-    }
 
     for (const course of attendanceCourses) {
       const bunkCourse = bunkCourses.find(
@@ -101,15 +92,16 @@ export function TotalAbsenceCalendar({
       );
       const courseName = bunkCourse?.config?.alias || course.courseName;
       const courseColor = bunkCourse?.config?.color || Colors.courseColors[0];
-      const resolvedKeys = resolvedKeysByCourse.get(course.courseId);
 
       for (const record of course.records) {
-        // only absences
+        // confirmed absences only
         if (record.status !== "Absent" && record.status !== "Unknown") continue;
-        if (
-          record.status === "Unknown" &&
-          resolvedKeys?.has(buildRecordKey(record.date, record.description))
-        ) {
+        const recordKey = buildRecordKey(record.date, record.description);
+        const matchingBunk = bunkCourse?.bunks.find(
+          (b) => buildRecordKey(b.date, b.description) === recordKey,
+        );
+        // Unknown is assumed present unless user explicitly marked it
+        if (record.status === "Unknown" && (!matchingBunk || matchingBunk.isMarkedPresent)) {
           continue;
         }
 
@@ -132,10 +124,6 @@ export function TotalAbsenceCalendar({
         if (!absMap.has(date)) {
           absMap.set(date, []);
         }
-        const recordKey = buildRecordKey(record.date, record.description);
-        const matchingBunk = bunkCourse?.bunks.find(
-          (b) => buildRecordKey(b.date, b.description) === recordKey,
-        );
         absMap.get(date)!.push({
           courseId: course.courseId,
           courseName,

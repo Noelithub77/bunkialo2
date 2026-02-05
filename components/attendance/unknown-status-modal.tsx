@@ -27,7 +27,7 @@ interface UnknownStatusModalProps {
   onRevert: (courseId: string, record: AttendanceRecord) => void;
 }
 
-type UnknownResolution = "pending" | "present" | "absent" | "dutyLeave";
+type UnknownResolution = "assumedPresent" | "present" | "absent" | "dutyLeave";
 
 interface UnknownEntry {
   courseId: string;
@@ -128,16 +128,16 @@ export function UnknownStatusModal({
         if (record.status === "Unknown") {
           const recordKey = buildRecordKey(record.date, record.description);
           const matchingBunk = bunkLookup.get(course.courseId)?.get(recordKey);
-          let resolution: UnknownResolution = "pending";
+          let resolution: UnknownResolution = "assumedPresent";
           let note = "";
           if (matchingBunk) {
-            if (matchingBunk.isMarkedPresent) {
-              resolution = "present";
-              note = matchingBunk.presenceNote;
-            } else if (matchingBunk.isDutyLeave) {
+            if (matchingBunk.isDutyLeave) {
               resolution = "dutyLeave";
               note = matchingBunk.dutyLeaveNote;
-            } else {
+            } else if (matchingBunk.isMarkedPresent) {
+              resolution = "present";
+              note = matchingBunk.presenceNote;
+            } else if (!matchingBunk.isMarkedPresent) {
               resolution = "absent";
               note = matchingBunk.note;
             }
@@ -155,18 +155,21 @@ export function UnknownStatusModal({
       }
     }
     // sort by date descending
-    return entries.sort((a, b) => {
-      if (a.resolution === "pending" && b.resolution !== "pending") return -1;
-      if (a.resolution !== "pending" && b.resolution === "pending") return 1;
-      const dateA = a.record.date;
-      const dateB = b.record.date;
-      return dateB.localeCompare(dateA);
-    });
+    return entries.sort((a, b) => b.record.date.localeCompare(a.record.date));
   }, [courses, courseNameById, bunkLookup]);
 
-  const pendingCount = useMemo(
+  const assumedPresentCount = useMemo(
     () =>
-      unknownEntries.filter((entry) => entry.resolution === "pending").length,
+      unknownEntries.filter((entry) => entry.resolution === "assumedPresent")
+        .length,
+    [unknownEntries],
+  );
+  const confirmedPresentCount = useMemo(
+    () => unknownEntries.filter((entry) => entry.resolution === "present").length,
+    [unknownEntries],
+  );
+  const absentCount = useMemo(
+    () => unknownEntries.filter((entry) => entry.resolution === "absent").length,
     [unknownEntries],
   );
 
@@ -174,11 +177,17 @@ export function UnknownStatusModal({
     resolution: UnknownResolution,
   ): { label: string; color: string; icon: string } => {
     switch (resolution) {
-      case "present":
+      case "assumedPresent":
         return {
-          label: "Marked Present",
+          label: "Assumed Present",
           color: Colors.status.success,
           icon: "checkmark-circle",
+        };
+      case "present":
+        return {
+          label: "Confirmed Present",
+          color: Colors.status.success,
+          icon: "checkmark-done-circle",
         };
       case "absent":
         return {
@@ -192,12 +201,11 @@ export function UnknownStatusModal({
           color: Colors.status.info,
           icon: "briefcase",
         };
-      case "pending":
       default:
         return {
-          label: "Pending confirmation",
-          color: Colors.status.unknown,
-          icon: "help-circle",
+          label: "Assumed Present",
+          color: Colors.status.success,
+          icon: "checkmark-circle",
         };
     }
   };
@@ -252,7 +260,7 @@ export function UnknownStatusModal({
           ) : null}
         </View>
         <View className="flex-row gap-2">
-          {item.resolution === "pending" ? (
+          {item.resolution === "assumedPresent" ? (
             <>
               <Pressable
                 onPress={() => onConfirmPresent(item.courseId, item.record)}
@@ -330,8 +338,9 @@ export function UnknownStatusModal({
                 className="mb-4 text-[13px]"
                 style={{ color: theme.textSecondary }}
               >
-                {unknownEntries.length} total · {pendingCount} pending ·{" "}
-                {unknownEntries.length - pendingCount} resolved
+                {unknownEntries.length} total · {assumedPresentCount} assumed
+                present · {confirmedPresentCount} confirmed present ·{" "}
+                {absentCount} marked absent
               </Text>
               <FlatList
                 data={unknownEntries}

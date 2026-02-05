@@ -8,7 +8,6 @@ import { filterPastBunks, selectCourseStats } from "@/stores/bunk-store";
 import type {
     AttendanceRecord,
     AttendanceStatus,
-    BunkRecord,
     CourseAttendance,
     CourseBunkData,
     MarkedDates,
@@ -32,8 +31,6 @@ interface UnifiedCourseCardProps {
   onRemovePresent: (bunkId: string) => void;
   onUpdateNote: (bunkId: string, note: string) => void;
   onShowUnknown: (courseId: string) => void;
-  onConfirmUnknownPresent: (courseId: string, record: AttendanceRecord) => void;
-  onConfirmUnknownAbsent: (courseId: string, record: AttendanceRecord) => void;
   onDeleteCustomCourse?: () => void;
 }
 
@@ -139,7 +136,7 @@ const getStatusColor = (status: AttendanceStatus): string => {
   }
 };
 
-// only show Absent and Unknown on calendar (not Present)
+// only show confirmed absences on calendar
 const buildMarkedDates = (
   records: AttendanceRecord[],
   selectedDate: string | null,
@@ -147,8 +144,9 @@ const buildMarkedDates = (
   const marked: MarkedDates = {};
 
   for (const record of records) {
-    // skip Present status - only show Absent and Unknown
+    // skip non-absence statuses
     if (
+      record.status === "Unknown" ||
       record.status === "Present" ||
       record.status === "Late" ||
       record.status === "Excused"
@@ -179,10 +177,8 @@ const buildMarkedDates = (
 };
 
 const getMostRecentDate = (records: AttendanceRecord[]): string | null => {
-  // get most recent Absent or Unknown date
-  const filtered = records.filter(
-    (r) => r.status === "Absent" || r.status === "Unknown",
-  );
+  // get most recent confirmed Absent date
+  const filtered = records.filter((r) => r.status === "Absent");
   let mostRecent: string | null = null;
   let mostRecentTime = 0;
   for (const record of filtered) {
@@ -209,8 +205,6 @@ export function UnifiedCourseCard({
   onRemovePresent,
   onUpdateNote,
   onShowUnknown,
-  onConfirmUnknownPresent,
-  onConfirmUnknownAbsent,
   onDeleteCustomCourse,
 }: UnifiedCourseCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -235,7 +229,9 @@ export function UnifiedCourseCard({
     [course],
   );
   const totalSessions = pastRecords.length;
-  const attended = pastRecords.filter((r) => r.status === "Present").length;
+  const confirmedPresentCount = pastRecords.filter(
+    (r) => r.status === "Present",
+  ).length;
 
   const bunkKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -261,6 +257,8 @@ export function UnifiedCourseCard({
   );
 
   const unknownCount = unresolvedUnknown.length;
+  // unknown ("?") defaults to present unless user explicitly confirms absent
+  const attended = confirmedPresentCount + unknownCount;
   const percentage =
     totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
   const percentageColor = getPercentageColor(percentage);
@@ -291,15 +289,6 @@ export function UnifiedCourseCard({
     () => getMostRecentDate(displayRecords),
     [displayRecords],
   );
-
-  // Unknown records for selected date
-  const selectedUnknown = useMemo((): AttendanceRecord[] => {
-    if (!selectedDate) return [];
-    return unresolvedUnknown.filter((record) => {
-      const { date } = parseDateString(record.date);
-      return date === selectedDate;
-    });
-  }, [selectedDate, unresolvedUnknown]);
 
   const handleCardPress = () => {
     if (isEditMode) {
@@ -557,59 +546,6 @@ export function UnifiedCourseCard({
             }}
           />
 
-          {course && selectedDate && selectedUnknown.length > 0 && (
-            <View
-              className="mt-2 border-t pt-2"
-              style={{ borderTopColor: theme.border }}
-            >
-              <Text
-                className="text-xs font-medium"
-                style={{ color: Colors.status.unknown }}
-              >
-                Unconfirmed ({selectedUnknown.length})
-              </Text>
-              {selectedUnknown.map((record, idx) => {
-                const { time } = parseDateString(record.date);
-                const recordKey = buildRecordKey(record);
-                const fakeBunk: BunkRecord = {
-                  id: recordKey || `unknown-${idx}`,
-                  date: record.date,
-                  description: record.description,
-                  timeSlot: time,
-                  note: "",
-                  source: "lms",
-                  isDutyLeave: false,
-                  dutyLeaveNote: "",
-                  isMarkedPresent: false,
-                  presenceNote: "",
-                };
-                return (
-                  <SwipeableBunkItem
-                    key={fakeBunk.id}
-                    bunk={fakeBunk}
-                    isUnknown
-                    attendanceModuleId={course.attendanceModuleId}
-                    onMarkDL={() =>
-                      onConfirmUnknownAbsent(course.courseId, record)
-                    }
-                    onRemoveDL={() => {}}
-                    onMarkPresent={() =>
-                      onConfirmUnknownPresent(course.courseId, record)
-                    }
-                    onRemovePresent={() => {}}
-                    onUpdateNote={() => {}}
-                  />
-                );
-              })}
-              <Text
-                className="mt-2 text-[10px] text-center opacity-60"
-                style={{ color: theme.textSecondary }}
-              >
-                Swipe left = Present · Swipe right = Absent
-              </Text>
-            </View>
-          )}
-
           {pastBunks.length > 0 && (
             <View className="mt-2 gap-0">
               {pastBunks.map((bunk) => (
@@ -664,18 +600,6 @@ export function UnifiedCourseCard({
                 style={{ color: theme.textSecondary }}
               >
                 A
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <View
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: Colors.status.unknown }}
-              />
-              <Text
-                className="text-[10px]"
-                style={{ color: theme.textSecondary }}
-              >
-                ?
               </Text>
             </View>
           </View>

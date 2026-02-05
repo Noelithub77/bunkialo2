@@ -7,11 +7,6 @@ export type ModalState =
   | { type: "dl-input-bunk"; courseId: string; bunkId: string }
   | { type: "presence-input"; courseId: string; record: AttendanceRecord }
   | { type: "presence-input-bunk"; courseId: string; bunkId: string }
-  | {
-      type: "presence-input-unknown";
-      courseId: string;
-      record: AttendanceRecord;
-    }
   | { type: "course-edit"; course: CourseBunkData }
   | { type: "add-bunk"; course: CourseBunkData }
   | { type: "create-course" }

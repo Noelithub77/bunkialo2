@@ -34,15 +34,19 @@ export const useBunkActions = () => {
     [bunkCourses],
   );
 
-  // apply unknown as present
+  // unknown defaults to present; confirming present stores an explicit override
   const applyUnknownPresent = useCallback(
-    (courseId: string, record: AttendanceRecord, note: string) => {
+    (courseId: string, record: AttendanceRecord) => {
       const existingBunk = findMatchingBunk(courseId, record);
       if (existingBunk) {
+        if (existingBunk.isMarkedPresent) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          return;
+        }
         if (existingBunk.isDutyLeave) {
           removeDutyLeave(courseId, existingBunk.id);
         }
-        markAsPresent(courseId, existingBunk.id, note);
+        markAsPresent(courseId, existingBunk.id, "");
       } else {
         addBunk(courseId, {
           date: record.date,
@@ -52,12 +56,18 @@ export const useBunkActions = () => {
           isDutyLeave: false,
           dutyLeaveNote: "",
           isMarkedPresent: true,
-          presenceNote: note,
+          presenceNote: "",
         });
       }
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
-    [addBunk, findMatchingBunk, markAsPresent, removeDutyLeave],
+    [
+      addBunk,
+      findMatchingBunk,
+      markAsPresent,
+      removeDutyLeave,
+    ],
   );
 
   // apply unknown as absent
@@ -114,12 +124,12 @@ export const useBunkActions = () => {
   const handleMarkPresentAbsences = useCallback(
     (courseId: string, record: AttendanceRecord) => {
       if (record.status === "Unknown") {
-        openModal({ type: "presence-input-unknown", courseId, record });
+        applyUnknownPresent(courseId, record);
       } else {
         openModal({ type: "presence-input", courseId, record });
       }
     },
-    [openModal],
+    [applyUnknownPresent, openModal],
   );
 
   const handleMarkDLAbsences = useCallback(

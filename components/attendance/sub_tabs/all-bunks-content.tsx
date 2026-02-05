@@ -28,11 +28,12 @@ export const AllBunksContent = () => {
     handleMarkDLAbsences,
     handleConfirmPresentAbsences,
     handleConfirmDLAbsences,
-    handleRevertUnknown,
     applyUnknownPresent,
+    handleRevertUnknown,
+    applyUnknownAbsent,
+    handleConfirmUnknownAbsent,
     handleConfirmRemoveDL,
     handleConfirmRemovePresent,
-    handleConfirmUnknownAbsent,
   } = useBunkActions();
 
   const allDutyLeaves = useMemo(
@@ -46,9 +47,7 @@ export const AllBunksContent = () => {
 
   // modal visibility checks
   const isDLInputVisible = activeModal?.type === "dl-input";
-  const isPresenceInputVisible =
-    activeModal?.type === "presence-input" ||
-    activeModal?.type === "presence-input-unknown";
+  const isPresenceInputVisible = activeModal?.type === "presence-input";
   const isDutyLeaveListVisible = activeModal?.type === "duty-leave-list";
   const isUnknownStatusVisible = activeModal?.type === "unknown-status";
   const isConfirmVisible =
@@ -118,10 +117,7 @@ export const AllBunksContent = () => {
         visible={isPresenceInputVisible}
         onClose={closeModal}
         onConfirm={(note) => {
-          if (activeModal?.type === "presence-input-unknown") {
-            applyUnknownPresent(activeModal.courseId, activeModal.record, note);
-            closeModal();
-          } else if (activeModal?.type === "presence-input") {
+          if (activeModal?.type === "presence-input") {
             handleConfirmPresentAbsences(note, {
               courseId: activeModal.courseId,
               record: activeModal.record,
@@ -158,11 +154,9 @@ export const AllBunksContent = () => {
         bunkCourses={bunkCourses}
         onClose={closeModal}
         onRevert={handleRevertUnknown}
-        onConfirmPresent={(courseId, record) => {
-          openModal({ type: "presence-input-unknown", courseId, record });
-        }}
+        onConfirmPresent={applyUnknownPresent}
         onConfirmAbsent={(courseId, record) => {
-          openModal({ type: "confirm-unknown-absent", courseId, record });
+          applyUnknownAbsent(courseId, record);
         }}
       />
 
