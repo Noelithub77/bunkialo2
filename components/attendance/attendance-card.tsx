@@ -1,20 +1,20 @@
 import { SwipeableBunkItem } from "@/components/attendance/swipeable-bunk-item";
 import { GradientCard } from "@/components/ui/gradient-card";
-import { CalendarTheme, Colors, Spacing } from "@/constants/theme";
+import { CalendarTheme, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
 import type {
-  AttendanceRecord,
-  AttendanceStatus,
-  BunkRecord,
-  CourseAttendance,
-  MarkedDates,
-  SessionType,
+    AttendanceRecord,
+    AttendanceStatus,
+    BunkRecord,
+    CourseAttendance,
+    MarkedDates,
+    SessionType,
 } from "@/types";
 import { extractCourseName } from "@/utils/course-name";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 
 interface AttendanceCardProps {
@@ -259,21 +259,23 @@ export function AttendanceCard({
   if (totalSessions === 0) {
     return (
       <GradientCard>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 flex-row items-start gap-2 mr-4">
             {courseColor && (
               <View
-                style={[styles.colorDot, { backgroundColor: courseColor }]}
+                className="mt-1 h-3 w-3 rounded-full"
+                style={{ backgroundColor: courseColor }}
               />
             )}
             <Text
-              style={[styles.courseName, { color: theme.text }]}
+              className="text-base font-semibold"
+              style={{ color: theme.text }}
               numberOfLines={2}
             >
               {courseAlias}
             </Text>
           </View>
-          <Text style={[styles.noData, { color: theme.textSecondary }]}>
+          <Text className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
             No attendance data
           </Text>
         </View>
@@ -290,38 +292,39 @@ export function AttendanceCard({
   return (
     <GradientCard>
       <Pressable onPress={() => setExpanded(!expanded)}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
+        <View className="flex-row items-start justify-between">
+          <View className="mr-4 flex-1 flex-row items-start gap-2">
             {courseColor && (
               <View
-                style={[styles.colorDot, { backgroundColor: courseColor }]}
+                className="mt-1 h-3 w-3 rounded-full"
+                style={{ backgroundColor: courseColor }}
               />
             )}
-            <View style={styles.headerInfo}>
+            <View className="flex-1">
               <Text
-                style={[styles.courseName, { color: theme.text }]}
+                className="text-base font-semibold"
+                style={{ color: theme.text }}
                 numberOfLines={2}
               >
                 {courseAlias}
               </Text>
-              <View style={styles.sessionMeta}>
+              <View className="mt-1 flex-row items-center gap-2">
                 <Text
-                  style={[styles.sessionCount, { color: theme.textSecondary }]}
+                  className="text-sm"
+                  style={{ color: theme.textSecondary }}
                 >
                   {attended} / {totalSessions} sessions
                 </Text>
                 {unknownCount > 0 && (
-                  <View style={styles.unknownBadge}>
+                  <View className="flex-row items-center gap-1">
                     <Ionicons
                       name="help"
                       size={10}
                       color={Colors.status.unknown}
                     />
                     <Text
-                      style={[
-                        styles.unknownText,
-                        { color: Colors.status.unknown },
-                      ]}
+                      className="text-xs font-semibold"
+                      style={{ color: Colors.status.unknown }}
                     >
                       {unknownCount}
                     </Text>
@@ -330,8 +333,11 @@ export function AttendanceCard({
               </View>
             </View>
           </View>
-          <View style={styles.headerRight}>
-            <Text style={[styles.percentage, { color: percentageColor }]}>
+          <View className="flex-row items-center gap-2">
+            <Text
+              className="text-2xl font-bold"
+              style={{ color: percentageColor }}
+            >
               {percentage}%
             </Text>
             <Ionicons
@@ -344,8 +350,11 @@ export function AttendanceCard({
       </Pressable>
 
       {expanded && (
-        <View style={styles.calendarContainer}>
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+        <View className="mt-4">
+          <View
+            className="mb-4 h-px"
+            style={{ backgroundColor: theme.border }}
+          />
 
           <Calendar
             markingType="multi-dot"
@@ -370,7 +379,8 @@ export function AttendanceCard({
           {/* selected date sessions - swipeable */}
           {selectedDate && selectedBunks.length > 0 && (
             <View
-              style={[styles.sessionDetails, { borderTopColor: theme.border }]}
+              className="mt-2 border-t pt-2"
+              style={{ borderTopColor: theme.border }}
             >
               {selectedBunks.map((bunk) => (
                 <SwipeableBunkItem
@@ -398,67 +408,75 @@ export function AttendanceCard({
                   onUpdateNote={() => {}}
                 />
               ))}
-              <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+              <Text
+                className="mt-2 text-[10px] text-center opacity-60"
+                style={{ color: theme.textSecondary }}
+              >
                 Swipe left = Present · Swipe right = DL
               </Text>
             </View>
           )}
 
           {/* legend */}
-          <View style={styles.legend}>
-            <View style={styles.legendItem}>
+          <View className="mt-4 flex-row items-center justify-center gap-4 pt-2">
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: Colors.status.success },
-                ]}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: Colors.status.success }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 P
               </Text>
             </View>
-            <View style={styles.legendItem}>
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: Colors.status.danger },
-                ]}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: Colors.status.danger }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 A
               </Text>
             </View>
-            <View style={styles.legendItem}>
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: Colors.status.unknown },
-                ]}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: Colors.status.unknown }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 ?
               </Text>
             </View>
-            <View style={styles.legendSpacer} />
-            <View style={styles.legendItem}>
+            <View className="w-2" />
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendBar,
-                  { backgroundColor: Colors.sessionType.lab },
-                ]}
+                className="h-[10px] w-[3px] rounded"
+                style={{ backgroundColor: Colors.sessionType.lab }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 Lab
               </Text>
             </View>
-            <View style={styles.legendItem}>
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendBar,
-                  { backgroundColor: Colors.sessionType.tutorial },
-                ]}
+                className="h-[10px] w-[3px] rounded"
+                style={{ backgroundColor: Colors.sessionType.tutorial }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 Tut
               </Text>
             </View>
@@ -468,109 +486,3 @@ export function AttendanceCard({
     </GradientCard>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  headerLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.sm,
-    marginRight: Spacing.md,
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  courseName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  sessionMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginTop: 4,
-  },
-  sessionCount: {
-    fontSize: 13,
-  },
-  unknownBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  unknownText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  percentage: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  noData: {
-    fontSize: 13,
-    marginTop: 4,
-  },
-  calendarContainer: {
-    marginTop: Spacing.md,
-  },
-  divider: {
-    height: 1,
-    marginBottom: Spacing.md,
-  },
-  sessionDetails: {
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-  },
-  swipeHint: {
-    fontSize: 10,
-    textAlign: "center",
-    marginTop: Spacing.sm,
-    opacity: 0.6,
-  },
-  legend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  legendSpacer: {
-    width: Spacing.sm,
-  },
-  legendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  legendBar: {
-    width: 3,
-    height: 10,
-    borderRadius: 2,
-  },
-  legendText: {
-    fontSize: 10,
-  },
-});

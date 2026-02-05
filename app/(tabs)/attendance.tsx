@@ -1,7 +1,7 @@
 import { AllBunksContent } from "@/components/attendance/sub_tabs/all-bunks-content";
 import { CoursesContent } from "@/components/attendance/sub_tabs/courses-content";
 import { Container } from "@/components/ui/container";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCourseActions } from "@/hooks/use-course-actions";
 import { useAttendanceStore } from "@/stores/attendance-store";
@@ -17,13 +17,7 @@ import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import {
-  InteractionManager,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { InteractionManager, Pressable, Text, View } from "react-native";
 import { FAB, Portal } from "react-native-paper";
 
 export default function AttendanceScreen() {
@@ -132,17 +126,17 @@ export default function AttendanceScreen() {
   return (
     <Container>
       {/* Header */}
-      <View style={styles.headerContainer}>
-        <View style={styles.header}>
-          <View style={styles.headerTitle}>
-            <Text style={[styles.screenTitle, { color: theme.text }]}>
+      <View className="mb-4 px-4 pt-4">
+        <View className="flex-row flex-wrap items-center justify-between gap-y-2 mb-4">
+          <View className="min-w-[40%] flex-shrink gap-0.5">
+            <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
               Attendance
             </Text>
             {lastSyncTime && (
               <Pressable
                 onPressIn={() => setShowTooltip(true)}
                 onPressOut={() => setShowTooltip(false)}
-                style={styles.headerRight}
+                className="relative self-start flex-row items-center gap-1 rounded-full px-1.5 py-0.5"
                 hitSlop={8}
               >
                 <Ionicons
@@ -150,17 +144,21 @@ export default function AttendanceScreen() {
                   size={12}
                   color={theme.textSecondary}
                 />
-                <Text style={[styles.syncTime, { color: theme.textSecondary }]}>
+                <Text
+                  className="text-[10px] font-medium tracking-[0.2px]"
+                  style={{ color: theme.textSecondary }}
+                >
                   {formatSyncTime(lastSyncTime)}
                 </Text>
                 {showTooltip && (
                   <View
-                    style={[
-                      styles.tooltip,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
+                    className="absolute right-0 top-6 z-10 rounded px-2 py-1"
+                    style={{ backgroundColor: theme.backgroundSecondary }}
                   >
-                    <Text style={[styles.tooltipText, { color: theme.text }]}>
+                    <Text
+                      className="text-[11px] font-medium"
+                      style={{ color: theme.text }}
+                    >
                       Last refresh
                     </Text>
                   </View>
@@ -168,10 +166,10 @@ export default function AttendanceScreen() {
               </Pressable>
             )}
           </View>
-          <View style={styles.headerActions}>
+          <View className="min-w-[45%] flex-row flex-wrap items-center justify-end gap-1 gap-y-1">
             <Pressable
               onPress={() => openModal({ type: "duty-leave-list" })}
-              style={styles.dlButton}
+              className="flex-row items-center p-2"
             >
               <Ionicons
                 name="briefcase-outline"
@@ -179,15 +177,17 @@ export default function AttendanceScreen() {
                 color={Colors.status.info}
               />
               {allDutyLeaves.length > 0 && (
-                <View style={styles.dlBadgeSmall}>
-                  <Text style={styles.dlBadgeText}>{allDutyLeaves.length}</Text>
+                <View className="ml-1 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-blue-500">
+                  <Text className="text-[10px] font-semibold text-white">
+                    {allDutyLeaves.length}
+                  </Text>
                 </View>
               )}
             </Pressable>
 
             <Pressable
               onPress={() => openModal({ type: "unknown-status" })}
-              style={styles.dlButton}
+              className="flex-row items-center p-2"
             >
               <Ionicons
                 name="help-circle-outline"
@@ -196,19 +196,19 @@ export default function AttendanceScreen() {
               />
               {unknownCount > 0 && (
                 <View
-                  style={[
-                    styles.dlBadgeSmall,
-                    { backgroundColor: Colors.status.unknown },
-                  ]}
+                  className="ml-1 h-[18px] min-w-[18px] items-center justify-center rounded-full"
+                  style={{ backgroundColor: Colors.status.unknown }}
                 >
-                  <Text style={styles.dlBadgeText}>{unknownCount}</Text>
+                  <Text className="text-[10px] font-semibold text-white">
+                    {unknownCount}
+                  </Text>
                 </View>
               )}
             </Pressable>
 
             <Pressable
               onPress={() => router.push("/settings")}
-              style={styles.settingsButton}
+              className="p-2"
             >
               <Ionicons
                 name="settings-outline"
@@ -221,17 +221,13 @@ export default function AttendanceScreen() {
 
         {/* Tab Switcher */}
         <View
-          style={[
-            styles.tabBar,
-            { backgroundColor: theme.backgroundSecondary },
-          ]}
+          className="flex-row rounded-[12px] p-1"
+          style={{ backgroundColor: theme.backgroundSecondary }}
         >
           <Pressable
             onPress={() => handleTabChange("absences")}
-            style={[
-              styles.tab,
-              activeTab === "absences" && { backgroundColor: theme.background },
-            ]}
+            className="flex-1 flex-row items-center justify-center gap-1 rounded-[8px] py-2"
+            style={activeTab === "absences" ? { backgroundColor: theme.background } : undefined}
           >
             <Ionicons
               name="calendar"
@@ -241,23 +237,18 @@ export default function AttendanceScreen() {
               }
             />
             <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    activeTab === "absences" ? theme.text : theme.textSecondary,
-                },
-              ]}
+              className="text-[13px] font-medium"
+              style={{
+                color: activeTab === "absences" ? theme.text : theme.textSecondary,
+              }}
             >
               All Bunks
             </Text>
           </Pressable>
           <Pressable
             onPress={() => handleTabChange("courses")}
-            style={[
-              styles.tab,
-              activeTab === "courses" && { backgroundColor: theme.background },
-            ]}
+            className="flex-1 flex-row items-center justify-center gap-1 rounded-[8px] py-2"
+            style={activeTab === "courses" ? { backgroundColor: theme.background } : undefined}
           >
             <Ionicons
               name="list"
@@ -265,13 +256,10 @@ export default function AttendanceScreen() {
               color={activeTab === "courses" ? theme.text : theme.textSecondary}
             />
             <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    activeTab === "courses" ? theme.text : theme.textSecondary,
-                },
-              ]}
+              className="text-[13px] font-medium"
+              style={{
+                color: activeTab === "courses" ? theme.text : theme.textSecondary,
+              }}
             >
               Courses
             </Text>
@@ -337,106 +325,3 @@ export default function AttendanceScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  headerContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    rowGap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  headerTitle: {
-    flexShrink: 1,
-    minWidth: "40%",
-    rowGap: 2,
-  },
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    flexWrap: "wrap",
-    gap: Spacing.xs,
-    rowGap: Spacing.xs,
-    minWidth: "45%",
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    position: "relative",
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  syncTime: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 0.2,
-  },
-  settingsButton: {
-    padding: Spacing.sm,
-  },
-  dlButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.sm,
-  },
-  dlBadgeSmall: {
-    backgroundColor: Colors.status.info,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 4,
-  },
-  dlBadgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  tooltip: {
-    position: "absolute",
-    top: 24,
-    right: 0,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 4,
-    zIndex: 10,
-  },
-  tooltipText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  tabBar: {
-    flexDirection: "row",
-    borderRadius: Radius.md,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-});

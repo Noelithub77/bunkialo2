@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type {
   DayOfWeek,
@@ -10,14 +10,7 @@ import type {
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
 // simplified auto slot for display
 interface AutoSlotDisplay {
@@ -221,24 +214,26 @@ export function SlotEditorModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
+      <View className="flex-1 items-center justify-center">
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
+        <View
+          className="w-[92%] max-w-[420px] max-h-[90%] rounded-2xl p-6"
+          style={{ backgroundColor: theme.background }}
+        >
           {/* header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
+          <View className="mb-4 flex-row items-start justify-between">
+            <View className="flex-1 flex-row items-center gap-2">
               <View
-                style={[
-                  styles.colorIndicator,
-                  { backgroundColor: courseColor },
-                ]}
+                className="h-4 w-4 rounded-full"
+                style={{ backgroundColor: courseColor }}
               />
               <View>
-                <Text style={[styles.title, { color: theme.text }]}>
+                <Text className="text-[18px] font-semibold" style={{ color: theme.text }}>
                   Edit Slots
                 </Text>
                 <Text
-                  style={[styles.courseName, { color: theme.textSecondary }]}
+                  className="mt-0.5 text-[12px]"
+                  style={{ color: theme.textSecondary }}
                   numberOfLines={1}
                 >
                   {courseName}
@@ -252,22 +247,22 @@ export function SlotEditorModal({
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            style={styles.content}
+            className="flex-grow-0"
           >
             {/* existing slots */}
             {existingSlots.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: theme.text }]}>
+              <View className="mb-6">
+                <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                   Current Slots
                 </Text>
-                <View style={styles.slotsList}>
+                <View className="mt-2 gap-2">
                   {existingSlots.map((slot) => {
                     const isEditing = editingSlot?.id === slot.id;
                     return (
                       <View
                         key={slot.id}
+                        className="flex-row items-center justify-between rounded-[8px] p-2"
                         style={[
-                          styles.slotItem,
                           { backgroundColor: theme.backgroundSecondary },
                           isEditing && {
                             borderColor: courseColor,
@@ -276,28 +271,27 @@ export function SlotEditorModal({
                         ]}
                       >
                         <Pressable
-                          style={styles.slotInfo}
+                          className="flex-1"
                           onPress={() => handleEditSlot(slot)}
                         >
                           <Text
-                            style={[styles.slotText, { color: theme.text }]}
+                            className="text-[13px] font-medium"
+                            style={{ color: theme.text }}
                           >
                             {formatSlotDisplay(slot)}
                           </Text>
                           <Text
-                            style={[
-                              styles.slotType,
-                              { color: theme.textSecondary },
-                            ]}
+                            className="text-[11px] capitalize"
+                            style={{ color: theme.textSecondary }}
                           >
                             {slot.sessionType}
                           </Text>
                         </Pressable>
-                        <View style={styles.slotActions}>
+                        <View className="flex-row gap-2">
                           <Pressable
                             onPress={() => handleEditSlot(slot)}
                             hitSlop={8}
-                            style={styles.slotActionBtn}
+                            className="p-1"
                           >
                             <Ionicons
                               name="pencil"
@@ -308,7 +302,7 @@ export function SlotEditorModal({
                           <Pressable
                             onPress={() => handleRemoveSlot(slot.id)}
                             hitSlop={8}
-                            style={styles.slotActionBtn}
+                            className="p-1"
                           >
                             <Ionicons
                               name="trash-outline"
@@ -326,36 +320,34 @@ export function SlotEditorModal({
 
             {/* auto slots from LMS */}
             {autoSlots.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.label, { color: theme.text }]}>
+              <View className="mb-6">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                     From Timetable
                   </Text>
                   <View
-                    style={[
-                      styles.lmsBadge,
-                      { backgroundColor: courseColor + "30" },
-                    ]}
+                    className="rounded-[8px] px-2 py-0.5"
+                    style={{ backgroundColor: courseColor + "30" }}
                   >
-                    <Text style={[styles.lmsBadgeText, { color: courseColor }]}>
+                    <Text className="text-[10px] font-semibold" style={{ color: courseColor }}>
                       LMS
                     </Text>
                   </View>
                 </View>
-                <View style={styles.slotsList}>
+                <View className="gap-2">
                   {autoSlots.map((slot) => (
                     <View
                       key={slot.id}
+                      className="flex-row items-center justify-between rounded-[8px] p-2"
                       style={[
-                        styles.slotItem,
                         { backgroundColor: theme.backgroundSecondary },
-                        slot.isHidden && styles.slotHidden,
+                        slot.isHidden && { opacity: 0.6 },
                       ]}
                     >
-                      <View style={styles.slotInfo}>
+                      <View className="flex-1">
                         <Text
+                          className="text-[13px] font-medium"
                           style={[
-                            styles.slotText,
                             { color: theme.text },
                             slot.isHidden && { opacity: 0.5 },
                           ]}
@@ -363,8 +355,8 @@ export function SlotEditorModal({
                           {formatSlotDisplay(slot)}
                         </Text>
                         <Text
+                          className="text-[11px] capitalize"
                           style={[
-                            styles.slotType,
                             { color: theme.textSecondary },
                             slot.isHidden && { opacity: 0.5 },
                           ]}
@@ -379,7 +371,7 @@ export function SlotEditorModal({
                             onToggleAutoSlot(slot.id, !slot.isHidden);
                           }}
                           hitSlop={8}
-                          style={styles.slotActionBtn}
+                          className="p-1"
                         >
                           <Ionicons
                             name={
@@ -395,9 +387,7 @@ export function SlotEditorModal({
                     </View>
                   ))}
                 </View>
-                <Text
-                  style={[styles.helperText, { color: theme.textSecondary }]}
-                >
+                <Text className="mt-2 text-[11px] italic" style={{ color: theme.textSecondary }}>
                   These slots are detected from your LMS schedule. Tap the eye
                   to hide.
                 </Text>
@@ -405,14 +395,14 @@ export function SlotEditorModal({
             )}
 
             {/* slot editor */}
-            <View style={styles.section}>
-              <View style={styles.editorHeader}>
-                <Text style={[styles.label, { color: theme.text }]}>
+            <View className="mb-6">
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                   {editingSlot ? "Edit Slot" : "Add New Slot"}
                 </Text>
                 {editingSlot && (
                   <Pressable onPress={handleCancelEdit}>
-                    <Text style={{ color: courseColor, fontSize: 13 }}>
+                    <Text className="text-[13px]" style={{ color: courseColor }}>
                       Cancel Edit
                     </Text>
                   </Pressable>
@@ -420,13 +410,13 @@ export function SlotEditorModal({
               </View>
 
               {/* day selector */}
-              <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
+              <Text className="mb-1 text-[12px]" style={{ color: theme.textSecondary }}>
                 Day
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.dayGrid}
+                contentContainerClassName="gap-2 py-1"
               >
                 {DAYS.map((day) => {
                   const isSelected = selectedDay === day.value;
@@ -434,8 +424,8 @@ export function SlotEditorModal({
                     <Pressable
                       key={day.value}
                       onPress={() => handleDaySelect(day.value)}
+                      className="rounded-[8px] border px-4 py-2"
                       style={[
-                        styles.dayBtn,
                         { borderColor: theme.border },
                         isSelected && {
                           backgroundColor: courseColor,
@@ -444,10 +434,10 @@ export function SlotEditorModal({
                       ]}
                     >
                       <Text
+                        className="text-[12px] font-medium"
                         style={[
-                          styles.dayText,
                           { color: theme.textSecondary },
-                          isSelected && styles.dayTextSelected,
+                          isSelected && { color: Colors.white },
                         ]}
                       >
                         {day.label}
@@ -458,13 +448,13 @@ export function SlotEditorModal({
               </ScrollView>
 
               {/* start time */}
-              <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
+              <Text className="mb-1 text-[12px]" style={{ color: theme.textSecondary }}>
                 Start Time
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.timeGrid}
+                contentContainerClassName="gap-2 py-1"
               >
                 {TIME_OPTIONS.slice(0, -1).map((time) => {
                   const isSelected = selectedStartTime === time;
@@ -472,8 +462,8 @@ export function SlotEditorModal({
                     <Pressable
                       key={time}
                       onPress={() => handleStartTimeSelect(time)}
+                      className="rounded-[8px] border px-2 py-1"
                       style={[
-                        styles.timeBtn,
                         { borderColor: theme.border },
                         isSelected && {
                           backgroundColor: courseColor,
@@ -482,10 +472,10 @@ export function SlotEditorModal({
                       ]}
                     >
                       <Text
+                        className="text-[12px]"
                         style={[
-                          styles.timeText,
                           { color: theme.textSecondary },
-                          isSelected && styles.timeTextSelected,
+                          isSelected && { color: Colors.white, fontWeight: "500" },
                         ]}
                       >
                         {formatTime(time)}
@@ -496,13 +486,13 @@ export function SlotEditorModal({
               </ScrollView>
 
               {/* end time */}
-              <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
+              <Text className="mb-1 text-[12px]" style={{ color: theme.textSecondary }}>
                 End Time
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.timeGrid}
+                contentContainerClassName="gap-2 py-1"
               >
                 {TIME_OPTIONS.slice(1).map((time) => {
                   const isSelected = selectedEndTime === time;
@@ -511,21 +501,21 @@ export function SlotEditorModal({
                     <Pressable
                       key={time}
                       onPress={() => !isDisabled && handleEndTimeSelect(time)}
+                      className="rounded-[8px] border px-2 py-1"
                       style={[
-                        styles.timeBtn,
                         { borderColor: theme.border },
                         isSelected && {
                           backgroundColor: courseColor,
                           borderColor: courseColor,
                         },
-                        isDisabled && styles.timeBtnDisabled,
+                        isDisabled && { opacity: 0.4 },
                       ]}
                     >
                       <Text
+                        className="text-[12px]"
                         style={[
-                          styles.timeText,
                           { color: theme.textSecondary },
-                          isSelected && styles.timeTextSelected,
+                          isSelected && { color: Colors.white, fontWeight: "500" },
                           isDisabled && { color: theme.border },
                         ]}
                       >
@@ -537,18 +527,18 @@ export function SlotEditorModal({
               </ScrollView>
 
               {/* session type */}
-              <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
+              <Text className="mb-1 text-[12px]" style={{ color: theme.textSecondary }}>
                 Session Type
               </Text>
-              <View style={styles.sessionTypeGrid}>
+              <View className="flex-row gap-2">
                 {SESSION_TYPES.map((type) => {
                   const isSelected = selectedSessionType === type.value;
                   return (
                     <Pressable
                       key={type.value}
                       onPress={() => handleSessionTypeSelect(type.value)}
+                      className="flex-1 items-center rounded-[8px] border py-2"
                       style={[
-                        styles.sessionTypeBtn,
                         { borderColor: theme.border },
                         isSelected && {
                           backgroundColor: courseColor,
@@ -557,10 +547,10 @@ export function SlotEditorModal({
                       ]}
                     >
                       <Text
+                        className="text-[12px] font-medium"
                         style={[
-                          styles.sessionTypeText,
                           { color: theme.textSecondary },
-                          isSelected && styles.sessionTypeTextSelected,
+                          isSelected && { color: Colors.white },
                         ]}
                       >
                         {type.label}
@@ -572,7 +562,7 @@ export function SlotEditorModal({
 
               {/* error */}
               {error ? (
-                <Text style={[styles.error, { color: Colors.status.danger }]}>
+                <Text className="mt-2 text-center text-[12px]" style={{ color: Colors.status.danger }}>
                   {error}
                 </Text>
               ) : null}
@@ -581,18 +571,18 @@ export function SlotEditorModal({
               <Button
                 title={editingSlot ? "Update Slot" : "Add Slot"}
                 onPress={handleSaveSlot}
-                style={styles.saveSlotBtn}
+                className="mt-4"
               />
             </View>
           </ScrollView>
 
           {/* close button */}
-          <View style={styles.actions}>
+          <View className="mt-4">
             <Button
               title="Done"
               variant="secondary"
               onPress={onClose}
-              style={styles.btn}
+              className="flex-1"
             />
           </View>
         </View>
@@ -600,189 +590,3 @@ export function SlotEditorModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "92%",
-    maxWidth: 420,
-    maxHeight: "90%",
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: Spacing.md,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  colorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  courseName: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  content: {
-    flexGrow: 0,
-  },
-  section: {
-    marginBottom: Spacing.lg,
-  },
-  editorHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  subLabel: {
-    fontSize: 12,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  slotsList: {
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  slotItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  slotInfo: {
-    flex: 1,
-  },
-  slotText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  slotType: {
-    fontSize: 11,
-    textTransform: "capitalize",
-  },
-  slotActions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  slotActionBtn: {
-    padding: Spacing.xs,
-  },
-  dayGrid: {
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  dayBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  dayText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  dayTextSelected: {
-    color: Colors.white,
-  },
-  timeGrid: {
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  timeBtn: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  timeBtnDisabled: {
-    opacity: 0.4,
-  },
-  timeText: {
-    fontSize: 12,
-  },
-  timeTextSelected: {
-    color: Colors.white,
-    fontWeight: "500",
-  },
-  sessionTypeGrid: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  sessionTypeBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    alignItems: "center",
-  },
-  sessionTypeText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  sessionTypeTextSelected: {
-    color: Colors.white,
-  },
-  error: {
-    fontSize: 12,
-    marginTop: Spacing.sm,
-    textAlign: "center",
-  },
-  saveSlotBtn: {
-    marginTop: Spacing.md,
-  },
-  actions: {
-    marginTop: Spacing.md,
-  },
-  btn: {
-    flex: 1,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  lmsBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  lmsBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  slotHidden: {
-    opacity: 0.6,
-  },
-  helperText: {
-    fontSize: 11,
-    marginTop: Spacing.sm,
-    fontStyle: "italic",
-  },
-});

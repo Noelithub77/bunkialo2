@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { DayOfWeek, ManualSlotInput, SessionType } from "@/types";
 import { getRandomCourseColor } from "@/utils/course-color";
@@ -8,14 +8,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -215,71 +214,55 @@ export function CreateCourseModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: theme.background }]}
-      >
+      <SafeAreaView className="flex-1" style={{ backgroundColor: theme.background }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.screen}
+          className="flex-1 px-6"
         >
-          <View style={styles.header}>
+          <View className="mb-4 flex-row items-center justify-between">
             <Pressable onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={24} color={theme.textSecondary} />
             </Pressable>
-            <Text style={[styles.title, { color: theme.text }]}>
+            <Text className="text-[18px] font-semibold" style={{ color: theme.text }}>
               New Course
             </Text>
-            <View style={styles.headerSpacer} />
+            <View className="w-6" />
           </View>
 
           <View
-            style={[
-              styles.segmented,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="mb-4 flex-row rounded-[12px] p-1"
+            style={{ backgroundColor: theme.backgroundSecondary }}
           >
             <Pressable
               onPress={() => setActiveSection("details")}
-              style={[
-                styles.segmentButton,
-                activeSection === "details" && {
-                  backgroundColor: theme.background,
-                },
-              ]}
+              className="flex-1 items-center rounded-[8px] py-2"
+              style={activeSection === "details" ? { backgroundColor: theme.background } : undefined}
             >
               <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      activeSection === "details"
-                        ? theme.text
-                        : theme.textSecondary,
-                  },
-                ]}
+                className="text-[13px] font-semibold"
+                style={{
+                  color:
+                    activeSection === "details"
+                      ? theme.text
+                      : theme.textSecondary,
+                }}
               >
                 Details
               </Text>
             </Pressable>
             <Pressable
               onPress={() => setActiveSection("slots")}
-              style={[
-                styles.segmentButton,
-                activeSection === "slots" && {
-                  backgroundColor: theme.background,
-                },
-              ]}
+              className="flex-1 items-center rounded-[8px] py-2"
+              style={activeSection === "slots" ? { backgroundColor: theme.background } : undefined}
             >
               <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      activeSection === "slots"
-                        ? theme.text
-                        : theme.textSecondary,
-                  },
-                ]}
+                className="text-[13px] font-semibold"
+                style={{
+                  color:
+                    activeSection === "slots"
+                      ? theme.text
+                      : theme.textSecondary,
+                }}
               >
                 Slots
               </Text>
@@ -287,12 +270,12 @@ export function CreateCourseModal({
           </View>
 
           <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
+            className="flex-1"
+            contentContainerClassName="pb-6"
             showsVerticalScrollIndicator={false}
           >
             {activeSection === "details" ? (
-              <View style={styles.sectionBlock}>
+              <View className="gap-6">
                 <Input
                   label="Course Name"
                   placeholder="e.g. Data Structures"
@@ -310,14 +293,14 @@ export function CreateCourseModal({
                   onChangeText={setAlias}
                 />
 
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: theme.text }]}>
+                <View className="gap-2">
+                  <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                     Credits
                   </Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipContainer}
+                    contentContainerClassName="gap-2 py-1"
                   >
                     {CREDIT_OPTIONS.map((credit) => {
                       const isSelected = credits === credit;
@@ -325,8 +308,8 @@ export function CreateCourseModal({
                         <Pressable
                           key={credit}
                           onPress={() => handleCreditSelect(credit)}
+                          className="rounded-[8px] border px-4 py-1"
                           style={[
-                            styles.chip,
                             { borderColor: theme.border },
                             isSelected && {
                               backgroundColor: selectedColor,
@@ -335,10 +318,10 @@ export function CreateCourseModal({
                           ]}
                         >
                           <Text
+                            className="text-[14px] font-medium"
                             style={[
-                              styles.chipText,
                               { color: theme.textSecondary },
-                              isSelected && styles.chipTextSelected,
+                              isSelected && { color: Colors.white },
                             ]}
                           >
                             {credit}
@@ -348,28 +331,34 @@ export function CreateCourseModal({
                     })}
                   </ScrollView>
                   <Text
-                    style={[
-                      styles.bunksPreview,
-                      { color: theme.textSecondary },
-                    ]}
+                    className="text-[11px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     {totalBunks} bunks allowed
                   </Text>
                 </View>
 
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: theme.text }]}>
+                <View className="gap-2">
+                  <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                     Color
                   </Text>
-                  <View style={styles.colorGrid}>
+                  <View className="flex-row flex-wrap gap-2">
                     {Colors.courseColors.map((color) => (
                       <Pressable
                         key={color}
                         onPress={() => handleColorSelect(color)}
+                        className="h-9 w-9 items-center justify-center rounded-full"
                         style={[
-                          styles.colorOption,
                           { backgroundColor: color },
-                          selectedColor === color && styles.colorSelected,
+                          selectedColor === color && {
+                            borderWidth: 3,
+                            borderColor: Colors.white,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 4,
+                          },
                         ]}
                       >
                         {selectedColor === color && (
@@ -385,19 +374,18 @@ export function CreateCourseModal({
                 </View>
               </View>
             ) : (
-              <View style={styles.sectionBlock}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.label, { color: theme.text }]}>
+              <View className="gap-6">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                     Weekly Slots
                   </Text>
                   <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: Colors.status.info + "20" },
-                    ]}
+                    className="rounded-[8px] px-2 py-0.5"
+                    style={{ backgroundColor: Colors.status.info + "20" }}
                   >
                     <Text
-                      style={[styles.badgeText, { color: Colors.status.info }]}
+                      className="text-[10px] font-bold"
+                      style={{ color: Colors.status.info }}
                     >
                       CUSTOM
                     </Text>
@@ -406,33 +394,28 @@ export function CreateCourseModal({
 
                 {slots.length === 0 && (
                   <Text
-                    style={[styles.helperText, { color: theme.textSecondary }]}
+                    className="text-[11px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     Add your weekly timetable slots below.
                   </Text>
                 )}
 
                 {slots.length > 0 && (
-                  <View style={styles.slotsList}>
+                  <View className="gap-2">
                     {slots.map((slot, index) => (
                       <View
                         key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}
-                        style={[
-                          styles.slotItem,
-                          { backgroundColor: theme.backgroundSecondary },
-                        ]}
+                        className="flex-row items-center justify-between rounded-[8px] p-2"
+                        style={{ backgroundColor: theme.backgroundSecondary }}
                       >
-                        <View style={styles.slotInfo}>
-                          <Text
-                            style={[styles.slotText, { color: theme.text }]}
-                          >
+                        <View className="flex-1">
+                          <Text className="text-[13px] font-medium" style={{ color: theme.text }}>
                             {formatSlotDisplay(slot)}
                           </Text>
                           <Text
-                            style={[
-                              styles.slotType,
-                              { color: theme.textSecondary },
-                            ]}
+                            className="text-[11px] capitalize"
+                            style={{ color: theme.textSecondary }}
                           >
                             {slot.sessionType}
                           </Text>
@@ -452,21 +435,22 @@ export function CreateCourseModal({
                   </View>
                 )}
 
-                <View style={styles.section}>
+                <View className="gap-2">
                   <Text
-                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                    className="mt-2 text-[12px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     Day
                   </Text>
-                  <View style={styles.dayGrid}>
+                  <View className="flex-row gap-2">
                     {DAYS.map((day) => {
                       const isSelected = selectedDay === day.value;
                       return (
                         <Pressable
                           key={day.value}
                           onPress={() => handleDaySelect(day.value)}
+                          className="flex-1 items-center rounded-[8px] border py-2"
                           style={[
-                            styles.dayBtn,
                             { borderColor: theme.border },
                             isSelected && {
                               backgroundColor: selectedColor,
@@ -475,10 +459,10 @@ export function CreateCourseModal({
                           ]}
                         >
                           <Text
+                            className="text-[12px] font-medium"
                             style={[
-                              styles.dayText,
                               { color: theme.textSecondary },
-                              isSelected && styles.dayTextSelected,
+                              isSelected && { color: Colors.white },
                             ]}
                           >
                             {day.label}
@@ -489,14 +473,15 @@ export function CreateCourseModal({
                   </View>
 
                   <Text
-                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                    className="mt-2 text-[12px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     Start Time
                   </Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.timeGrid}
+                    contentContainerClassName="gap-2 py-1"
                   >
                     {TIME_OPTIONS.slice(0, -1).map((time) => {
                       const isSelected = selectedStartTime === time;
@@ -504,8 +489,8 @@ export function CreateCourseModal({
                         <Pressable
                           key={time}
                           onPress={() => handleStartTimeSelect(time)}
+                          className="rounded-[8px] border px-2 py-1"
                           style={[
-                            styles.timeBtn,
                             { borderColor: theme.border },
                             isSelected && {
                               backgroundColor: selectedColor,
@@ -514,10 +499,10 @@ export function CreateCourseModal({
                           ]}
                         >
                           <Text
+                            className="text-[12px]"
                             style={[
-                              styles.timeText,
                               { color: theme.textSecondary },
-                              isSelected && styles.timeTextSelected,
+                              isSelected && { color: Colors.white, fontWeight: "500" },
                             ]}
                           >
                             {formatTime(time)}
@@ -528,14 +513,15 @@ export function CreateCourseModal({
                   </ScrollView>
 
                   <Text
-                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                    className="mt-2 text-[12px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     End Time
                   </Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.timeGrid}
+                    contentContainerClassName="gap-2 py-1"
                   >
                     {TIME_OPTIONS.slice(1).map((time) => {
                       const isSelected = selectedEndTime === time;
@@ -546,21 +532,21 @@ export function CreateCourseModal({
                           onPress={() =>
                             !isDisabled && handleEndTimeSelect(time)
                           }
+                          className="rounded-[8px] border px-2 py-1"
                           style={[
-                            styles.timeBtn,
                             { borderColor: theme.border },
                             isSelected && {
                               backgroundColor: selectedColor,
                               borderColor: selectedColor,
                             },
-                            isDisabled && styles.timeBtnDisabled,
+                            isDisabled && { opacity: 0.4 },
                           ]}
                         >
                           <Text
+                            className="text-[12px]"
                             style={[
-                              styles.timeText,
                               { color: theme.textSecondary },
-                              isSelected && styles.timeTextSelected,
+                              isSelected && { color: Colors.white, fontWeight: "500" },
                               isDisabled && { color: theme.border },
                             ]}
                           >
@@ -572,19 +558,20 @@ export function CreateCourseModal({
                   </ScrollView>
 
                   <Text
-                    style={[styles.subLabel, { color: theme.textSecondary }]}
+                    className="mt-2 text-[12px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     Session Type
                   </Text>
-                  <View style={styles.sessionTypeGrid}>
+                  <View className="flex-row gap-2">
                     {SESSION_TYPES.map((type) => {
                       const isSelected = selectedSessionType === type.value;
                       return (
                         <Pressable
                           key={type.value}
                           onPress={() => handleSessionTypeSelect(type.value)}
+                          className="flex-1 items-center rounded-[8px] border py-2"
                           style={[
-                            styles.sessionTypeBtn,
                             { borderColor: theme.border },
                             isSelected && {
                               backgroundColor: selectedColor,
@@ -593,10 +580,10 @@ export function CreateCourseModal({
                           ]}
                         >
                           <Text
+                            className="text-[12px] font-medium"
                             style={[
-                              styles.sessionTypeText,
                               { color: theme.textSecondary },
-                              isSelected && styles.sessionTypeTextSelected,
+                              isSelected && { color: Colors.white },
                             ]}
                           >
                             {type.label}
@@ -608,7 +595,8 @@ export function CreateCourseModal({
 
                   {error ? (
                     <Text
-                      style={[styles.error, { color: Colors.status.danger }]}
+                      className="mb-2 text-center text-[12px]"
+                      style={{ color: Colors.status.danger }}
                     >
                       {error}
                     </Text>
@@ -616,7 +604,8 @@ export function CreateCourseModal({
 
                   <Pressable
                     onPress={handleAddSlot}
-                    style={[styles.addSlotBtn, { borderColor: selectedColor }]}
+                    className="flex-row items-center justify-center gap-1 rounded-[8px] border border-dashed py-2"
+                    style={{ borderColor: selectedColor }}
                   >
                     <Ionicons
                       name="add-circle-outline"
@@ -624,7 +613,8 @@ export function CreateCourseModal({
                       color={selectedColor}
                     />
                     <Text
-                      style={[styles.addSlotText, { color: selectedColor }]}
+                      className="text-[14px] font-medium"
+                      style={{ color: selectedColor }}
                     >
                       Add Slot
                     </Text>
@@ -635,17 +625,17 @@ export function CreateCourseModal({
           </ScrollView>
 
           {error && activeSection === "details" ? (
-            <Text style={[styles.error, { color: Colors.status.danger }]}>
+            <Text className="mb-2 text-center text-[12px]" style={{ color: Colors.status.danger }}>
               {error}
             </Text>
           ) : null}
 
-          <View style={styles.footer}>
+          <View className="flex-row gap-2 py-2">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={onClose}
-              style={styles.footerBtn}
+              className="flex-1"
             />
             <Button
               title={activeSection === "details" ? "Next" : "Create"}
@@ -654,7 +644,7 @@ export function CreateCourseModal({
                   ? () => setActiveSection("slots")
                   : handleSave
               }
-              style={styles.footerBtn}
+              className="flex-1"
             />
           </View>
         </KeyboardAvoidingView>
@@ -662,224 +652,3 @@ export function CreateCourseModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  screen: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  headerSpacer: {
-    width: 24,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  segmented: {
-    flexDirection: "row",
-    padding: 4,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-  },
-  segmentButton: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: Spacing.lg,
-  },
-  sectionBlock: {
-    gap: Spacing.lg,
-  },
-  section: {
-    gap: Spacing.sm,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  subLabel: {
-    fontSize: 12,
-    marginTop: Spacing.sm,
-  },
-  chipContainer: {
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  chipText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  chipTextSelected: {
-    color: Colors.white,
-  },
-  bunksPreview: {
-    fontSize: 11,
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  colorOption: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  colorSelected: {
-    borderWidth: 3,
-    borderColor: Colors.white,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  helperText: {
-    fontSize: 11,
-  },
-  slotsList: {
-    gap: Spacing.sm,
-  },
-  slotItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  slotInfo: {
-    flex: 1,
-  },
-  slotText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  slotType: {
-    fontSize: 11,
-    textTransform: "capitalize",
-  },
-  dayGrid: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  dayBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    alignItems: "center",
-  },
-  dayText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  dayTextSelected: {
-    color: Colors.white,
-  },
-  timeGrid: {
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  timeBtn: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  timeBtnDisabled: {
-    opacity: 0.4,
-  },
-  timeText: {
-    fontSize: 12,
-  },
-  timeTextSelected: {
-    color: Colors.white,
-    fontWeight: "500",
-  },
-  sessionTypeGrid: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  sessionTypeBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    alignItems: "center",
-  },
-  sessionTypeText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  sessionTypeTextSelected: {
-    color: Colors.white,
-  },
-  addSlotBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    borderStyle: "dashed",
-  },
-  addSlotText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  error: {
-    fontSize: 12,
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-  },
-  footer: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
-  footerBtn: {
-    flex: 1,
-  },
-});

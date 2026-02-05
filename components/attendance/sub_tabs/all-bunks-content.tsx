@@ -1,13 +1,13 @@
 import { ConfirmModal } from "@/components/modals/confirm-modal";
 import { GradientCard } from "@/components/ui/gradient-card";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useBunkActions } from "@/hooks/use-bunk-actions";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
 import { selectAllDutyLeaves, useBunkStore } from "@/stores/bunk-store";
 import { useCallback, useMemo } from "react";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 import { DLInputModal } from "./../dl-input-modal";
 import { DutyLeaveModal } from "./../duty-leave-modal";
 import { PresenceInputModal } from "./../presence-input-modal";
@@ -88,8 +88,8 @@ export const AllBunksContent = () => {
   return (
     <>
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        className="flex-1"
+        contentContainerClassName="p-4 pb-12"
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         refreshControl={
@@ -194,13 +194,3 @@ export const AllBunksContent = () => {
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-});

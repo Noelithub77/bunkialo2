@@ -1,13 +1,6 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  Pressable,
-  FlatList,
-} from "react-native";
+import { View, Text, Modal, Pressable, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, Radius } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { DutyLeaveInfo } from "@/types";
 
@@ -36,27 +29,29 @@ export function DutyLeaveModal({
   const theme = isDark ? Colors.dark : Colors.light;
 
   const renderItem = ({ item }: { item: DutyLeaveInfo }) => (
-    <View style={[styles.item, { borderBottomColor: theme.border }]}>
-      <View style={styles.itemContent}>
+    <View className="flex-row items-center border-b py-2" style={{ borderBottomColor: theme.border }}>
+      <View className="flex-1 gap-0.5">
         <Text
-          style={[styles.courseName, { color: theme.text }]}
+          className="text-[14px] font-medium"
+          style={{ color: theme.text }}
           numberOfLines={1}
         >
           {item.courseName}
         </Text>
-        <View style={styles.itemMeta}>
-          <Text style={[styles.date, { color: theme.textSecondary }]}>
+        <View className="flex-row gap-2">
+          <Text className="text-[12px]" style={{ color: theme.textSecondary }}>
             {formatDate(item.date)}
           </Text>
           {item.timeSlot && (
-            <Text style={[styles.time, { color: theme.textSecondary }]}>
+            <Text className="text-[12px]" style={{ color: theme.textSecondary }}>
               {item.timeSlot}
             </Text>
           )}
         </View>
         {item.note && (
           <Text
-            style={[styles.note, { color: theme.textSecondary }]}
+            className="mt-0.5 text-[11px] italic"
+            style={{ color: theme.textSecondary }}
             numberOfLines={2}
           >
             {item.note}
@@ -66,7 +61,7 @@ export function DutyLeaveModal({
       <Pressable
         onPress={() => onRemove(item.courseId, item.bunkId)}
         hitSlop={8}
-        style={styles.removeBtn}
+        className="p-1"
       >
         <Ionicons name="close-circle" size={22} color={Colors.status.danger} />
       </Pressable>
@@ -74,13 +69,13 @@ export function DutyLeaveModal({
   );
 
   const renderEmpty = () => (
-    <View style={styles.empty}>
+    <View className="items-center gap-2 py-8">
       <Ionicons
         name="checkmark-circle-outline"
         size={48}
         color={theme.textSecondary}
       />
-      <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+      <Text className="text-[14px]" style={{ color: theme.textSecondary }}>
         No duty leaves marked
       </Text>
     </View>
@@ -93,18 +88,21 @@ export function DutyLeaveModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
+      <View className="flex-1 items-center justify-center">
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
+        <View
+          className="w-[90%] max-w-[400px] max-h-[70%] rounded-2xl p-6"
+          style={{ backgroundColor: theme.background }}
+        >
           {/* header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
               <Ionicons
                 name="briefcase-outline"
                 size={20}
                 color={Colors.status.info}
               />
-              <Text style={[styles.title, { color: theme.text }]}>
+              <Text className="text-[18px] font-semibold" style={{ color: theme.text }}>
                 All Duty Leaves
               </Text>
             </View>
@@ -114,7 +112,7 @@ export function DutyLeaveModal({
           </View>
 
           {/* count */}
-          <Text style={[styles.count, { color: theme.textSecondary }]}>
+          <Text className="mb-4 mt-1 text-[12px]" style={{ color: theme.textSecondary }}>
             {dutyLeaves.length} duty leave{dutyLeaves.length !== 1 ? "s" : ""}{" "}
             across all courses
           </Text>
@@ -125,97 +123,11 @@ export function DutyLeaveModal({
             keyExtractor={(item) => `${item.courseId}-${item.bunkId}`}
             renderItem={renderItem}
             ListEmptyComponent={renderEmpty}
-            style={styles.list}
-            contentContainerStyle={
-              dutyLeaves.length === 0 ? styles.emptyContainer : undefined
-            }
+            className="flex-grow-0"
+            contentContainerClassName={dutyLeaves.length === 0 ? "flex-1" : ""}
           />
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "90%",
-    maxWidth: 400,
-    maxHeight: "70%",
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  count: {
-    fontSize: 12,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  list: {
-    flexGrow: 0,
-  },
-  emptyContainer: {
-    flex: 1,
-  },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
-  itemContent: {
-    flex: 1,
-    gap: 2,
-  },
-  courseName: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  itemMeta: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  date: {
-    fontSize: 12,
-  },
-  time: {
-    fontSize: 12,
-  },
-  note: {
-    fontSize: 11,
-    fontStyle: "italic",
-    marginTop: 2,
-  },
-  removeBtn: {
-    padding: Spacing.xs,
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-});

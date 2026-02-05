@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getBaseUrl } from "@/services/baseurl";
 import { useAuthStore } from "@/stores/auth-store";
@@ -6,14 +6,14 @@ import type { BunkRecord } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 
 // parse date for display
@@ -126,27 +126,26 @@ export function SwipeableBunkItem({
   const rightHintColor = isUnknown ? Colors.status.danger : Colors.status.info;
 
   return (
-    <View style={[styles.container, { borderBottomColor: theme.border }]}>
+    <View className="border-b" style={{ borderBottomColor: theme.border }}>
       {/* left action (present) - revealed on swipe left */}
       <Animated.View
-        style={[styles.action, styles.leftAction, leftActionStyle]}
+        className="absolute inset-y-0 right-0 w-20 justify-center pr-2"
+        style={leftActionStyle}
       >
         <View
-          style={[
-            styles.actionInner,
-            {
-              backgroundColor: isPresent
-                ? Colors.gray[600]
-                : Colors.status.success,
-            },
-          ]}
+          className="flex-row items-center justify-center gap-2 rounded-full px-3 py-2"
+          style={{
+            backgroundColor: isPresent
+              ? Colors.gray[600]
+              : Colors.status.success,
+          }}
         >
           <Ionicons
             name={isPresent ? "close" : "checkmark"}
             size={20}
             color={Colors.white}
           />
-          <Text style={styles.actionText}>
+          <Text className="text-xs font-semibold text-white">
             {isPresent ? "Undo" : "Present"}
           </Text>
         </View>
@@ -154,26 +153,25 @@ export function SwipeableBunkItem({
 
       {/* right action (DL or Absent for unknown) - revealed on swipe right */}
       <Animated.View
-        style={[styles.action, styles.rightAction, rightActionStyle]}
+        className="absolute inset-y-0 left-0 w-20 justify-center pl-2"
+        style={rightActionStyle}
       >
         <View
-          style={[
-            styles.actionInner,
-            {
-              backgroundColor: isUnknown
-                ? Colors.status.danger
-                : isDL
-                  ? Colors.gray[600]
-                  : Colors.status.info,
-            },
-          ]}
+          className="flex-row items-center justify-center gap-2 rounded-full px-3 py-2"
+          style={{
+            backgroundColor: isUnknown
+              ? Colors.status.danger
+              : isDL
+                ? Colors.gray[600]
+                : Colors.status.info,
+          }}
         >
           <Ionicons
             name={isUnknown ? "close-circle" : isDL ? "close" : "briefcase"}
             size={20}
             color={Colors.white}
           />
-          <Text style={styles.actionText}>
+          <Text className="text-xs font-semibold text-white">
             {isUnknown ? "Absent" : isDL ? "Undo" : "DL"}
           </Text>
         </View>
@@ -182,11 +180,8 @@ export function SwipeableBunkItem({
       {/* main content */}
       <GestureDetector gesture={panGesture}>
         <Animated.View
-          style={[
-            styles.content,
-            { backgroundColor: theme.background },
-            animatedStyle,
-          ]}
+          className="bg-white px-4 py-3 dark:bg-black"
+          style={[{ backgroundColor: theme.background }, animatedStyle]}
         >
           <Pressable
             onPress={() => {
@@ -194,38 +189,37 @@ export function SwipeableBunkItem({
             }}
             style={{ opacity: itemOpacity }}
           >
-            <View style={styles.row}>
+            <View className="flex-row items-center gap-3">
               {/* source tag */}
               <View
-                style={[
-                  styles.sourceTag,
-                  {
-                    backgroundColor:
-                      bunk.source === "lms"
-                        ? Colors.status.info
-                        : Colors.status.warning,
-                  },
-                ]}
+                className="rounded-full px-2 py-0.5"
+                style={{
+                  backgroundColor:
+                    bunk.source === "lms"
+                      ? Colors.status.info
+                      : Colors.status.warning,
+                }}
               >
-                <Text style={styles.sourceText}>
+                <Text className="text-[10px] font-semibold text-white">
                   {bunk.source.toUpperCase()}
                 </Text>
               </View>
 
               {/* date + time */}
-              <View style={styles.dateSection}>
+              <View className="flex-1">
                 <Text
-                  style={[
-                    styles.dateText,
-                    { color: theme.text },
-                    isPresent && styles.strikethrough,
-                  ]}
+                  className="text-sm font-semibold"
+                  style={{
+                    color: theme.text,
+                    textDecorationLine: isPresent ? "line-through" : "none",
+                  }}
                 >
                   {formatDate(bunk.date)}
                 </Text>
                 {bunk.timeSlot && (
                   <Text
-                    style={[styles.timeText, { color: theme.textSecondary }]}
+                    className="text-[12px]"
+                    style={{ color: theme.textSecondary }}
                   >
                     {bunk.timeSlot}
                   </Text>
@@ -235,31 +229,31 @@ export function SwipeableBunkItem({
               {/* status badges */}
               {isPresent && (
                 <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: Colors.status.success },
-                  ]}
+                  className="flex-row items-center gap-1 rounded-full px-2 py-1"
+                  style={{ backgroundColor: Colors.status.success }}
                 >
                   <Ionicons name="checkmark" size={10} color={Colors.white} />
-                  <Text style={styles.badgeText}>Present</Text>
+                  <Text className="text-[10px] font-semibold text-white">
+                    Present
+                  </Text>
                 </View>
               )}
               {isDL && (
                 <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: Colors.status.info },
-                  ]}
+                  className="flex-row items-center gap-1 rounded-full px-2 py-1"
+                  style={{ backgroundColor: Colors.status.info }}
                 >
                   <Ionicons name="briefcase" size={10} color={Colors.white} />
-                  <Text style={styles.badgeText}>DL</Text>
+                  <Text className="text-[10px] font-semibold text-white">
+                    DL
+                  </Text>
                 </View>
               )}
 
               {/* note indicator */}
               {(bunk.note || bunk.presenceNote || bunk.dutyLeaveNote) &&
                 !showNote && (
-                  <View style={styles.noteIndicator}>
+                  <View className="ml-auto">
                     <Ionicons
                       name="chatbubble"
                       size={14}
@@ -275,7 +269,7 @@ export function SwipeableBunkItem({
                     e.stopPropagation();
                     handleOpenLms();
                   }}
-                  style={styles.lmsButton}
+                  className="ml-2 rounded-full p-2"
                   hitSlop={8}
                 >
                   <Ionicons
@@ -288,7 +282,7 @@ export function SwipeableBunkItem({
 
               {/* swipe hints - show on unmarked items */}
               {!isPresent && !isDL && (
-                <View style={styles.swipeHints}>
+                <View className="ml-2 flex-row items-center gap-1">
                   <Ionicons
                     name="chevron-back"
                     size={12}
@@ -306,26 +300,37 @@ export function SwipeableBunkItem({
 
           {/* expanded note section */}
           {showNote && !isUnknown && (
-            <View style={styles.noteSection}>
+            <View className="mt-3 gap-2">
               {isPresent && bunk.presenceNote && (
                 <Text
-                  style={[styles.noteDisplay, { color: Colors.status.success }]}
+                  className="text-sm font-semibold"
+                  style={{ color: Colors.status.success }}
                 >
                   Present: {bunk.presenceNote}
                 </Text>
               )}
               {isDL && bunk.dutyLeaveNote && (
                 <Text
-                  style={[styles.noteDisplay, { color: Colors.status.info }]}
+                  className="text-sm font-semibold"
+                  style={{ color: Colors.status.info }}
                 >
                   DL: {bunk.dutyLeaveNote}
                 </Text>
               )}
+              {bunk.note && (
+                <Text
+                  className="text-sm"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Note: {bunk.note}
+                </Text>
+              )}
               <TextInput
-                style={[
-                  styles.noteInput,
-                  { color: theme.text, borderColor: theme.border },
-                ]}
+                className="border rounded-sm py-3 px-4 text-sm"
+                style={{
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
                 placeholder="Add note..."
                 placeholderTextColor={theme.textSecondary}
                 value={noteText}
@@ -340,109 +345,3 @@ export function SwipeableBunkItem({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-    borderBottomWidth: 1,
-    overflow: "hidden",
-  },
-  action: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: ACTION_WIDTH,
-    justifyContent: "center",
-  },
-  leftAction: {
-    right: 0,
-    alignItems: "flex-end",
-  },
-  rightAction: {
-    left: 0,
-    alignItems: "flex-start",
-  },
-  actionInner: {
-    width: ACTION_WIDTH,
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-  },
-  actionText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  content: {
-    paddingVertical: Spacing.sm,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  sourceTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  sourceText: {
-    color: Colors.white,
-    fontSize: 9,
-    fontWeight: "600",
-  },
-  dateSection: {
-    flex: 1,
-  },
-  dateText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  strikethrough: {
-    textDecorationLine: "line-through",
-  },
-  timeText: {
-    fontSize: 11,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  badgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  noteIndicator: {
-    marginLeft: 4,
-  },
-  swipeHints: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    opacity: 0.4,
-  },
-  noteSection: {
-    marginTop: Spacing.sm,
-  },
-  noteDisplay: {
-    fontSize: 12,
-    fontStyle: "italic",
-    marginBottom: Spacing.xs,
-  },
-  noteInput: {
-    fontSize: 13,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    padding: Spacing.sm,
-    minHeight: 36,
-  },
-  lmsButton: {
-    padding: Spacing.xs,
-  },
-});

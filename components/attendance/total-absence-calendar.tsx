@@ -1,12 +1,12 @@
 import { SwipeableAttendanceSlot } from "@/components/attendance/swipeable-attendance-slot";
-import { CalendarTheme, Colors, Radius, Spacing } from "@/constants/theme";
+import { CalendarTheme, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useBunkStore } from "@/stores/bunk-store";
 import type { AttendanceRecord, MarkedDates } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -173,15 +173,16 @@ export function TotalAbsenceCalendar({
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1">
       {/* summary */}
       <View
-        style={[styles.summary, { backgroundColor: theme.backgroundSecondary }]}
+        className="mb-4 items-center rounded-[12px] p-4"
+        style={{ backgroundColor: theme.backgroundSecondary }}
       >
-        <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+        <Text className="text-[12px]" style={{ color: theme.textSecondary }}>
           Total Bunks
         </Text>
-        <Text style={[styles.summaryValue, { color: Colors.status.danger }]}>
+        <Text className="text-[32px] font-bold" style={{ color: Colors.status.danger }}>
           {totalAbsences}
         </Text>
       </View>
@@ -208,27 +209,28 @@ export function TotalAbsenceCalendar({
 
       {/* selected date absences - swipeable */}
       {selectedDate && selectedAbsences.length > 0 && (
-        <GestureHandlerRootView style={styles.gestureContainer}>
-          <View style={[styles.absenceList, { borderTopColor: theme.border }]}>
-            <Text style={[styles.dateHeader, { color: theme.text }]}>
+        <GestureHandlerRootView className="flex-1">
+          <View className="mt-4 border-t pt-4" style={{ borderTopColor: theme.border }}>
+            <Text className="mb-1 text-[14px] font-semibold" style={{ color: theme.text }}>
               {new Date(selectedDate).toLocaleDateString("en-US", {
                 weekday: "short",
                 month: "short",
                 day: "numeric",
               })}
             </Text>
-            <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+            <Text className="mb-2 text-[10px] opacity-60" style={{ color: theme.textSecondary }}>
               Swipe left = Present · Swipe right = DL/Absent
             </Text>
             <ScrollView
-              style={styles.scrollList}
+              className="max-h-[250px]"
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled
             >
               {selectedAbsences.map((absence, idx) => (
-                <View key={idx} style={styles.slotWrapper}>
+                <View key={idx} className="mb-2">
                   <Text
-                    style={[styles.courseLabel, { color: absence.courseColor }]}
+                    className="mb-0.5 text-[11px] font-semibold"
+                    style={{ color: absence.courseColor }}
                   >
                     {absence.courseName}
                   </Text>
@@ -262,13 +264,13 @@ export function TotalAbsenceCalendar({
       )}
 
       {selectedDate && selectedAbsences.length === 0 && (
-        <View style={styles.noAbsences}>
+        <View className="items-center gap-2 py-6">
           <Ionicons
             name="checkmark-circle"
             size={24}
             color={Colors.status.success}
           />
-          <Text style={[styles.noAbsencesText, { color: theme.textSecondary }]}>
+          <Text className="text-[14px]" style={{ color: theme.textSecondary }}>
             No absences on this day
           </Text>
         </View>
@@ -276,59 +278,3 @@ export function TotalAbsenceCalendar({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  summary: {
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-  },
-  summaryLabel: {
-    fontSize: 12,
-  },
-  summaryValue: {
-    fontSize: 32,
-    fontWeight: "700",
-  },
-  gestureContainer: {
-    flex: 1,
-  },
-  absenceList: {
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-  },
-  dateHeader: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
-  },
-  swipeHint: {
-    fontSize: 10,
-    marginBottom: Spacing.sm,
-    opacity: 0.6,
-  },
-  scrollList: {
-    maxHeight: 250,
-  },
-  slotWrapper: {
-    marginBottom: Spacing.sm,
-  },
-  courseLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  noAbsences: {
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
-  },
-  noAbsencesText: {
-    fontSize: 14,
-  },
-});

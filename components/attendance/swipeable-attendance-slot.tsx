@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getBaseUrl } from "@/services/baseurl";
 import { useAuthStore } from "@/stores/auth-store";
@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -158,59 +158,66 @@ export function SwipeableAttendanceSlot({
   const itemOpacity = isMarkedPresent ? 0.5 : 1;
 
   return (
-    <View style={[styles.container, { borderBottomColor: theme.border }]}>
+    <View className="relative overflow-hidden border-b" style={{ borderBottomColor: theme.border }}>
       {/* left action (mark present) */}
       <Animated.View
-        style={[styles.action, styles.leftAction, leftActionStyle]}
+        className="absolute inset-y-0 right-0 w-20 items-end justify-center"
+        style={leftActionStyle}
       >
         <View
-          style={[styles.actionInner, { backgroundColor: leftActionColor }]}
+          className="h-full w-20 items-center justify-center gap-0.5"
+          style={{ backgroundColor: leftActionColor }}
         >
           <Ionicons name={leftActionIcon} size={20} color={Colors.white} />
-          <Text style={styles.actionText}>{leftActionLabel}</Text>
+          <Text className="text-[10px] font-semibold text-white">
+            {leftActionLabel}
+          </Text>
         </View>
       </Animated.View>
 
       {/* right action (mark DL or Absent for Unknown) */}
       <Animated.View
-        style={[styles.action, styles.rightAction, rightActionStyle]}
+        className="absolute inset-y-0 left-0 w-20 items-start justify-center"
+        style={rightActionStyle}
       >
         <View
-          style={[styles.actionInner, { backgroundColor: rightActionColor }]}
+          className="h-full w-20 items-center justify-center gap-0.5"
+          style={{ backgroundColor: rightActionColor }}
         >
           <Ionicons name={rightActionIcon} size={20} color={Colors.white} />
-          <Text style={styles.actionText}>{rightActionLabel}</Text>
+          <Text className="text-[10px] font-semibold text-white">
+            {rightActionLabel}
+          </Text>
         </View>
       </Animated.View>
 
       {/* main content */}
       <GestureDetector gesture={panGesture}>
         <Animated.View
-          style={[
-            styles.content,
-            { backgroundColor: theme.background },
-            animatedStyle,
-          ]}
+          className="px-1 py-2"
+          style={[{ backgroundColor: theme.background }, animatedStyle]}
         >
           <Pressable
             onPress={() => setIsExpanded(!isExpanded)}
             style={{ opacity: itemOpacity }}
           >
-            <View style={styles.row}>
+            <View className="flex-row items-center gap-2">
               {/* course color bar */}
               {courseColor && (
                 <View
-                  style={[styles.colorBar, { backgroundColor: courseColor }]}
+                  className="h-8 w-[3px] rounded-[2px]"
+                  style={{ backgroundColor: courseColor }}
                 />
               )}
 
               {/* time slot */}
-              <View style={styles.timeSection}>
-                <Text style={[styles.timeText, { color: theme.text }]}>
+              <View className="flex-1">
+                <Text className="text-[14px] font-medium" style={{ color: theme.text }}>
                   {timeSlot || "No time"}
                 </Text>
                 <Text
-                  style={[styles.descText, { color: theme.textSecondary }]}
+                  className="text-[11px]"
+                  style={{ color: theme.textSecondary }}
                   numberOfLines={1}
                 >
                   {record.description}
@@ -219,39 +226,38 @@ export function SwipeableAttendanceSlot({
 
               {/* status badge */}
               <View
-                style={[styles.statusBadge, { backgroundColor: statusColor }]}
+                className="flex-row items-center gap-[3px] rounded-full px-2 py-1"
+                style={{ backgroundColor: statusColor }}
               >
                 <Ionicons
                   name={statusIcon as any}
                   size={12}
                   color={Colors.white}
                 />
-                <Text style={styles.statusText}>{record.status.charAt(0)}</Text>
+                <Text className="text-[10px] font-semibold text-white">
+                  {record.status.charAt(0)}
+                </Text>
               </View>
 
               {/* DL badge */}
               {isDutyLeave && (
                 <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: Colors.status.info },
-                  ]}
+                  className="flex-row items-center gap-[3px] rounded-full px-2 py-1"
+                  style={{ backgroundColor: Colors.status.info }}
                 >
                   <Ionicons name="briefcase" size={10} color={Colors.white} />
-                  <Text style={styles.statusText}>DL</Text>
+                  <Text className="text-[10px] font-semibold text-white">DL</Text>
                 </View>
               )}
 
               {/* Present badge */}
               {isMarkedPresent && (
                 <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: Colors.status.success },
-                  ]}
+                  className="flex-row items-center gap-[3px] rounded-full px-2 py-1"
+                  style={{ backgroundColor: Colors.status.success }}
                 >
                   <Ionicons name="checkmark" size={10} color={Colors.white} />
-                  <Text style={styles.statusText}>P</Text>
+                  <Text className="text-[10px] font-semibold text-white">P</Text>
                 </View>
               )}
 
@@ -262,7 +268,7 @@ export function SwipeableAttendanceSlot({
                     e.stopPropagation();
                     handleOpenLms();
                   }}
-                  style={styles.lmsButton}
+                  className="p-1"
                   hitSlop={8}
                 >
                   <Ionicons
@@ -275,7 +281,7 @@ export function SwipeableAttendanceSlot({
 
               {/* swipe hints for absent/unknown */}
               {(isAbsent || isUnknown) && (
-                <View style={styles.swipeHints}>
+                <View className="flex-row items-center gap-0.5 opacity-40">
                   <Ionicons
                     name="chevron-back"
                     size={12}
@@ -295,9 +301,10 @@ export function SwipeableAttendanceSlot({
 
           {/* expanded details */}
           {isExpanded && record.remarks && (
-            <View style={styles.remarks}>
+            <View className="mt-2 pl-4">
               <Text
-                style={[styles.remarksText, { color: theme.textSecondary }]}
+                className="text-[12px] italic"
+                style={{ color: theme.textSecondary }}
               >
                 {record.remarks}
               </Text>
@@ -308,92 +315,3 @@ export function SwipeableAttendanceSlot({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-    borderBottomWidth: 1,
-    overflow: "hidden",
-  },
-  action: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: ACTION_WIDTH,
-    justifyContent: "center",
-  },
-  leftAction: {
-    right: 0,
-    alignItems: "flex-end",
-  },
-  rightAction: {
-    left: 0,
-    alignItems: "flex-start",
-  },
-  actionInner: {
-    width: ACTION_WIDTH,
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-  },
-  actionText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  content: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  colorBar: {
-    width: 3,
-    height: 32,
-    borderRadius: 2,
-  },
-  timeSection: {
-    flex: 1,
-  },
-  timeText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  descText: {
-    fontSize: 11,
-  },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-  },
-  statusText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  swipeHints: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    opacity: 0.4,
-  },
-  remarks: {
-    marginTop: Spacing.sm,
-    paddingLeft: Spacing.md,
-  },
-  remarksText: {
-    fontSize: 12,
-    fontStyle: "italic",
-  },
-  lmsButton: {
-    padding: Spacing.xs,
-  },
-});

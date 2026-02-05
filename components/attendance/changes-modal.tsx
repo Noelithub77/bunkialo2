@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { findCreditsByCode } from "@/data/credits";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
@@ -7,14 +7,7 @@ import type { BunkRecord, CourseAttendance, CourseBunkData } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ChangesModalProps {
@@ -41,13 +34,12 @@ const Section = ({
   const theme = isDark ? Colors.dark : Colors.light;
 
   return (
-    <View style={styles.section}>
+    <View className="mb-4">
       <Pressable
         onPress={() => setExpanded((prev) => !prev)}
-        style={styles.sectionHeader}
+        className="flex-row items-center justify-between"
       >
-        <Text style={[styles.sectionTitle, { color: theme.text }]}
-        >
+        <Text className="text-[14px] font-semibold" style={{ color: theme.text }}>
           {title}
           {typeof count === "number" ? ` (${count})` : ""}
         </Text>
@@ -57,7 +49,7 @@ const Section = ({
           color={theme.textSecondary}
         />
       </Pressable>
-      {expanded && <View style={styles.sectionBody}>{children}</View>}
+      {expanded && <View className="mt-2 gap-2">{children}</View>}
     </View>
   );
 };
@@ -233,34 +225,32 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
         {Array.from(grouped.entries()).map(([courseId, items]) => {
           const course = courseMap.get(courseId);
           return (
-            <View key={courseId} style={styles.groupBlock}>
-              <Text style={[styles.courseName, { color: theme.text }]}
-              >
+            <View key={courseId} className="gap-2">
+              <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
                 {course ? getDisplayName(course) : "Unknown course"}
               </Text>
               {items.map((bunk) => (
                 <View
                   key={bunk.id}
-                  style={[
-                    styles.bunkRow,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
+                  className="flex-row items-center justify-between rounded-[8px] p-2"
+                  style={{ backgroundColor: theme.backgroundSecondary }}
                 >
-                  <View style={styles.bunkInfo}>
-                    <Text style={[styles.bunkDate, { color: theme.text }]}
-                    >
+                  <View className="flex-1 gap-0.5">
+                    <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
                       {bunk.date}
                     </Text>
                     {bunk.timeSlot && (
                       <Text
-                        style={[styles.bunkMeta, { color: theme.textSecondary }]}
+                        className="text-[10px]"
+                        style={{ color: theme.textSecondary }}
                       >
                         {bunk.timeSlot}
                       </Text>
                     )}
                     {bunk.note ? (
                       <Text
-                        style={[styles.bunkMeta, { color: theme.textSecondary }]}
+                        className="text-[10px]"
+                        style={{ color: theme.textSecondary }}
                       >
                         Note: {bunk.note}
                       </Text>
@@ -268,13 +258,12 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
                   </View>
                   {bunk.isDutyLeave && (
                     <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: Colors.status.info + "20" },
-                      ]}
+                      className="rounded-[8px] px-2 py-0.5"
+                      style={{ backgroundColor: Colors.status.info + "20" }}
                     >
                       <Text
-                        style={[styles.badgeText, { color: Colors.status.info }]}
+                        className="text-[10px] font-bold"
+                        style={{ color: Colors.status.info }}
                       >
                         DL
                       </Text>
@@ -282,13 +271,12 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
                   )}
                   {bunk.isMarkedPresent && (
                     <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: Colors.status.success + "20" },
-                      ]}
+                      className="rounded-[8px] px-2 py-0.5"
+                      style={{ backgroundColor: Colors.status.success + "20" }}
                     >
                       <Text
-                        style={[styles.badgeText, { color: Colors.status.success }]}
+                        className="text-[10px] font-bold"
+                        style={{ color: Colors.status.success }}
                       >
                         PRESENT
                       </Text>
@@ -310,56 +298,56 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-        <View style={styles.screen}>
-        <View style={styles.header}>
+      <SafeAreaView className="flex-1" style={{ backgroundColor: theme.background }}>
+        <View className="flex-1 px-6">
+        <View className="mb-4 flex-row items-center justify-between">
           <Pressable onPress={onClose} hitSlop={8}>
             <Ionicons name="close" size={24} color={theme.textSecondary} />
           </Pressable>
-          <Text style={[styles.title, { color: theme.text }]}>Changes</Text>
-          <View style={styles.headerSpacer} />
+          <Text className="text-[18px] font-semibold" style={{ color: theme.text }}>
+            Changes
+          </Text>
+          <View className="w-6" />
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerClassName="pb-8"
           showsVerticalScrollIndicator={false}
         >
           <View
-            style={[
-              styles.summaryCard,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="mb-6 rounded-[12px] p-4"
+            style={{ backgroundColor: theme.backgroundSecondary }}
           >
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: theme.text }]}
-                >
+            <View className="flex-row justify-between">
+              <View className="flex-1 items-center">
+                <Text className="text-[18px] font-bold" style={{ color: theme.text }}>
                   {totalCourses}
                 </Text>
                 <Text
-                  style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                  className="mt-0.5 text-[11px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   courses
                 </Text>
               </View>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: theme.text }]}
-                >
+              <View className="flex-1 items-center">
+                <Text className="text-[18px] font-bold" style={{ color: theme.text }}>
                   {manualSlotsCount}
                 </Text>
                 <Text
-                  style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                  className="mt-0.5 text-[11px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   slots edited
                 </Text>
               </View>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: theme.text }]}
-                >
+              <View className="flex-1 items-center">
+                <Text className="text-[18px] font-bold" style={{ color: theme.text }}>
                   {manualBunks.length}
                 </Text>
                 <Text
-                  style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                  className="mt-0.5 text-[11px]"
+                  style={{ color: theme.textSecondary }}
                 >
                   manual bunks
                 </Text>
@@ -369,18 +357,15 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
 
           {!hasChanges && (
             <View
-              style={[
-                styles.emptyState,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="mb-6 items-center gap-2 rounded-[12px] p-6"
+              style={{ backgroundColor: theme.backgroundSecondary }}
             >
               <Ionicons
                 name="sparkles-outline"
                 size={32}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}
-              >
+              <Text className="text-center text-[12px]" style={{ color: theme.textSecondary }}>
                 No manual changes yet. Your schedule matches LMS data.
               </Text>
             </View>
@@ -391,31 +376,28 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
               {customCourses.map((course) => (
                 <View
                   key={course.courseId}
-                  style={[
-                    styles.courseRow,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
+                  className="flex-row items-center justify-between rounded-[8px] p-2"
+                  style={{ backgroundColor: theme.backgroundSecondary }}
                 >
-                  <View style={styles.courseInfo}>
-                    <Text style={[styles.courseName, { color: theme.text }]}
-                    >
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
                       {getDisplayName(course)}
                     </Text>
                     <Text
-                      style={[styles.courseMeta, { color: theme.textSecondary }]}
+                      className="mt-0.5 text-[11px]"
+                      style={{ color: theme.textSecondary }}
                     >
                       {course.manualSlots.length} slot
                       {course.manualSlots.length === 1 ? "" : "s"}
                     </Text>
                   </View>
                   <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: Colors.status.success + "20" },
-                    ]}
+                    className="rounded-[8px] px-2 py-0.5"
+                    style={{ backgroundColor: Colors.status.success + "20" }}
                   >
                     <Text
-                      style={[styles.badgeText, { color: Colors.status.success }]}
+                      className="text-[10px] font-bold"
+                      style={{ color: Colors.status.success }}
                     >
                       CUSTOM
                     </Text>
@@ -430,30 +412,27 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
               {overrideCourses.map((course) => (
                 <View
                   key={course.courseId}
-                  style={[
-                    styles.courseRow,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
+                  className="flex-row items-center justify-between rounded-[8px] p-2"
+                  style={{ backgroundColor: theme.backgroundSecondary }}
                 >
-                  <View style={styles.courseInfo}>
-                    <Text style={[styles.courseName, { color: theme.text }]}
-                    >
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
                       {getDisplayName(course)}
                     </Text>
                     <Text
-                      style={[styles.courseMeta, { color: theme.textSecondary }]}
+                      className="mt-0.5 text-[11px]"
+                      style={{ color: theme.textSecondary }}
                     >
                       Manual schedule enabled
                     </Text>
                   </View>
                   <View
-                    style={[
-                      styles.badge,
-                      { backgroundColor: Colors.status.info + "20" },
-                    ]}
+                    className="rounded-[8px] px-2 py-0.5"
+                    style={{ backgroundColor: Colors.status.info + "20" }}
                   >
                     <Text
-                      style={[styles.badgeText, { color: Colors.status.info }]}
+                      className="text-[10px] font-bold"
+                      style={{ color: Colors.status.info }}
                     >
                       OVERRIDE
                     </Text>
@@ -468,19 +447,17 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
               {configChanges.map((change) => (
                 <View
                   key={change.courseId}
-                  style={[
-                    styles.courseRow,
-                    { backgroundColor: theme.backgroundSecondary },
-                  ]}
+                  className="flex-row items-center justify-between rounded-[8px] p-2"
+                  style={{ backgroundColor: theme.backgroundSecondary }}
                 >
-                  <View style={styles.courseInfo}>
-                    <Text style={[styles.courseName, { color: theme.text }]}
-                    >
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
                       {change.name}
                     </Text>
                     {change.aliasChanged && (
                       <Text
-                        style={[styles.courseMeta, { color: theme.textSecondary }]}
+                        className="mt-0.5 text-[11px]"
+                        style={{ color: theme.textSecondary }}
                       >
                         Alias: {change.defaultAlias} {"->"}{" "}
                         {change.currentAlias}
@@ -488,7 +465,8 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
                     )}
                     {change.creditsChanged && (
                       <Text
-                        style={[styles.courseMeta, { color: theme.textSecondary }]}
+                        className="mt-0.5 text-[11px]"
+                        style={{ color: theme.textSecondary }}
                       >
                         Credits: {change.defaultCredits} {"->"}{" "}
                         {change.currentCredits}
@@ -503,26 +481,23 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
           {manualSlotCourses.length > 0 && (
             <Section title="Manual Slots" count={manualSlotsCount}>
               {manualSlotCourses.map((course) => (
-                <View key={course.courseId} style={styles.groupBlock}>
-                  <Text style={[styles.courseName, { color: theme.text }]}
-                  >
+                <View key={course.courseId} className="gap-2">
+                  <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
                     {getDisplayName(course)}
                   </Text>
-                  <View style={styles.slotsList}>
+                  <View className="gap-2">
                     {course.manualSlots.map((slot) => (
                       <View
                         key={slot.id}
-                        style={[
-                          styles.slotItem,
-                          { backgroundColor: theme.backgroundSecondary },
-                        ]}
+                        className="rounded-[8px] p-2"
+                        style={{ backgroundColor: theme.backgroundSecondary }}
                       >
-                        <Text style={[styles.slotText, { color: theme.text }]}
-                        >
+                        <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
                           {formatSlot(slot)}
                         </Text>
                         <Text
-                          style={[styles.slotMeta, { color: theme.textSecondary }]}
+                          className="text-[10px] capitalize"
+                          style={{ color: theme.textSecondary }}
                         >
                           {slot.sessionType}
                         </Text>
@@ -543,140 +518,3 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  screen: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  headerSpacer: {
-    width: 24,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  container: {
-    paddingBottom: Spacing.xl,
-  },
-  summaryCard: {
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  summaryLabel: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: "center",
-    padding: Spacing.lg,
-    borderRadius: Radius.md,
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  emptyText: {
-    fontSize: 12,
-    textAlign: "center",
-  },
-  section: {
-    marginBottom: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  sectionBody: {
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  courseRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  courseInfo: {
-    flex: 1,
-  },
-  courseName: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  courseMeta: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  groupBlock: {
-    gap: Spacing.sm,
-  },
-  slotsList: {
-    gap: Spacing.sm,
-  },
-  slotItem: {
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  slotText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  slotMeta: {
-    fontSize: 10,
-    textTransform: "capitalize",
-  },
-  bunkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  bunkInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  bunkDate: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  bunkMeta: {
-    fontSize: 10,
-  },
-});

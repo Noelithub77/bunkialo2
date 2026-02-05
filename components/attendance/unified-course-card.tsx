@@ -1,6 +1,6 @@
 import { SwipeableBunkItem } from "@/components/attendance/swipeable-bunk-item";
 import { GradientCard } from "@/components/ui/gradient-card";
-import { CalendarTheme, Colors, Radius, Spacing } from "@/constants/theme";
+import { CalendarTheme, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getBaseUrl } from "@/services/baseurl";
 import { useAuthStore } from "@/stores/auth-store";
@@ -17,7 +17,7 @@ import type {
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 
 interface UnifiedCourseCardProps {
@@ -326,18 +326,17 @@ export function UnifiedCourseCard({
   if (!isCustomCourse && totalSessions === 0 && pastBunks.length === 0) {
     return (
       <GradientCard>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.headerInfo}>
-              <Text
-                style={[styles.courseName, { color: theme.text }]}
-                numberOfLines={2}
-              >
-                {courseAlias}
-              </Text>
-            </View>
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1">
+            <Text
+              className="text-base font-semibold"
+              style={{ color: theme.text }}
+              numberOfLines={2}
+            >
+              {courseAlias}
+            </Text>
           </View>
-          <Text style={[styles.noData, { color: theme.textSecondary }]}>
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>
             No data
           </Text>
         </View>
@@ -347,134 +346,117 @@ export function UnifiedCourseCard({
 
   return (
     <GradientCard>
-      <View style={styles.cardContainer}>
+      <View className="relative">
         {courseColor && (
           <View
-            style={[styles.colorLineFull, { backgroundColor: courseColor }]}
+            className="absolute bottom-0 left-0 top-0 w-[6px] rounded-l-md"
+            style={{ backgroundColor: courseColor }}
           />
         )}
         <Pressable
           onPress={handleCardPress}
-          style={[isEditMode && styles.editModeCard, styles.cardContent]}
+          className="pl-4"
+          style={isEditMode ? { opacity: 0.85 } : undefined}
         >
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View style={styles.headerInfo}>
-                <Text
-                  style={[styles.courseName, { color: theme.text }]}
-                  numberOfLines={2}
-                >
-                  {courseAlias}
-                </Text>
-                <View style={styles.sessionMeta}>
-                  {isCustomCourse ? (
-                    <View style={styles.customBadgeRow}>
-                      <View
-                        style={[
-                          styles.customBadge,
-                          { backgroundColor: Colors.status.success + "20" },
-                        ]}
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1">
+              <Text
+                className="text-base font-semibold"
+                style={{ color: theme.text }}
+                numberOfLines={2}
+              >
+                {courseAlias}
+              </Text>
+              <View className="mt-1 flex-row items-center gap-2">
+                {isCustomCourse ? (
+                  <View className="flex-row items-center gap-2">
+                    <View
+                      className="rounded px-1.5 py-[2px]"
+                      style={{ backgroundColor: `${Colors.status.success}20` }}
+                    >
+                      <Text
+                        className="text-[10px] font-semibold"
+                        style={{ color: Colors.status.success }}
                       >
+                        Custom
+                      </Text>
+                    </View>
+                    {manualSlotsCount > 0 && (
+                      <Text
+                        className="text-xs"
+                        style={{ color: theme.textSecondary }}
+                      >
+                        {manualSlotsCount} slot{manualSlotsCount > 1 ? "s" : ""}
+                      </Text>
+                    )}
+                  </View>
+                ) : (
+                  <>
+                    <Text
+                      className="text-sm"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      {attended} / {totalSessions} sessions
+                      <Text
+                        className="text-xs font-medium"
+                        style={{ color: percentageColor }}
+                      >
+                        {" "}
+                        ({percentage}%)
+                      </Text>
+                    </Text>
+                    {unknownCount > 0 && course && (
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          onShowUnknown(course.courseId);
+                        }}
+                        className="flex-row items-center gap-1"
+                      >
+                        <Ionicons
+                          name="help"
+                          size={10}
+                          color={Colors.status.unknown}
+                        />
                         <Text
-                          style={[
-                            styles.customBadgeText,
-                            { color: Colors.status.success },
-                          ]}
+                          className="text-xs font-semibold"
+                          style={{ color: Colors.status.unknown }}
                         >
-                          Custom
+                          {unknownCount}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {manualSlotsCount > 0 && (
+                      <View
+                        className="flex-row items-center gap-1 rounded px-1 py-[2px]"
+                        style={{ backgroundColor: `${Colors.status.info}20` }}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={10}
+                          color={Colors.status.info}
+                        />
+                        <Text
+                          className="text-[10px] font-semibold"
+                          style={{ color: Colors.status.info }}
+                        >
+                          {manualSlotsCount}
                         </Text>
                       </View>
-                      {manualSlotsCount > 0 && (
-                        <Text
-                          style={[
-                            styles.slotsCount,
-                            { color: theme.textSecondary },
-                          ]}
-                        >
-                          {manualSlotsCount} slot
-                          {manualSlotsCount > 1 ? "s" : ""}
-                        </Text>
-                      )}
-                    </View>
-                  ) : (
-                    <>
-                      <Text
-                        style={[
-                          styles.sessionCount,
-                          { color: theme.textSecondary },
-                        ]}
-                      >
-                        {attended} / {totalSessions} sessions
-                        <Text
-                          style={[
-                            styles.percentageSmall,
-                            { color: percentageColor },
-                          ]}
-                        >
-                          {" "}
-                          ({percentage}%)
-                        </Text>
-                      </Text>
-                      {unknownCount > 0 && course && (
-                        <Pressable
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            onShowUnknown(course.courseId);
-                          }}
-                          style={styles.unknownBadge}
-                        >
-                          <Ionicons
-                            name="help"
-                            size={10}
-                            color={Colors.status.unknown}
-                          />
-                          <Text
-                            style={[
-                              styles.unknownText,
-                              { color: Colors.status.unknown },
-                            ]}
-                          >
-                            {unknownCount}
-                          </Text>
-                        </Pressable>
-                      )}
-                      {manualSlotsCount > 0 && (
-                        <View
-                          style={[
-                            styles.manualSlotsBadge,
-                            { backgroundColor: Colors.status.info + "20" },
-                          ]}
-                        >
-                          <Ionicons
-                            name="time-outline"
-                            size={10}
-                            color={Colors.status.info}
-                          />
-                          <Text
-                            style={[
-                              styles.manualSlotsText,
-                              { color: Colors.status.info },
-                            ]}
-                          >
-                            {manualSlotsCount}
-                          </Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
+                    )}
+                  </>
+                )}
               </View>
             </View>
 
-            <View style={styles.headerRight}>
-              {/* LMS link - only for non-custom courses */}
+            <View className="flex-row items-center gap-2">
               {!isCustomCourse && course?.attendanceModuleId && (
                 <Pressable
                   onPress={(e) => {
                     e.stopPropagation();
                     handleOpenLms();
                   }}
-                  hitSlop={8}
+                  className="p-2"
                 >
                   <Ionicons
                     name="open-outline"
@@ -484,14 +466,13 @@ export function UnifiedCourseCard({
                 </Pressable>
               )}
 
-              {/* delete button for custom courses in edit mode */}
               {isCustomCourse && isEditMode && onDeleteCustomCourse && (
                 <Pressable
                   onPress={(e) => {
                     e.stopPropagation();
                     onDeleteCustomCourse();
                   }}
-                  hitSlop={8}
+                  className="p-2"
                 >
                   <Ionicons
                     name="trash-outline"
@@ -501,7 +482,6 @@ export function UnifiedCourseCard({
                 </Pressable>
               )}
 
-              {/* bunks left - prominent */}
               {isConfigured ? (
                 <Pressable
                   onPress={(e) => {
@@ -509,17 +489,16 @@ export function UnifiedCourseCard({
                     setShowTotal(!showTotal);
                   }}
                 >
-                  <View style={styles.bunksDisplayProminent}>
+                  <View className="items-center">
                     <Text
-                      style={[styles.bunksValueLarge, { color: bunksColor }]}
+                      className="text-2xl font-bold leading-6"
+                      style={{ color: bunksColor }}
                     >
                       {bunksDisplay}
                     </Text>
                     <Text
-                      style={[
-                        styles.bunksLabelLarge,
-                        { color: theme.textSecondary },
-                      ]}
+                      className="text-[11px] font-medium uppercase tracking-[0.5px]"
+                      style={{ color: theme.textSecondary }}
                     >
                       {bunksLabel}
                     </Text>
@@ -531,10 +510,8 @@ export function UnifiedCourseCard({
                     e.stopPropagation();
                     onEdit();
                   }}
-                  style={[
-                    styles.configBtn,
-                    { borderColor: Colors.status.warning },
-                  ]}
+                  className="flex-row items-center gap-1 rounded-sm border px-2 py-1"
+                  style={{ borderColor: Colors.status.warning }}
                 >
                   <Ionicons
                     name="settings-outline"
@@ -542,30 +519,24 @@ export function UnifiedCourseCard({
                     color={Colors.status.warning}
                   />
                   <Text
-                    style={[
-                      styles.configText,
-                      { color: Colors.status.warning },
-                    ]}
+                    className="text-xs font-medium"
+                    style={{ color: Colors.status.warning }}
                   >
                     Setup
                   </Text>
                 </Pressable>
               )}
-
-              <Ionicons
-                name={expanded ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={theme.textSecondary}
-              />
             </View>
           </View>
         </Pressable>
       </View>
       {expanded && (
-        <View style={styles.expandedContent}>
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+        <View className="mt-4 pl-4">
+          <View
+            className="mb-4 h-px"
+            style={{ backgroundColor: theme.border }}
+          />
 
-          {/* calendar - only shows Absent and Unknown */}
           <Calendar
             markingType="multi-dot"
             markedDates={markedDates}
@@ -586,13 +557,14 @@ export function UnifiedCourseCard({
             }}
           />
 
-          {/* selected date - Unknown entries (swipe to confirm) - only for LMS courses */}
           {course && selectedDate && selectedUnknown.length > 0 && (
             <View
-              style={[styles.sessionDetails, { borderTopColor: theme.border }]}
+              className="mt-2 border-t pt-2"
+              style={{ borderTopColor: theme.border }}
             >
               <Text
-                style={[styles.sectionTitle, { color: Colors.status.unknown }]}
+                className="text-xs font-medium"
+                style={{ color: Colors.status.unknown }}
               >
                 Unconfirmed ({selectedUnknown.length})
               </Text>
@@ -629,15 +601,17 @@ export function UnifiedCourseCard({
                   />
                 );
               })}
-              <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+              <Text
+                className="mt-2 text-[10px] text-center opacity-60"
+                style={{ color: theme.textSecondary }}
+              >
                 Swipe left = Present · Swipe right = Absent
               </Text>
             </View>
           )}
 
-          {/* bunks list */}
           {pastBunks.length > 0 && (
-            <View style={styles.bunksList}>
+            <View className="mt-2 gap-0">
               {pastBunks.map((bunk) => (
                 <SwipeableBunkItem
                   key={bunk.id}
@@ -653,54 +627,54 @@ export function UnifiedCourseCard({
             </View>
           )}
 
-          {/* action buttons */}
-          <View style={styles.actionButtons}>
-            {/* add bunk button */}
+          <View className="mt-4 flex-row gap-2">
             <Pressable
               onPress={onAddBunk}
-              style={[styles.addBunkBtn, { borderColor: theme.border }]}
+              className="flex-1 flex-row items-center justify-center gap-1.5 border border-dashed rounded-sm py-2"
+              style={{ borderColor: theme.border }}
             >
               <Ionicons
                 name="add-circle-outline"
                 size={16}
                 color={theme.textSecondary}
               />
-              <Text
-                style={[styles.addBunkText, { color: theme.textSecondary }]}
-              >
+              <Text className="text-sm" style={{ color: theme.textSecondary }}>
                 Add Bunk
               </Text>
             </Pressable>
           </View>
 
-          {/* swipe hint */}
           {pastBunks.length > 0 && (
-            <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+            <Text
+              className="mt-2 text-[10px] text-center opacity-60"
+              style={{ color: theme.textSecondary }}
+            >
               Swipe left = Present · Swipe right = DL
             </Text>
           )}
 
-          {/* legend */}
-          <View style={styles.legend}>
-            <View style={styles.legendItem}>
+          <View className="mt-4 flex-row items-center justify-center gap-4 pt-2">
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: Colors.status.danger },
-                ]}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: Colors.status.danger }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 A
               </Text>
             </View>
-            <View style={styles.legendItem}>
+            <View className="flex-row items-center gap-1">
               <View
-                style={[
-                  styles.legendDot,
-                  { backgroundColor: Colors.status.unknown },
-                ]}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: Colors.status.unknown }}
               />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+              <Text
+                className="text-[10px]"
+                style={{ color: theme.textSecondary }}
+              >
                 ?
               </Text>
             </View>
@@ -710,211 +684,3 @@ export function UnifiedCourseCard({
     </GradientCard>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  headerLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginRight: Spacing.md,
-  },
-  headerInfoWithColor: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  cardContainer: {
-    position: "relative",
-  },
-  colorLineFull: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 6,
-    borderTopLeftRadius: Radius.md,
-    borderBottomLeftRadius: Radius.md,
-  },
-  cardContent: {
-    paddingLeft: Spacing.md,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  courseName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  sessionMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginTop: 4,
-  },
-  sessionCount: {
-    fontSize: 13,
-  },
-  percentageSmall: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  unknownBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  unknownText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  customBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  customBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  customBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  slotsCount: {
-    fontSize: 12,
-  },
-  manualSlotsBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  manualSlotsText: {
-    fontSize: 10,
-    fontWeight: "500",
-  },
-  bunksDisplayProminent: {
-    alignItems: "center",
-  },
-  bunksValueLarge: {
-    fontSize: 24,
-    fontWeight: "700",
-    lineHeight: 24,
-  },
-  bunksLabelLarge: {
-    fontSize: 11,
-    fontWeight: "500",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  bunksValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  bunksLabel: {
-    fontSize: 9,
-    lineHeight: 9,
-  },
-  configBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  configText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  editModeCard: {
-    opacity: 0.8,
-  },
-  noData: {
-    fontSize: 13,
-  },
-  expandedContent: {
-    marginTop: Spacing.md,
-    paddingLeft: Spacing.md,
-  },
-  divider: {
-    height: 1,
-    marginBottom: Spacing.md,
-  },
-  sessionDetails: {
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-  },
-  bunkSection: {
-    marginTop: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: Spacing.sm,
-  },
-  bunksList: {
-    gap: 0,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  addBunkBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    borderStyle: "dashed",
-  },
-  addBunkText: {
-    fontSize: 13,
-  },
-  swipeHint: {
-    fontSize: 10,
-    textAlign: "center",
-    marginTop: Spacing.sm,
-    opacity: 0.6,
-  },
-  legend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  legendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  legendText: {
-    fontSize: 10,
-  },
-});

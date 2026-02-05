@@ -1,6 +1,6 @@
 import { ConfirmModal } from "@/components/modals/confirm-modal";
 import { SlotConflictModal } from "@/components/modals/slot-conflict-modal";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useBunkActions } from "@/hooks/use-bunk-actions";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCourseActions } from "@/hooks/use-course-actions";
@@ -13,14 +13,7 @@ import {
 } from "@/stores/bunk-store";
 import type { AttendanceRecord } from "@/types";
 import { useCallback, useMemo } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
 import { AddBunkModal } from "../add-bunk-modal";
 import { CourseEditModal } from "../course-edit-modal";
 import { CreateCourseModal } from "../create-course-modal";
@@ -139,17 +132,17 @@ export const CoursesContent = () => {
   const renderEmpty = () => {
     if (isLoading) {
       return (
-        <View style={styles.empty}>
+        <View className="items-center gap-4 py-12">
           <ActivityIndicator size="large" color={theme.text} />
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <Text className="text-[14px]" style={{ color: theme.textSecondary }}>
             Fetching attendance data...
           </Text>
         </View>
       );
     }
     return (
-      <View style={styles.empty}>
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+      <View className="items-center gap-4 py-12">
+        <Text className="text-[14px]" style={{ color: theme.textSecondary }}>
           No courses found. Pull to refresh.
         </Text>
       </View>
@@ -158,7 +151,7 @@ export const CoursesContent = () => {
 
   const renderFooter = () => {
     if (!lastSyncTime || courses.length === 0) return null;
-    return <View style={styles.footer} />;
+    return <View className="h-6" />;
   };
 
   return (
@@ -227,8 +220,8 @@ export const CoursesContent = () => {
         }}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerClassName="p-4 pb-[100px]"
+        ItemSeparatorComponent={() => <View className="h-4" />}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -356,24 +349,3 @@ export const CoursesContent = () => {
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  list: {
-    padding: Spacing.md,
-    paddingBottom: 100,
-  },
-  separator: {
-    height: Spacing.md,
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  footer: {
-    height: Spacing.lg,
-  },
-});
