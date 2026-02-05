@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
 
 type ConfirmVariant = "default" | "destructive";
 
@@ -43,34 +43,48 @@ export function ConfirmModal({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onCancel} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
-          <View style={styles.header}>
+      <View className="flex-1 items-center justify-center">
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onCancel} />
+        <View
+          className="w-[90%] max-w-[380px] rounded-2xl p-6"
+          style={{ backgroundColor: theme.background }}
+        >
+          <View className="mb-2 flex-row items-center gap-2">
             {icon && (
-              <View style={[styles.iconBadge, { backgroundColor: iconColor }]}>
+              <View
+                className="h-[30px] w-[30px] items-center justify-center rounded-full"
+                style={{ backgroundColor: iconColor }}
+              >
                 <Ionicons name={icon} size={18} color={Colors.white} />
               </View>
             )}
-            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+            <Text
+              className="flex-1 text-lg font-semibold"
+              style={{ color: theme.text }}
+            >
+              {title}
+            </Text>
           </View>
 
-          <Text style={[styles.message, { color: theme.textSecondary }]}>
+          <Text
+            className="text-[13px] leading-[18px]"
+            style={{ color: theme.textSecondary }}
+          >
             {message}
           </Text>
 
-          <View style={styles.actions}>
+          <View className="mt-6 w-full flex-row gap-2">
             <Button
               title={cancelText}
               variant="secondary"
               onPress={onCancel}
-              style={styles.btn}
+              className="flex-1"
             />
             <Button
               title={confirmText}
               onPress={onConfirm}
-              style={styles.btn}
               variant={variant === "destructive" ? "danger" : "primary"}
+              className="flex-1"
             />
           </View>
         </View>
@@ -78,51 +92,3 @@ export function ConfirmModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "90%",
-    maxWidth: 380,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  iconBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    flex: 1,
-  },
-  message: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  btn: {
-    flex: 1,
-  },
-});

@@ -1,12 +1,11 @@
 import {
   Pressable,
   Text,
-  StyleSheet,
   ActivityIndicator,
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors, Gradients, Radius } from "@/constants/theme";
+import { Colors, Gradients } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface ButtonProps {
@@ -16,6 +15,7 @@ interface ButtonProps {
   disabled?: boolean;
   variant?: "primary" | "secondary" | "ghost" | "danger";
   style?: ViewStyle;
+  className?: string;
 }
 
 export function Button({
@@ -25,6 +25,7 @@ export function Button({
   disabled = false,
   variant = "primary",
   style,
+  className,
 }: ButtonProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -35,18 +36,16 @@ export function Button({
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
+        className={`h-11 items-center justify-center ${className ?? ""}`}
         style={({ pressed }) => [
-          styles.ghost,
-          pressed && styles.pressed,
-          isDisabled && styles.disabled,
+          pressed && { opacity: 0.8 },
+          isDisabled && { opacity: 0.5 },
           style,
         ]}
       >
         <Text
-          style={[
-            styles.ghostText,
-            { color: isDark ? Colors.white : Colors.black },
-          ]}
+          className="text-sm font-medium"
+          style={{ color: isDark ? Colors.white : Colors.black }}
         >
           {title}
         </Text>
@@ -55,15 +54,17 @@ export function Button({
   }
 
   if (variant === "secondary") {
+    const secondaryBg = isDark ? Colors.gray[800] : Colors.gray[100];
+    const secondaryBorder = isDark ? Colors.gray[600] : Colors.gray[300];
     return (
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
+        className={`h-[52px] items-center justify-center rounded-xl border ${className ?? ""}`}
         style={({ pressed }) => [
-          styles.secondary,
-          { borderColor: isDark ? Colors.gray[700] : Colors.gray[300] },
-          pressed && styles.pressed,
-          isDisabled && styles.disabled,
+          { borderColor: secondaryBorder, backgroundColor: secondaryBg },
+          pressed && { opacity: 0.8 },
+          isDisabled && { opacity: 0.5 },
           style,
         ]}
       >
@@ -71,10 +72,8 @@ export function Button({
           <ActivityIndicator color={isDark ? Colors.white : Colors.black} />
         ) : (
           <Text
-            style={[
-              styles.secondaryText,
-              { color: isDark ? Colors.white : Colors.black },
-            ]}
+            className="text-base font-semibold"
+            style={{ color: isDark ? Colors.white : Colors.black }}
           >
             {title}
           </Text>
@@ -88,17 +87,23 @@ export function Button({
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
+        className={`h-[52px] items-center justify-center rounded-xl border ${className ?? ""}`}
         style={({ pressed }) => [
-          styles.danger,
-          pressed && styles.pressed,
-          isDisabled && styles.disabled,
+          {
+            backgroundColor: Colors.status.danger,
+            borderColor: Colors.status.danger,
+          },
+          pressed && { opacity: 0.8 },
+          isDisabled && { opacity: 0.5 },
           style,
         ]}
       >
         {loading ? (
           <ActivityIndicator color={Colors.white} />
         ) : (
-          <Text style={styles.text}>{title}</Text>
+          <Text className="text-base font-semibold" style={{ color: Colors.white }}>
+            {title}
+          </Text>
         )}
       </Pressable>
     );
@@ -108,10 +113,11 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
+      className={`overflow-hidden rounded-xl border ${className ?? ""}`}
       style={({ pressed }) => [
-        styles.wrapper,
-        pressed && styles.pressed,
-        isDisabled && styles.disabled,
+        { borderColor: Colors.gray[700] },
+        pressed && { opacity: 0.8 },
+        isDisabled && { opacity: 0.5 },
         style,
       ]}
     >
@@ -119,68 +125,16 @@ export function Button({
         colors={Gradients.dark.button as [string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.gradient}
+        className="h-[52px] w-full items-center justify-center"
       >
         {loading ? (
           <ActivityIndicator color={Colors.white} />
         ) : (
-          <Text style={styles.text}>{title}</Text>
+          <Text className="text-base font-semibold" style={{ color: Colors.white }}>
+            {title}
+          </Text>
         )}
       </LinearGradient>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    borderRadius: Radius.md,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.gray[700],
-  },
-  gradient: {
-    height: 52,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  pressed: {
-    opacity: 0.8,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  secondary: {
-    height: 52,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  secondaryText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  ghost: {
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  ghostText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  danger: {
-    height: 52,
-    borderRadius: Radius.md,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.status.danger,
-    borderWidth: 1,
-    borderColor: Colors.status.danger,
-  },
-});

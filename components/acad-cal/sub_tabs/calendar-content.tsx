@@ -1,11 +1,11 @@
-import { CalendarTheme, Colors, Radius, Spacing } from "@/constants/theme";
+import { CalendarTheme, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { CalendarEvent } from "@/stores/acad-cal-ui-store";
 import { useAcadCalUIStore } from "@/stores/acad-cal-ui-store";
 import type { MarkedDates } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import { buildEventDates, CATEGORY_META, formatLongDate } from "../constants";
 
@@ -78,12 +78,10 @@ export const CalendarContent = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View className="mt-2">
       <View
-        style={[
-          styles.calendarCard,
-          { borderColor: theme.border, backgroundColor: theme.background },
-        ]}
+        className="rounded-2xl border p-2"
+        style={{ borderColor: theme.border, backgroundColor: theme.background }}
       >
         <Calendar
           markingType="multi-dot"
@@ -108,57 +106,52 @@ export const CalendarContent = ({
         />
       </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+      <View className="mt-6 flex-row items-end justify-between">
+        <Text className="text-lg font-semibold" style={{ color: theme.text }}>
           {selectedDate ? formatLongDate(selectedDate) : "Selected Day"}
         </Text>
-        <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+        <Text className="text-xs" style={{ color: theme.textSecondary }}>
           {selectedDayEvents.length} events
         </Text>
       </View>
 
       {selectedDayEvents.length === 0 ? (
         <View
-          style={[
-            styles.emptyState,
-            { borderColor: theme.border, backgroundColor: theme.background },
-          ]}
+          className="mt-4 flex-row items-center gap-2 rounded-2xl border p-4"
+          style={{ borderColor: theme.border, backgroundColor: theme.background }}
         >
           <Ionicons
             name="calendar-clear-outline"
             size={20}
             color={theme.textSecondary}
           />
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <Text className="text-[13px]" style={{ color: theme.textSecondary }}>
             No events on this day
           </Text>
         </View>
       ) : (
-        <View style={styles.eventList}>
+        <View className="mt-4 gap-2">
           {selectedDayEvents.map((event) => {
             const meta = CATEGORY_META[event.category];
             return (
               <View
                 key={`${event.id}-${selectedDate}`}
-                style={[
-                  styles.eventCard,
-                  { backgroundColor: theme.backgroundSecondary },
-                ]}
+                className="flex-row items-center gap-2 rounded-2xl p-2"
+                style={{ backgroundColor: theme.backgroundSecondary }}
               >
                 <View
-                  style={[
-                    styles.eventIcon,
-                    { backgroundColor: theme.background },
-                  ]}
+                  className="h-8 w-8 items-center justify-center rounded-full"
+                  style={{ backgroundColor: theme.background }}
                 >
                   <Ionicons name={meta.icon} size={16} color={meta.color} />
                 </View>
-                <View style={styles.eventInfo}>
-                  <Text style={[styles.eventTitle, { color: theme.text }]}>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold" style={{ color: theme.text }}>
                     {event.title}
                   </Text>
                   <Text
-                    style={[styles.eventMeta, { color: theme.textSecondary }]}
+                    className="mt-1 text-xs"
+                    style={{ color: theme.textSecondary }}
                   >
                     {meta.label}
                     {event.isTentative ? " • Tentative" : ""}
@@ -167,7 +160,7 @@ export const CalendarContent = ({
                 {isEditMode && (
                   <Pressable
                     onPress={() => openEditEditor(event)}
-                    style={styles.eventEditButton}
+                    className="p-1.5"
                     hitSlop={6}
                   >
                     <Ionicons
@@ -183,11 +176,14 @@ export const CalendarContent = ({
         </View>
       )}
 
-      <View style={styles.legendRow}>
+      <View className="mt-6 flex-row flex-wrap gap-2">
         {Object.entries(CATEGORY_META).map(([key, meta]) => (
-          <View key={key} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: meta.color }]} />
-            <Text style={[styles.legendText, { color: theme.textSecondary }]}>
+          <View key={key} className="flex-row items-center gap-1.5">
+            <View
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: meta.color }}
+            />
+            <Text className="text-[11px]" style={{ color: theme.textSecondary }}>
               {meta.label}
             </Text>
           </View>
@@ -196,90 +192,3 @@ export const CalendarContent = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginTop: Spacing.sm,
-  },
-  calendarCard: {
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    padding: Spacing.sm,
-  },
-  sectionHeader: {
-    marginTop: Spacing.lg,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-  },
-  emptyState: {
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 13,
-  },
-  eventList: {
-    marginTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  eventCard: {
-    borderRadius: Radius.lg,
-    padding: Spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  eventIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  eventInfo: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  eventMeta: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  eventEditButton: {
-    padding: 6,
-  },
-  legendRow: {
-    marginTop: Spacing.lg,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radius.full,
-  },
-  legendText: {
-    fontSize: 11,
-  },
-});

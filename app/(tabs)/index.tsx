@@ -4,7 +4,7 @@ import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { UpNextSection } from "@/components/dashboard/up-next-section";
 import { DevInfoModal } from "@/components/modals/dev-info-modal";
 import { Container } from "@/components/ui/container";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
@@ -21,7 +21,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -134,14 +133,14 @@ export default function DashboardScreen() {
   const actionContainerStyle = {
     backgroundColor: isDark ? "rgba(24,24,24,0.92)" : "rgba(255,255,255,0.95)",
     borderRadius: 999,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 4,
   };
 
   return (
     <Container>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerClassName="p-4 pb-12"
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -151,26 +150,31 @@ export default function DashboardScreen() {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.title, { color: theme.text }]}>Dashboard</Text>
+        <View className="mb-6 flex-row items-start justify-between">
+          <View className="shrink gap-0.5">
+            <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
+              Dashboard
+            </Text>
             {lastSyncTime && (
-              <View style={styles.syncPill}>
+              <View className="flex-row items-center gap-1 self-start rounded-full px-1.5 py-0.5">
                 <Ionicons
                   name="refresh-outline"
                   size={12}
                   color={theme.textSecondary}
                 />
-                <Text style={[styles.syncText, { color: theme.textSecondary }]}>
+                <Text
+                  className="text-[10px] font-medium"
+                  style={{ color: theme.textSecondary, letterSpacing: 0.2 }}
+                >
                   {formatSyncTime(lastSyncTime)}
                 </Text>
               </View>
             )}
           </View>
-          <View style={styles.headerRight}>
+          <View className="flex-row items-center gap-2">
             <Pressable
               onPress={() => setShowDevInfo(true)}
-              style={styles.settingsBtn}
+              className="p-2"
             >
               <Ionicons
                 name="information-circle-outline"
@@ -180,7 +184,7 @@ export default function DashboardScreen() {
             </Pressable>
             <Pressable
               onPress={() => router.push("/settings")}
-              style={styles.settingsBtn}
+              className="p-2"
             >
               <Ionicons
                 name="settings-outline"
@@ -196,9 +200,9 @@ export default function DashboardScreen() {
 
         {/* Loading */}
         {(isHydratingFromCache || (isLoading && isEmpty)) && (
-          <View style={styles.loading}>
+          <View className="items-center gap-4 py-12">
             <ActivityIndicator size="large" color={theme.text} />
-            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+            <Text className="text-sm" style={{ color: theme.textSecondary }}>
               {isHydratingFromCache
                 ? "Loading cached events..."
                 : "Loading events..."}
@@ -208,26 +212,22 @@ export default function DashboardScreen() {
 
         {/* Overdue Section */}
         {hasOverdue && (
-          <View style={styles.section}>
+          <View className="mb-6">
             <Pressable
-              style={[
-                styles.overdueHeader,
-                {
-                  backgroundColor: Colors.status.danger + "15",
-                  borderColor: Colors.status.danger,
-                },
-              ]}
+              className="flex-row items-center justify-between rounded-xl border p-4"
+              style={{
+                backgroundColor: Colors.status.danger + "15",
+                borderColor: Colors.status.danger,
+              }}
               onPress={() => setShowOverdue(!showOverdue)}
             >
-              <View style={styles.overdueLeft}>
+              <View className="flex-row items-center gap-2">
                 <Ionicons
                   name="warning-outline"
                   size={18}
                   color={Colors.status.danger}
                 />
-                <Text
-                  style={[styles.overdueText, { color: Colors.status.danger }]}
-                >
+                <Text className="text-sm font-semibold" style={{ color: Colors.status.danger }}>
                   {overdueEvents.length} Overdue
                 </Text>
               </View>
@@ -239,7 +239,7 @@ export default function DashboardScreen() {
             </Pressable>
 
             {showOverdue && (
-              <View style={styles.overdueList}>
+              <View className="mt-2 gap-2">
                 {overdueEvents.map((event) => (
                   <EventCard key={event.id} event={event} isOverdue />
                 ))}
@@ -250,8 +250,8 @@ export default function DashboardScreen() {
 
         {/* Upcoming Timeline */}
         {!isHydratingFromCache && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          <View className="mb-6">
+            <Text className="mb-4 text-base font-semibold" style={{ color: theme.text }}>
               Upcoming
             </Text>
             <TimelineSection events={upcomingEvents} />
@@ -335,83 +335,3 @@ export default function DashboardScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: Spacing.lg,
-  },
-  headerLeft: {
-    flexShrink: 1,
-    rowGap: 2,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  syncPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  syncText: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 0.2,
-  },
-  settingsBtn: {
-    padding: Spacing.sm,
-  },
-  loading: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  loadingText: {
-    fontSize: 14,
-  },
-  section: {
-    marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: Spacing.md,
-  },
-  overdueHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-  overdueLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  overdueText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  overdueList: {
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-});

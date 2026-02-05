@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type {
   AttendanceRecord,
@@ -13,7 +13,6 @@ import {
   FlatList,
   Modal,
   Pressable,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -207,63 +206,65 @@ export function UnknownStatusModal({
     const time = parseTime(item.record.date);
     const resolutionMeta = getResolutionMeta(item.resolution);
     return (
-      <View style={[styles.item, { borderBottomColor: theme.border }]}>
-        <View style={styles.itemInfo}>
+      <View
+        className="flex-row items-center justify-between border-b py-2"
+        style={{ borderBottomColor: theme.border }}
+      >
+        <View className="mr-2 flex-1">
           <Text
-            style={[styles.itemCourse, { color: theme.text }]}
+            className="text-sm font-medium"
+            style={{ color: theme.text }}
             numberOfLines={1}
           >
             {item.courseName}
           </Text>
-          <View style={styles.itemMeta}>
-            <Text style={[styles.itemDate, { color: theme.textSecondary }]}>
+          <View className="mt-0.5 flex-row gap-2">
+            <Text className="text-xs" style={{ color: theme.textSecondary }}>
               {formatDate(item.record.date)}
             </Text>
             {time && (
-              <Text style={[styles.itemTime, { color: theme.textSecondary }]}>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
                 {time}
               </Text>
             )}
           </View>
-          <View style={styles.statusRow}>
+          <View className="mt-1 flex-row items-center gap-1">
             <Ionicons
               name={resolutionMeta.icon as keyof typeof Ionicons.glyphMap}
               size={14}
               color={resolutionMeta.color}
             />
             <Text
-              style={[styles.statusText, { color: resolutionMeta.color }]}
+              className="text-xs font-medium"
+              style={{ color: resolutionMeta.color }}
             >
               {resolutionMeta.label}
             </Text>
           </View>
           {item.note ? (
             <Text
-              style={[styles.noteText, { color: theme.textSecondary }]}
+              className="mt-0.5 text-[11px] italic"
+              style={{ color: theme.textSecondary }}
               numberOfLines={2}
             >
               {item.note}
             </Text>
           ) : null}
         </View>
-        <View style={styles.itemActions}>
+        <View className="flex-row gap-2">
           {item.resolution === "pending" ? (
             <>
               <Pressable
                 onPress={() => onConfirmPresent(item.courseId, item.record)}
-                style={[
-                  styles.actionBtn,
-                  { backgroundColor: Colors.status.success },
-                ]}
+                className="h-8 w-8 items-center justify-center rounded-full"
+                style={{ backgroundColor: Colors.status.success }}
               >
                 <Ionicons name="checkmark" size={16} color={Colors.white} />
               </Pressable>
               <Pressable
                 onPress={() => onConfirmAbsent(item.courseId, item.record)}
-                style={[
-                  styles.actionBtn,
-                  { backgroundColor: Colors.status.danger },
-                ]}
+                className="h-8 w-8 items-center justify-center rounded-full"
+                style={{ backgroundColor: Colors.status.danger }}
               >
                 <Ionicons name="close" size={16} color={Colors.white} />
               </Pressable>
@@ -271,10 +272,8 @@ export function UnknownStatusModal({
           ) : (
             <Pressable
               onPress={() => onRevert(item.courseId, item.record)}
-              style={[
-                styles.actionBtn,
-                { backgroundColor: Colors.gray[600] },
-              ]}
+              className="h-8 w-8 items-center justify-center rounded-full"
+              style={{ backgroundColor: Colors.gray[600] }}
             >
               <Ionicons name="arrow-undo" size={16} color={Colors.white} />
             </Pressable>
@@ -291,20 +290,21 @@ export function UnknownStatusModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
+      <View className="flex-1 justify-end">
+        <Pressable className="absolute inset-0 bg-black/50" onPress={onClose} />
+        <View
+          className="max-h-[70%] rounded-t-2xl p-6"
+          style={{ backgroundColor: theme.background }}
+        >
+          <View className="mb-2 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
               <View
-                style={[
-                  styles.iconBadge,
-                  { backgroundColor: Colors.status.unknown },
-                ]}
+                className="h-7 w-7 items-center justify-center rounded-full"
+                style={{ backgroundColor: Colors.status.unknown }}
               >
                 <Ionicons name="help" size={16} color={Colors.white} />
               </View>
-              <Text style={[styles.title, { color: theme.text }]}>
+              <Text className="text-lg font-semibold" style={{ color: theme.text }}>
                 Unknown Sessions
               </Text>
             </View>
@@ -314,19 +314,22 @@ export function UnknownStatusModal({
           </View>
 
           {unknownEntries.length === 0 ? (
-            <View style={styles.empty}>
+            <View className="items-center gap-4 py-12">
               <Ionicons
                 name="checkmark-circle"
                 size={48}
                 color={Colors.status.success}
               />
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              <Text className="text-sm" style={{ color: theme.textSecondary }}>
                 No unknown sessions found
               </Text>
             </View>
           ) : (
             <>
-              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              <Text
+                className="mb-4 text-[13px]"
+                style={{ color: theme.textSecondary }}
+              >
                 {unknownEntries.length} total · {pendingCount} pending ·{" "}
                 {unknownEntries.length - pendingCount} resolved
               </Text>
@@ -336,7 +339,7 @@ export function UnknownStatusModal({
                   `${item.courseId}-${item.record.date}-${item.resolution}-${idx}`
                 }
                 renderItem={renderItem}
-                contentContainerStyle={styles.list}
+                contentContainerStyle={{ paddingBottom: 16 }}
                 showsVerticalScrollIndicator={false}
               />
             </>
@@ -348,109 +351,3 @@ export function UnknownStatusModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modal: {
-    maxHeight: "70%",
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  iconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  subtitle: {
-    fontSize: 13,
-    marginBottom: Spacing.md,
-  },
-  list: {
-    paddingBottom: Spacing.md,
-  },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
-  itemInfo: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  itemCourse: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  itemMeta: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: 2,
-  },
-  itemDate: {
-    fontSize: 12,
-  },
-  itemTime: {
-    fontSize: 12,
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    marginTop: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  noteText: {
-    fontSize: 11,
-    fontStyle: "italic",
-    marginTop: 2,
-  },
-  itemActions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  actionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-});

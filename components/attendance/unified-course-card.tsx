@@ -6,13 +6,13 @@ import { getBaseUrl } from "@/services/baseurl";
 import { useAuthStore } from "@/stores/auth-store";
 import { filterPastBunks, selectCourseStats } from "@/stores/bunk-store";
 import type {
-  AttendanceRecord,
-  AttendanceStatus,
-  BunkRecord,
-  CourseAttendance,
-  CourseBunkData,
-  MarkedDates,
-  SessionType,
+    AttendanceRecord,
+    AttendanceStatus,
+    BunkRecord,
+    CourseAttendance,
+    CourseBunkData,
+    MarkedDates,
+    SessionType,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
@@ -109,14 +109,17 @@ const parseDateString = (
 const buildRecordKey = (record: AttendanceRecord): string =>
   `${record.date.trim()}-${record.description.trim()}`;
 
-// filter records up to today only
+// filter records up to current time only
 const filterPastRecords = (records: AttendanceRecord[]): AttendanceRecord[] => {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const now = new Date();
   return records.filter((record) => {
-    const { date } = parseDateString(record.date);
+    const { date, time } = parseDateString(record.date);
     if (!date) return false;
-    return new Date(date) <= today;
+    if (!time) return new Date(date) <= now;
+    const [, end] = time.split("-").map((part) => part.trim());
+    const dateTime = new Date(`${date} ${end}`);
+    if (Number.isNaN(dateTime.getTime())) return new Date(date) <= now;
+    return dateTime <= now;
   });
 };
 

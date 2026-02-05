@@ -4,12 +4,12 @@ import { CalendarTheme, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
 import type {
-    AttendanceRecord,
-    AttendanceStatus,
-    BunkRecord,
-    CourseAttendance,
-    MarkedDates,
-    SessionType,
+  AttendanceRecord,
+  AttendanceStatus,
+  BunkRecord,
+  CourseAttendance,
+  MarkedDates,
+  SessionType,
 } from "@/types";
 import { extractCourseName } from "@/utils/course-name";
 import { Ionicons } from "@expo/vector-icons";
@@ -109,15 +109,18 @@ const parseDateString = (
   };
 };
 
-// filter records up to today only
+// filter records up to current time only
 const filterPastRecords = (records: AttendanceRecord[]): AttendanceRecord[] => {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const now = new Date();
 
   return records.filter((record) => {
-    const { date } = parseDateString(record.date);
+    const { date, time } = parseDateString(record.date);
     if (!date) return false;
-    return new Date(date) <= today;
+    if (!time) return new Date(date) <= now;
+    const [, end] = time.split("-").map((part) => part.trim());
+    const dateTime = new Date(`${date} ${end}`);
+    if (Number.isNaN(dateTime.getTime())) return new Date(date) <= now;
+    return dateTime <= now;
   });
 };
 

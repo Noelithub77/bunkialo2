@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
@@ -9,7 +9,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -49,22 +48,28 @@ export function PresenceInputModal({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.overlay}
+        className="flex-1 items-center justify-center"
       >
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
-          <View style={styles.header}>
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
+        <View
+          className="w-[90%] max-w-[360px] rounded-2xl p-6"
+          style={{ backgroundColor: theme.background }}
+        >
+          <View className="mb-1 flex-row items-center gap-2">
             <Ionicons
               name="checkmark-circle-outline"
               size={20}
               color={Colors.status.success}
             />
-            <Text style={[styles.title, { color: theme.text }]}>
+            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
               Mark as Present
             </Text>
           </View>
 
-          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          <Text
+            className="mb-4 text-[13px]"
+            style={{ color: theme.textSecondary }}
+          >
             Enter reason (LMS error, late entry, etc.)
           </Text>
 
@@ -75,17 +80,17 @@ export function PresenceInputModal({
             autoFocus
           />
 
-          <View style={styles.actions}>
+          <View className="mt-6 w-full flex-row gap-2">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={onClose}
-              style={styles.btn}
+              className="flex-1"
             />
             <Button
               title="Mark Present"
               onPress={handleConfirm}
-              style={styles.btn}
+              className="flex-1"
             />
           </View>
         </View>
@@ -93,43 +98,3 @@ export function PresenceInputModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "90%",
-    maxWidth: 360,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  subtitle: {
-    fontSize: 13,
-    marginBottom: Spacing.md,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  btn: {
-    flex: 1,
-  },
-});

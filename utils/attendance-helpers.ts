@@ -69,8 +69,7 @@ export const computeUnknownCount = (
     resolvedKeysByCourse.set(course.courseId, keys);
   }
 
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const now = new Date();
 
   let count = 0;
   for (const course of courses) {
@@ -78,7 +77,7 @@ export const computeUnknownCount = (
     for (const record of course.records) {
       if (record.status !== "Unknown") continue;
       const recordDate = parseRecordDate(record.date);
-      if (!recordDate || recordDate > today) continue;
+      if (!recordDate || recordDate > now) continue;
       const recordKey = buildRecordKey(record.date, record.description);
       if (resolvedKeys?.has(recordKey)) continue;
       count += 1;

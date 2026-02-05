@@ -1,11 +1,11 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { CalendarEvent } from "@/stores/acad-cal-ui-store";
 import { useAcadCalUIStore } from "@/stores/acad-cal-ui-store";
 import type { AcademicEvent } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import {
   CATEGORY_META,
   formatLongDate,
@@ -55,63 +55,58 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+    <View className="mt-2">
+      <View className="flex-row items-end justify-between">
+        <Text className="text-lg font-semibold" style={{ color: theme.text }}>
           Up Next
         </Text>
-        <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+        <Text className="text-xs" style={{ color: theme.textSecondary }}>
           {upcomingGroups.length} upcoming dates
         </Text>
       </View>
 
       {upcomingGroups.length === 0 ? (
         <View
-          style={[
-            styles.emptyState,
-            { borderColor: theme.border, backgroundColor: theme.background },
-          ]}
+          className="mt-4 flex-row items-center gap-2 rounded-2xl border p-4"
+          style={{ borderColor: theme.border, backgroundColor: theme.background }}
         >
           <Ionicons
             name="checkmark-circle-outline"
             size={20}
             color={theme.textSecondary}
           />
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <Text className="text-[13px]" style={{ color: theme.textSecondary }}>
             You are all caught up for this term
           </Text>
         </View>
       ) : (
-        <View style={styles.timelineList}>
+        <View className="mt-4 gap-6">
           {upcomingGroups.map(([date, events], index) => {
             const isLast = index === upcomingGroups.length - 1;
             return (
-              <View key={date} style={styles.timelineRow}>
-                <View style={styles.timelineMeta}>
-                  <Text style={[styles.timelineDate, { color: theme.text }]}>
+              <View key={date} className="flex-row gap-4">
+                <View className="w-[72px] items-center">
+                  <Text className="text-sm font-semibold" style={{ color: theme.text }}>
                     {formatShortDate(date)}
                   </Text>
                   <Text
-                    style={[styles.timelineDay, { color: theme.textSecondary }]}
+                    className="mt-0.5 text-xs"
+                    style={{ color: theme.textSecondary }}
                   >
                     {formatLongDate(date).split(",")[0]}
                   </Text>
                   <View
-                    style={[
-                      styles.timelineDot,
-                      { backgroundColor: theme.text },
-                    ]}
+                    className="mt-2 h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: theme.text }}
                   />
                   {!isLast && (
                     <View
-                      style={[
-                        styles.timelineLine,
-                        { backgroundColor: theme.border },
-                      ]}
+                      className="mt-1 w-0.5 flex-1 rounded-full"
+                      style={{ backgroundColor: theme.border }}
                     />
                   )}
                 </View>
-                <View style={styles.timelineCards}>
+                <View className="flex-1 gap-2">
                   {events.map((event) => {
                     const meta = CATEGORY_META[event.category];
                     const isOngoing =
@@ -121,20 +116,16 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
                     return (
                       <View
                         key={event.id}
-                        style={[
-                          styles.timelineCard,
-                          {
-                            backgroundColor: theme.backgroundSecondary,
-                            borderColor: theme.border,
-                          },
-                        ]}
+                        className="rounded-2xl border p-4"
+                        style={{
+                          backgroundColor: theme.backgroundSecondary,
+                          borderColor: theme.border,
+                        }}
                       >
-                        <View style={styles.timelineCardHeader}>
+                        <View className="mb-2 flex-row flex-wrap items-center gap-2">
                           <View
-                            style={[
-                              styles.timelineBadge,
-                              { backgroundColor: `${meta.color}20` },
-                            ]}
+                            className="flex-row items-center gap-1.5 rounded-full px-2 py-1"
+                            style={{ backgroundColor: `${meta.color}20` }}
                           >
                             <Ionicons
                               name={meta.icon}
@@ -142,26 +133,20 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
                               color={meta.color}
                             />
                             <Text
-                              style={[
-                                styles.timelineBadgeText,
-                                { color: meta.color },
-                              ]}
+                              className="text-[11px] font-semibold"
+                              style={{ color: meta.color }}
                             >
                               {meta.label}
                             </Text>
                           </View>
                           {event.isTentative && (
                             <View
-                              style={[
-                                styles.timelineTag,
-                                { borderColor: theme.border },
-                              ]}
+                              className="rounded-full border px-2 py-0.5"
+                              style={{ borderColor: theme.border }}
                             >
                               <Text
-                                style={[
-                                  styles.timelineTagText,
-                                  { color: theme.textSecondary },
-                                ]}
+                                className="text-[10px] font-semibold"
+                                style={{ color: theme.textSecondary }}
                               >
                                 Tentative
                               </Text>
@@ -169,19 +154,15 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
                           )}
                           {isOngoing && (
                             <View
-                              style={[
-                                styles.timelineTag,
-                                {
-                                  borderColor: Colors.status.success,
-                                  backgroundColor: Colors.status.success + "20",
-                                },
-                              ]}
+                              className="rounded-full border px-2 py-0.5"
+                              style={{
+                                borderColor: Colors.status.success,
+                                backgroundColor: Colors.status.success + "20",
+                              }}
                             >
                               <Text
-                                style={[
-                                  styles.timelineTagText,
-                                  { color: Colors.status.success },
-                                ]}
+                                className="text-[10px] font-semibold"
+                                style={{ color: Colors.status.success }}
                               >
                                 Ongoing
                               </Text>
@@ -192,7 +173,7 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
                               onPress={() =>
                                 openEditEditor(event as CalendarEvent)
                               }
-                              style={styles.timelineEditButton}
+                              className="ml-auto p-1"
                               hitSlop={6}
                             >
                               <Ionicons
@@ -204,24 +185,21 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
                           )}
                         </View>
                         <Text
-                          style={[styles.timelineTitle, { color: theme.text }]}
+                          className="text-[15px] font-semibold"
+                          style={{ color: theme.text }}
                         >
                           {event.title}
                         </Text>
                         <Text
-                          style={[
-                            styles.timelineRange,
-                            { color: theme.textSecondary },
-                          ]}
+                          className="mt-1 text-xs"
+                          style={{ color: theme.textSecondary }}
                         >
                           {formatRange(event)}
                         </Text>
                         {event.note ? (
                           <Text
-                            style={[
-                              styles.timelineNote,
-                              { color: theme.textSecondary },
-                            ]}
+                            className="mt-1.5 text-xs"
+                            style={{ color: theme.textSecondary }}
                           >
                             {event.note}
                           </Text>
@@ -238,119 +216,3 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginTop: Spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-  },
-  emptyState: {
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 13,
-  },
-  timelineList: {
-    marginTop: Spacing.md,
-    gap: Spacing.lg,
-  },
-  timelineRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  timelineMeta: {
-    width: 72,
-    alignItems: "center",
-  },
-  timelineDate: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  timelineDay: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: Radius.full,
-    marginTop: 8,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    marginTop: 6,
-    borderRadius: Radius.full,
-  },
-  timelineCards: {
-    flex: 1,
-    gap: Spacing.sm,
-  },
-  timelineCard: {
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    padding: Spacing.md,
-  },
-  timelineCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-    marginBottom: 8,
-  },
-  timelineBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-  },
-  timelineBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  timelineEditButton: {
-    padding: 4,
-    marginLeft: "auto",
-  },
-  timelineTag: {
-    borderWidth: 1,
-    borderRadius: Radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  timelineTagText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  timelineTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  timelineRange: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  timelineNote: {
-    fontSize: 12,
-    marginTop: 6,
-  },
-});

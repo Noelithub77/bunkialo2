@@ -9,7 +9,7 @@ import {
 import { ExportCalendarModal } from "@/components/acad-cal/export-calendar-modal";
 import { UpNextContent } from "@/components/acad-cal/sub_tabs/upnext-content";
 import { Container } from "@/components/ui/container";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { ACADEMIC_EVENTS } from "@/data/acad-cal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { CalendarEvent, ViewMode } from "@/stores/acad-cal-ui-store";
@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useEffect, useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { FAB, Portal } from "react-native-paper";
 
 const VIEW_MODES: ViewMode[] = ["calendar", "upnext"];
@@ -98,47 +98,57 @@ export default function AcademicCalendarScreen() {
 
   return (
     <Container>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerClassName="p-4 pb-12">
         {/* header */}
-        <View style={styles.header}>
+        <View className="mb-6 flex-row items-center gap-4">
           <Pressable
             onPress={() => router.back()}
-            style={[
-              styles.backIcon,
-              { backgroundColor: theme.backgroundSecondary },
-            ]}
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.backgroundSecondary }}
             hitSlop={8}
           >
             <Ionicons name="arrow-back" size={20} color={theme.text} />
           </Pressable>
-          <View style={styles.headerText}>
-            <Text style={[styles.title, { color: theme.text }]}>Calendar</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          <View className="flex-1">
+            <Text className="text-2xl font-bold" style={{ color: theme.text }}>
+              Calendar
+            </Text>
+            <Text className="mt-1 text-[13px]" style={{ color: theme.textSecondary }}>
               Academic schedule & key dates
             </Text>
           </View>
         </View>
 
         {/* view mode chips */}
-        <View style={styles.chipRow}>
+        <View
+          className="mb-4 flex-row rounded-full border p-1"
+          style={{
+            borderColor: theme.border,
+            backgroundColor: theme.backgroundSecondary,
+          }}
+        >
           {VIEW_MODES.map((mode) => {
             const isSelected = viewMode === mode;
+            const selectedBg = isDark ? Colors.white : Colors.black;
+            const selectedText = isDark ? Colors.black : Colors.white;
             return (
               <Pressable
                 key={mode}
                 onPress={() => setViewMode(mode)}
+                className="flex-1 items-center justify-center rounded-full py-2"
                 style={({ pressed }) => [
-                  styles.modeChip,
                   {
-                    borderColor: isSelected ? theme.text : theme.border,
-                    backgroundColor: isSelected
-                      ? theme.backgroundSecondary
-                      : theme.background,
+                    backgroundColor: isSelected ? selectedBg : "transparent",
                   },
-                  pressed && { opacity: 0.8 },
+                  pressed && { opacity: 0.85 },
                 ]}
               >
-                <Text style={[styles.modeChipText, { color: theme.text }]}>
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{
+                    color: isSelected ? selectedText : theme.textSecondary,
+                  }}
+                >
                   {mode === "calendar" ? "Calendar" : "Up Next"}
                 </Text>
               </Pressable>
@@ -242,51 +252,3 @@ export default function AcademicCalendarScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  backIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 13,
-  },
-  chipRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  modeChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  modeChipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "capitalize",
-  },
-});

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Modal,
   Pressable,
   ScrollView,
@@ -11,7 +10,7 @@ import { Calendar, DateData } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Colors, Spacing, Radius, CalendarTheme } from "@/constants/theme";
+import { Colors, CalendarTheme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface AddBunkModalProps {
@@ -100,34 +99,44 @@ export function AddBunkModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.modal, { backgroundColor: theme.background }]}>
+      <View className="flex-1 items-center justify-center">
+        <Pressable className="absolute inset-0 bg-black/60" onPress={onClose} />
+        <View
+          className="w-[92%] max-w-[400px] max-h-[85%] rounded-2xl p-6"
+          style={{ backgroundColor: theme.background }}
+        >
           {/* header */}
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>Add Bunk</Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
+              Add Bunk
+            </Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={24} color={theme.textSecondary} />
             </Pressable>
           </View>
 
           <Text
-            style={[styles.courseName, { color: theme.textSecondary }]}
+            className="mt-1 mb-4 text-[13px]"
+            style={{ color: theme.textSecondary }}
             numberOfLines={1}
           >
             {courseName}
           </Text>
 
           <ScrollView
-            style={styles.content}
+            className="flex-grow-0"
             showsVerticalScrollIndicator={false}
           >
             {/* calendar */}
-            <Text style={[styles.label, { color: theme.text }]}>
+            <Text
+              className="mb-2 text-[13px] font-medium"
+              style={{ color: theme.text }}
+            >
               Select Date
             </Text>
             <View
-              style={[styles.calendarWrapper, { borderColor: theme.border }]}
+              className="overflow-hidden rounded-xl border"
+              style={{ borderColor: theme.border }}
             >
               <Calendar
                 onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
@@ -158,31 +167,35 @@ export function AddBunkModal({
 
             {/* time slots */}
             <Text
-              style={[
-                styles.label,
-                { color: theme.text, marginTop: Spacing.md },
-              ]}
+              className="mb-2 mt-4 text-[13px] font-medium"
+              style={{ color: theme.text }}
             >
               Select Time Slot
             </Text>
-            <View style={styles.slotsGrid}>
+            <View className="flex-row flex-wrap gap-2">
               {TIME_SLOTS.map((slot) => {
                 const isSelected = selectedSlot === slot;
                 return (
                   <Pressable
                     key={slot}
                     onPress={() => setSelectedSlot(slot)}
+                    className="rounded-lg border px-2 py-1"
                     style={[
-                      styles.slotBtn,
                       { borderColor: theme.border },
-                      isSelected && styles.slotBtnSelected,
+                      isSelected && {
+                        backgroundColor: Colors.status.info,
+                        borderColor: Colors.status.info,
+                      },
                     ]}
                   >
                     <Text
+                      className="text-[12px]"
                       style={[
-                        styles.slotText,
                         { color: theme.textSecondary },
-                        isSelected && styles.slotTextSelected,
+                        isSelected && {
+                          color: Colors.white,
+                          fontWeight: "500",
+                        },
                       ]}
                     >
                       {slot}
@@ -193,7 +206,7 @@ export function AddBunkModal({
             </View>
 
             {/* note */}
-            <View style={{ marginTop: Spacing.md }}>
+            <View className="mt-4">
               <Input
                 label="Note (optional)"
                 placeholder="e.g. Sick leave"
@@ -204,18 +217,18 @@ export function AddBunkModal({
           </ScrollView>
 
           {/* actions */}
-          <View style={styles.actions}>
+          <View className="mt-6 w-full flex-row gap-2">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={onClose}
-              style={styles.btn}
+              className="flex-1"
             />
             <Button
               title="Add Bunk"
               onPress={handleAdd}
-              style={styles.btn}
               disabled={!canAdd}
+              className="flex-1"
             />
           </View>
         </View>
@@ -223,79 +236,3 @@ export function AddBunkModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  modal: {
-    width: "92%",
-    maxWidth: 400,
-    maxHeight: "85%",
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  courseName: {
-    fontSize: 13,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  content: {
-    flexGrow: 0,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginBottom: Spacing.sm,
-  },
-  calendarWrapper: {
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    overflow: "hidden",
-  },
-  slotsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  slotBtn: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-  },
-  slotBtnSelected: {
-    backgroundColor: Colors.status.info,
-    borderColor: Colors.status.info,
-  },
-  slotText: {
-    fontSize: 12,
-  },
-  slotTextSelected: {
-    color: Colors.white,
-    fontWeight: "500",
-  },
-  actions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  btn: {
-    flex: 1,
-  },
-});

@@ -74,6 +74,7 @@ export const useBunkActions = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;
       }
+      // Only add a bunk if there wasn't one already
       addBunk(courseId, {
         date: record.date,
         description: record.description,

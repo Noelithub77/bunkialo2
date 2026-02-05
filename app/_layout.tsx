@@ -1,3 +1,6 @@
+import "react-native-reanimated";
+import "../global.css";
+
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,7 +22,6 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider, Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import "react-native-reanimated";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
