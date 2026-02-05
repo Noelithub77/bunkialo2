@@ -1,9 +1,9 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { MEAL_COLORS, getMenuForDay, type MealType } from "@/data/mess";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 interface DayMealsProps {
   selectedDay: number;
@@ -38,17 +38,15 @@ export function DayMeals({ selectedDay }: DayMealsProps) {
   if (!dayMenu) {
     return (
       <View
-        style={[
-          styles.emptyContainer,
-          { backgroundColor: theme.backgroundSecondary },
-        ]}
+        className="items-center justify-center rounded-2xl px-8 py-8 gap-2"
+        style={{ backgroundColor: theme.backgroundSecondary }}
       >
         <Ionicons
           name="restaurant-outline"
           size={32}
           color={theme.textSecondary}
         />
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
           No menu available
         </Text>
       </View>
@@ -56,7 +54,7 @@ export function DayMeals({ selectedDay }: DayMealsProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="gap-2 pt-1">
       {dayMenu.meals.map((meal, index) => {
         const mealColor = MEAL_COLORS[meal.type];
         const isNow =
@@ -66,30 +64,32 @@ export function DayMeals({ selectedDay }: DayMealsProps) {
         const isPast = isToday && currentTime >= meal.endTime;
 
         return (
-          <View key={meal.type} style={styles.mealRow}>
+          <View
+            key={meal.type}
+            className="flex-row items-start min-h-[100px]"
+            style={index === 0 ? { marginTop: 4 } : undefined}
+          >
             {/* time column */}
-            <View style={styles.timeColumn}>
+            <View className="w-14 items-end pr-2 pt-0.5">
               <Text
-                style={[
-                  styles.timeText,
-                  { color: isPast ? theme.textSecondary : theme.text },
-                ]}
+                className="text-[10px] font-medium"
+                style={{ color: isPast ? theme.textSecondary : theme.text }}
               >
                 {formatTime(meal.startTime)}
               </Text>
-              <Text style={[styles.timeDash, { color: theme.textSecondary }]}>
+              <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
                 -
               </Text>
-              <Text style={[styles.timeText, { color: theme.textSecondary }]}>
+              <Text className="text-[10px] font-medium" style={{ color: theme.textSecondary }}>
                 {formatTime(meal.endTime)}
               </Text>
             </View>
 
             {/* timeline indicator */}
-            <View style={styles.timeline}>
+            <View className="w-6 items-center">
               <View
+                className="mt-1 h-2.5 w-2.5 rounded-full"
                 style={[
-                  styles.timelineDot,
                   {
                     backgroundColor: isNow ? Colors.status.success : mealColor,
                   },
@@ -98,64 +98,55 @@ export function DayMeals({ selectedDay }: DayMealsProps) {
               />
               {index < dayMenu.meals.length - 1 && (
                 <View
-                  style={[
-                    styles.timelineLine,
-                    { backgroundColor: theme.border },
-                  ]}
+                  className="mt-1 w-0.5 flex-1"
+                  style={{ backgroundColor: theme.border }}
                 />
               )}
             </View>
 
             {/* meal card */}
             <View
+              className="ml-1.5 flex-1 rounded-xl p-4"
               style={[
-                styles.mealCard,
                 { backgroundColor: mealColor + (isPast ? "30" : "20") },
                 { borderLeftColor: mealColor, borderLeftWidth: 3 },
-                isNow && styles.nowCard,
+                isNow && { borderWidth: 1, borderColor: Colors.status.success },
+                !isNow && { borderWidth: 1, borderColor: theme.border },
               ]}
             >
-              <View style={styles.cardHeader}>
-                <View style={styles.titleRow}>
+              <View className="mb-2 flex-row items-center justify-between gap-2">
+                <View className="flex-row items-center gap-1">
                   <Ionicons
                     name={MEAL_ICONS[meal.type]}
                     size={18}
                     color={isPast ? theme.textSecondary : theme.text}
                   />
                   <Text
-                    style={[
-                      styles.mealName,
-                      { color: isPast ? theme.textSecondary : theme.text },
-                    ]}
+                    className="text-[15px] font-semibold"
+                    style={{ color: isPast ? theme.textSecondary : theme.text }}
                   >
                     {meal.name}
                   </Text>
                 </View>
                 {isNow && (
                   <View
-                    style={[
-                      styles.nowBadge,
-                      { backgroundColor: Colors.status.success },
-                    ]}
+                    className="rounded-lg px-1 py-0.5"
+                    style={{ backgroundColor: Colors.status.success }}
                   >
-                    <Text style={styles.nowText}>NOW</Text>
+                    <Text className="text-[9px] font-bold text-white">NOW</Text>
                   </View>
                 )}
               </View>
-              <View style={styles.itemsContainer}>
+              <View className="flex-row flex-wrap gap-1.5">
                 {meal.items.map((item, i) => (
                   <View
                     key={i}
-                    style={[
-                      styles.itemChip,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
+                    className="rounded-lg px-2 py-1"
+                    style={{ backgroundColor: theme.backgroundSecondary }}
                   >
                     <Text
-                      style={[
-                        styles.itemText,
-                        { color: isPast ? theme.textSecondary : theme.text },
-                      ]}
+                      className="text-[11px]"
+                      style={{ color: isPast ? theme.textSecondary : theme.text }}
                     >
                       {item}
                     </Text>
@@ -169,101 +160,3 @@ export function DayMeals({ selectedDay }: DayMealsProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  emptyContainer: {
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  mealRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    minHeight: 100,
-  },
-  timeColumn: {
-    width: 56,
-    alignItems: "flex-end",
-    paddingRight: Spacing.sm,
-    paddingTop: 2,
-  },
-  timeText: {
-    fontSize: 10,
-    fontWeight: "500",
-  },
-  timeDash: {
-    fontSize: 10,
-  },
-  timeline: {
-    width: 20,
-    alignItems: "center",
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 4,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    marginTop: 4,
-  },
-  mealCard: {
-    flex: 1,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginLeft: Spacing.sm,
-  },
-  nowCard: {
-    borderWidth: 1,
-    borderColor: Colors.status.success,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  mealName: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  nowBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  nowText: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: Colors.white,
-  },
-  itemsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  itemChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radius.sm,
-  },
-  itemText: {
-    fontSize: 11,
-  },
-});

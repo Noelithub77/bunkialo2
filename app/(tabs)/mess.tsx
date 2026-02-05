@@ -2,16 +2,10 @@ import { DayMeals } from "@/components/mess/day-meals";
 import { MealCarousel } from "@/components/mess/meal-carousel";
 import { MealDaySelector } from "@/components/mess/meal-day-selector";
 import { Container } from "@/components/ui/container";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useState } from "react";
-import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 
 export default function MessScreen() {
   const colorScheme = useColorScheme();
@@ -32,8 +26,8 @@ export default function MessScreen() {
   return (
     <Container>
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -44,22 +38,23 @@ export default function MessScreen() {
         }
       >
         {/* header */}
-        <View style={styles.header}>
-          <Text style={[styles.screenTitle, { color: theme.text }]}>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
             Mess Menu
           </Text>
         </View>
 
         {/* up next carousel */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        <Text className="text-base font-semibold mt-6 mb-2" style={{ color: theme.text }}>
           Up Next
         </Text>
         <MealCarousel />
 
         {/* day schedule */}
-        <View style={styles.scheduleSection}>
+        <View className="mt-6">
           <Text
-            style={[styles.sectionTitle, { color: theme.text, marginTop: 0 }]}
+            className="text-base font-semibold"
+            style={{ color: theme.text }}
           >
             Today&apos;s Menu
           </Text>
@@ -73,32 +68,3 @@ export default function MessScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  scheduleSection: {
-    marginTop: Spacing.lg,
-  },
-});

@@ -3,6 +3,7 @@
 ## Project Overview
 
 always use npm for expo projects
+ALWAYS USE NATIVEWIND (TAILWIND FOR REACT NATIVE)
 **Bunkialo** - React Native (Expo) app that scrapes attendance and assignments from IIIT Kottayam Moodle LMS.
 
 **LMS**: `https://lmsug24.iiitkottayam.ac.in`
@@ -20,7 +21,7 @@ always use npm for expo projects
 - **Notifications**: expo-notifications
 - **Calendar**: react-native-calendars, expo-calendar
 - **Date Utils**: date-fns
-- **UI**: react-native-paper (Material Design)
+- **UI**: react-native-paper (Material Design) + NativeWind (Tailwind)
 - **Search**: fuse.js (fuzzy search)
 
 ## Project Structure

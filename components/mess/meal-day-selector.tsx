@@ -1,7 +1,7 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import * as Haptics from "expo-haptics";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface MealDaySelectorProps {
   selectedDay: number;
@@ -32,7 +32,7 @@ export function MealDaySelector({
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-row gap-1 py-2">
       {DAYS.map(({ day, label }) => {
         const isSelected = day === selectedDay;
         const isToday = day === new Date().getDay();
@@ -41,8 +41,8 @@ export function MealDaySelector({
           <Pressable
             key={day}
             onPress={() => handleSelect(day)}
+            className="flex-1 items-center rounded-xl py-2"
             style={[
-              styles.dayBtn,
               {
                 backgroundColor: isSelected
                   ? theme.text
@@ -53,8 +53,8 @@ export function MealDaySelector({
             ]}
           >
             <Text
+              className="text-xs font-semibold"
               style={[
-                styles.dayText,
                 { color: isSelected ? theme.background : theme.text },
                 !isSelected && !isToday && { color: theme.textSecondary },
               ]}
@@ -67,21 +67,3 @@ export function MealDaySelector({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-  },
-  dayBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-    alignItems: "center",
-  },
-  dayText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-});

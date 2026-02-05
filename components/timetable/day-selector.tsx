@@ -1,8 +1,8 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { DayOfWeek } from "@/types";
 import * as Haptics from "expo-haptics";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface DaySelectorProps {
   selectedDay: DayOfWeek;
@@ -28,7 +28,7 @@ export function DaySelector({ selectedDay, onSelect }: DaySelectorProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-row gap-2 py-2">
       {DAYS.map(({ day, label }) => {
         const isSelected = day === selectedDay;
         const isToday = day === new Date().getDay();
@@ -37,8 +37,8 @@ export function DaySelector({ selectedDay, onSelect }: DaySelectorProps) {
           <Pressable
             key={day}
             onPress={() => handleSelect(day)}
+            className="flex-1 items-center rounded-xl py-2"
             style={[
-              styles.dayBtn,
               {
                 backgroundColor: isSelected
                   ? theme.text
@@ -49,8 +49,8 @@ export function DaySelector({ selectedDay, onSelect }: DaySelectorProps) {
             ]}
           >
             <Text
+              className="text-[13px] font-semibold"
               style={[
-                styles.dayText,
                 { color: isSelected ? theme.background : theme.text },
                 !isSelected && !isToday && { color: theme.textSecondary },
               ]}
@@ -63,21 +63,3 @@ export function DaySelector({ selectedDay, onSelect }: DaySelectorProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
-  dayBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-    alignItems: "center",
-  },
-  dayText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-});

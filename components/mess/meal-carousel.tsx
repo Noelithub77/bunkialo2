@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import {
   MEAL_TIMES,
   getNearbyMeals,
@@ -14,7 +14,6 @@ import {
   Dimensions,
   FlatList,
   Pressable,
-  StyleSheet,
   Text,
   View,
   type ViewToken,
@@ -22,7 +21,7 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.65;
-const CARD_SPACING = Spacing.sm;
+const CARD_SPACING = 8;
 const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 
 const MEAL_ICONS: Record<MealType, keyof typeof Ionicons.glyphMap> = {
@@ -101,17 +100,15 @@ export function MealCarousel() {
   if (meals.length === 0) {
     return (
       <View
-        style={[
-          styles.emptyCard,
-          { backgroundColor: theme.backgroundSecondary },
-        ]}
+        className="items-center justify-center rounded-2xl px-8 py-8 gap-2"
+        style={{ backgroundColor: theme.backgroundSecondary }}
       >
         <Ionicons
           name="restaurant-outline"
           size={32}
           color={theme.textSecondary}
         />
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
           No menu available
         </Text>
       </View>
@@ -165,26 +162,28 @@ export function MealCarousel() {
     return (
       <Pressable
         onPress={handlePress}
-        style={[styles.cardWrapper, { width: CARD_WIDTH }]}
+        className="py-2"
+        style={{ width: CARD_WIDTH }}
       >
         <View
           style={[
-            styles.card,
-            !isActive && styles.cardInactive,
             { backgroundColor: cardBackground, borderColor: theme.border },
+            !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
             borderColor && { borderColor, borderWidth: 2 },
             isFinished && { opacity: cardOpacity },
           ]}
+          className="min-h-[160px] rounded-2xl border p-6 gap-2"
         >
           {/* status row */}
-          <View style={styles.statusRow}>
+          <View className="flex-row items-center gap-1">
             <View
-              style={[styles.statusDot, { backgroundColor: statusColor }]}
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: statusColor }}
             />
-            <Text style={[styles.statusText, { color: statusColor }]}>
+            <Text className="text-[11px] font-semibold uppercase" style={{ color: statusColor }}>
               {statusText}
             </Text>
-            <View style={{ flex: 1 }} />
+            <View className="flex-1" />
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={16}
@@ -193,38 +192,39 @@ export function MealCarousel() {
           </View>
 
           {/* meal name */}
-          <View style={styles.mealHeader}>
+          <View className="flex-row items-center gap-2">
             <Ionicons
               name={MEAL_ICONS[item.type]}
               size={24}
               color={theme.text}
             />
-            <Text style={[styles.mealName, { color: theme.text }]}>
+            <Text className="text-xl font-bold" style={{ color: theme.text }}>
               {item.name}
             </Text>
           </View>
 
           {/* time */}
-          <View style={styles.timeRow}>
+          <View className="flex-row items-center gap-1">
             <Ionicons
               name="time-outline"
               size={14}
               color={theme.textSecondary}
             />
-            <Text style={[styles.timeText, { color: theme.text }]}>
+            <Text className="text-[13px] font-medium" style={{ color: theme.text }}>
               {formatTime(item.startTime)} - {formatTime(item.endTime)}
             </Text>
           </View>
 
           {/* items - preview or full */}
           {isExpanded ? (
-            <View style={styles.itemsContainer}>
+            <View className="flex-row flex-wrap gap-1.5">
               {item.items.map((menuItem, i) => (
                 <View
                   key={i}
-                  style={[styles.itemChip, { backgroundColor: chipBackground }]}
+                  className="rounded-lg px-2 py-1"
+                  style={{ backgroundColor: chipBackground }}
                 >
-                  <Text style={[styles.itemText, { color: theme.text }]}>
+                  <Text className="text-[11px]" style={{ color: theme.text }}>
                     {menuItem}
                   </Text>
                 </View>
@@ -232,7 +232,8 @@ export function MealCarousel() {
             </View>
           ) : (
             <Text
-              style={[styles.itemsPreview, { color: theme.textSecondary }]}
+              className="text-xs leading-[18px]"
+              style={{ color: theme.textSecondary }}
               numberOfLines={2}
             >
               {item.items.slice(0, 4).join(", ")}...
@@ -244,7 +245,7 @@ export function MealCarousel() {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="-mx-4">
       <FlatList
         ref={flatListRef}
         data={meals}
@@ -274,111 +275,17 @@ export function MealCarousel() {
       />
 
       {/* pagination dots */}
-      <View style={styles.pagination}>
+      <View className="mt-1 flex-row justify-center gap-1.5">
         {meals.map((_, index) => (
           <View
             key={index}
-            style={[
-              styles.dot,
-              {
-                backgroundColor:
-                  index === activeIndex ? theme.text : theme.border,
-              },
-            ]}
+            className="h-1.5 w-1.5 rounded-full"
+            style={{
+              backgroundColor: index === activeIndex ? theme.text : theme.border,
+            }}
           />
         ))}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: -Spacing.md,
-  },
-  emptyCard: {
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  cardWrapper: {
-    paddingVertical: Spacing.sm,
-  },
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-    minHeight: 160,
-    borderWidth: 1,
-  },
-  cardInactive: {
-    opacity: 0.7,
-    transform: [{ scale: 0.95 }],
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  mealHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  mealName: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  timeText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  itemsPreview: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  itemsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  itemChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radius.sm,
-  },
-  itemText: {
-    fontSize: 11,
-  },
-  pagination: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: Spacing.xs,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-});

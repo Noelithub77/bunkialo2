@@ -4,7 +4,7 @@ import { TimetableExportModal } from "@/components/timetable/timetable-export-mo
 import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useTimetableStore } from "@/stores/timetable-store";
@@ -20,7 +20,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -106,8 +105,8 @@ export default function TimetableScreen() {
   return (
     <Container>
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -118,34 +117,37 @@ export default function TimetableScreen() {
         }
       >
         {/* header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.screenTitle, { color: theme.text }]}>
+        <View className="flex-row items-start justify-between mb-4">
+          <View className="flex-shrink gap-0.5">
+            <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
               Timetable
             </Text>
             {lastGeneratedAt && (
-              <View style={styles.syncPill}>
+              <View className="flex-row items-center gap-1 self-start rounded-full px-1.5 py-0.5">
                 <Ionicons
                   name="refresh-outline"
                   size={12}
                   color={theme.textSecondary}
                 />
-                <Text style={[styles.syncText, { color: theme.textSecondary }]}>
+                <Text
+                  className="text-[10px] font-medium tracking-[0.2px]"
+                  style={{ color: theme.textSecondary }}
+                >
                   {formatLastGenerated(lastGeneratedAt)}
                 </Text>
               </View>
             )}
           </View>
-          <Pressable onPress={handleRegenerate} style={styles.refreshBtn}>
+          <Pressable onPress={handleRegenerate} className="p-1">
             <Ionicons name="refresh" size={16} color={theme.textSecondary} />
           </Pressable>
         </View>
 
         {/* loading state */}
         {isLoading && slots.length === 0 && (
-          <View style={styles.loading}>
+          <View className="items-center py-12 gap-4">
             <ActivityIndicator size="large" color={theme.text} />
-            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+            <Text className="text-sm" style={{ color: theme.textSecondary }}>
               Generating timetable...
             </Text>
           </View>
@@ -154,16 +156,16 @@ export default function TimetableScreen() {
         {/* empty state */}
         {!isLoading && slots.length === 0 && (
           <GradientCard>
-            <View style={styles.empty}>
+            <View className="items-center py-6 gap-2">
               <Ionicons
                 name="calendar-outline"
                 size={48}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              <Text className="text-lg font-semibold" style={{ color: theme.text }}>
                 No timetable yet
               </Text>
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              <Text className="text-sm text-center" style={{ color: theme.textSecondary }}>
                 Pull to refresh to fetch attendance data and generate your
                 timetable.
               </Text>
@@ -175,19 +177,17 @@ export default function TimetableScreen() {
         {slots.length > 0 && (
           <>
             {/* up next carousel */}
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text className="text-base font-semibold mt-6 mb-2" style={{ color: theme.text }}>
               Up Next
             </Text>
             <UpNextCarousel slots={slots} />
 
             {/* day schedule */}
-            <View style={styles.scheduleSection}>
-              <View style={styles.scheduleHeader}>
+            <View className="mt-6">
+              <View className="flex-row items-center justify-between">
                 <Text
-                  style={[
-                    styles.sectionTitle,
-                    { color: theme.text, marginTop: 0, marginBottom: 0 },
-                  ]}
+                  className="text-base font-semibold"
+                  style={{ color: theme.text }}
                 >
                   Schedule
                 </Text>
@@ -241,79 +241,3 @@ export default function TimetableScreen() {
     </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: Spacing.md,
-  },
-  headerLeft: {
-    flexShrink: 1,
-    rowGap: 2,
-  },
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  refreshBtn: {
-    padding: Spacing.xs,
-  },
-  syncPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  syncText: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 0.2,
-  },
-  loading: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  loadingText: {
-    fontSize: 14,
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  scheduleSection: {
-    marginTop: Spacing.lg,
-  },
-  scheduleHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-});

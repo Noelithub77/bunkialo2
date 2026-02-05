@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { TimetableSlot } from "@/types";
 import { generateTimetableICSContent } from "@/utils/ics-export";
@@ -17,7 +17,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -102,14 +101,19 @@ export const TimetableExportModal = ({
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <Pressable style={styles.backdrop} onPress={handleClose}>
+      <Pressable
+        className="flex-1 justify-end"
+        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        onPress={handleClose}
+      >
         <Pressable
-          style={[styles.sheet, { backgroundColor: theme.background }]}
+          className="max-h-[80%] rounded-t-3xl px-4 pt-4 pb-6"
+          style={{ backgroundColor: theme.background }}
           onPress={(e) => e.stopPropagation()}
         >
           {/* header */}
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
               Export Timetable
             </Text>
             <Pressable onPress={handleClose} hitSlop={8}>
@@ -118,53 +122,52 @@ export const TimetableExportModal = ({
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.content}
+            contentContainerStyle={{ gap: 16, paddingBottom: 16 }}
             showsVerticalScrollIndicator={false}
           >
             <View
-              style={[
-                styles.infoBox,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className="flex-row items-center gap-4 rounded-2xl p-4"
+              style={{ backgroundColor: theme.backgroundSecondary }}
             >
               <Ionicons
                 name="calendar-outline"
                 size={24}
                 color={Colors.status.info}
               />
-              <View style={styles.infoText}>
-                <Text style={[styles.infoTitle, { color: theme.text }]}>
+              <View className="flex-1">
+                <Text className="text-base font-semibold" style={{ color: theme.text }}>
                   {slots.length} Classes
                 </Text>
                 <Text
-                  style={[styles.infoSubtitle, { color: theme.textSecondary }]}
+                  className="text-[13px] mt-0.5"
+                  style={{ color: theme.textSecondary }}
                 >
                   Weekly recurring events until semester end
                 </Text>
               </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text className="text-[15px] font-semibold mt-2" style={{ color: theme.text }}>
               How to add to your calendar
             </Text>
 
-            <View style={styles.stepsList}>
+            <View className="gap-2">
               {steps.map((step, index) => (
-                <View key={step} style={styles.stepRow}>
+                <View key={step} className="flex-row items-center gap-2">
                   <View
-                    style={[
-                      styles.stepNumber,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
+                    className="h-6 w-6 items-center justify-center rounded-full"
+                    style={{ backgroundColor: theme.backgroundSecondary }}
                   >
                     <Text
-                      style={[styles.stepNumberText, { color: theme.text }]}
+                      className="text-xs font-semibold"
+                      style={{ color: theme.text }}
                     >
                       {index + 1}
                     </Text>
                   </View>
                   <Text
-                    style={[styles.stepText, { color: theme.textSecondary }]}
+                    className="flex-1 text-sm"
+                    style={{ color: theme.textSecondary }}
                   >
                     {step}
                   </Text>
@@ -172,13 +175,19 @@ export const TimetableExportModal = ({
               ))}
             </View>
 
-            <View style={[styles.noteBox, { borderColor: theme.border }]}>
+            <View
+              className="flex-row items-start gap-2 rounded-xl border p-2"
+              style={{ borderColor: theme.border }}
+            >
               <Ionicons
                 name="information-circle-outline"
                 size={16}
                 color={theme.textSecondary}
               />
-              <Text style={[styles.noteText, { color: theme.textSecondary }]}>
+              <Text
+                className="flex-1 text-xs leading-[18px]"
+                style={{ color: theme.textSecondary }}
+              >
                 Works with Google Calendar, Apple Calendar, Outlook, and any app
                 that supports .ics files
               </Text>
@@ -186,10 +195,8 @@ export const TimetableExportModal = ({
 
             {exportSuccess && (
               <View
-                style={[
-                  styles.successBox,
-                  { backgroundColor: Colors.status.success + "20" },
-                ]}
+                className="flex-row items-center gap-2 rounded-xl p-2"
+                style={{ backgroundColor: Colors.status.success + "20" }}
               >
                 <Ionicons
                   name="checkmark-circle"
@@ -197,7 +204,8 @@ export const TimetableExportModal = ({
                   color={Colors.status.success}
                 />
                 <Text
-                  style={[styles.successText, { color: Colors.status.success }]}
+                  className="text-[13px] font-medium"
+                  style={{ color: Colors.status.success }}
                 >
                   Timetable exported successfully
                 </Text>
@@ -206,17 +214,15 @@ export const TimetableExportModal = ({
 
             {errorMessage && (
               <View
-                style={[
-                  styles.errorBox,
-                  { backgroundColor: Colors.status.danger + "20" },
-                ]}
+                className="flex-row items-center gap-2 rounded-xl p-2"
+                style={{ backgroundColor: Colors.status.danger + "20" }}
               >
                 <Ionicons
                   name="alert-circle"
                   size={18}
                   color={Colors.status.danger}
                 />
-                <Text style={[styles.errorText, { color: Colors.status.danger }]}>
+                <Text className="text-[13px] font-medium" style={{ color: Colors.status.danger }}>
                   {errorMessage}
                 </Text>
               </View>
@@ -224,18 +230,18 @@ export const TimetableExportModal = ({
           </ScrollView>
 
           {/* footer */}
-          <View style={styles.footer}>
+          <View className="mt-4 flex-row gap-2">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={handleClose}
-              style={styles.footerBtn}
+              style={{ flex: 1 }}
             />
             <Button
               title={isExporting ? "Exporting..." : "Export"}
               onPress={handleExport}
               disabled={isExporting || slots.length === 0}
-              style={styles.footerBtn}
+              style={{ flex: 1 }}
             />
           </View>
         </Pressable>
@@ -243,122 +249,3 @@ export const TimetableExportModal = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    maxHeight: "80%",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  content: {
-    gap: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  infoBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-  },
-  infoText: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  infoSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: Spacing.sm,
-  },
-  stepsList: {
-    gap: Spacing.sm,
-  },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: Radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  stepText: {
-    fontSize: 14,
-    flex: 1,
-  },
-  noteBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-  },
-  noteText: {
-    fontSize: 12,
-    flex: 1,
-    lineHeight: 18,
-  },
-  successBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  successText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  errorText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  footer: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  footerBtn: {
-    flex: 1,
-  },
-});

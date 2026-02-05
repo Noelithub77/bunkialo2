@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
 import {
@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
-  StyleSheet,
   Text,
   View,
   type ViewToken,
@@ -27,7 +26,7 @@ interface UpNextCarouselProps {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.65;
-const CARD_SPACING = Spacing.sm;
+const CARD_SPACING = 8;
 const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 
 export function UpNextCarousel({ slots }: UpNextCarouselProps) {
@@ -135,13 +134,11 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   if (nearbySlots.length === 0) {
     return (
       <View
-        style={[
-          styles.emptyCard,
-          { backgroundColor: theme.backgroundSecondary },
-        ]}
+        className="items-center justify-center rounded-2xl px-8 py-8 gap-2"
+        style={{ backgroundColor: theme.backgroundSecondary }}
       >
         <Ionicons name="moon-outline" size={32} color={theme.textSecondary} />
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
           No classes scheduled
         </Text>
       </View>
@@ -198,12 +195,12 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     }
 
     return (
-      <View style={[styles.cardWrapper, { width: CARD_WIDTH }]}>
+      <View className="py-2" style={{ width: CARD_WIDTH }}>
         <LinearGradient
           colors={gradientColors}
+          className="min-h-[140px] rounded-2xl p-6 gap-2"
           style={[
-            styles.card,
-            !isActive && styles.cardInactive,
+            !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
             borderColor && {
               borderColor,
               borderWidth: 2,
@@ -214,53 +211,54 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
           end={{ x: 1, y: 1 }}
         >
           {/* status row */}
-          <View style={styles.statusRow}>
+          <View className="flex-row items-center gap-1">
             <View
-              style={[styles.statusDot, { backgroundColor: statusColor }]}
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: statusColor }}
             />
-            <Text style={[styles.statusText, { color: statusColor }]}>
+            <Text className="text-[11px] font-semibold uppercase" style={{ color: statusColor }}>
               {statusText}
             </Text>
           </View>
 
           {/* course name */}
           <Text
-            style={[styles.courseName, { color: theme.text }]}
+            className="text-lg font-bold"
+            style={{ color: theme.text }}
             numberOfLines={2}
           >
             {item.courseName}
           </Text>
 
           {/* time */}
-          <View style={styles.timeRow}>
+          <View className="flex-row items-center gap-1">
             <Ionicons
               name="time-outline"
               size={14}
               color={theme.textSecondary}
             />
-            <Text style={[styles.timeText, { color: theme.text }]}>
+            <Text className="text-[13px] font-medium" style={{ color: theme.text }}>
               {formatTimeDisplay(item.startTime)} -{" "}
               {formatTimeDisplay(item.endTime)}
             </Text>
           </View>
 
           {/* session type and badges */}
-          <View style={styles.badgeRow}>
-            <View style={[styles.typeBadge, { backgroundColor: courseColor }]}>
-              <Text style={styles.typeText}>
+          <View className="flex-row flex-wrap items-center gap-1">
+            <View className="rounded-lg px-2 py-[3px]" style={{ backgroundColor: courseColor }}>
+              <Text className="text-[11px] font-semibold text-white">
                 {item.sessionType.charAt(0).toUpperCase() +
                   item.sessionType.slice(1)}
               </Text>
             </View>
             {item.isManual && (
               <View
-                style={[
-                  styles.manualBadge,
-                  { backgroundColor: Colors.status.info + "40" },
-                ]}
+                className="rounded-lg px-1 py-[3px]"
+                style={{ backgroundColor: Colors.status.info + "40" }}
               >
                 <Text
-                  style={[styles.manualText, { color: Colors.status.info }]}
+                  className="text-[10px] font-semibold"
+                  style={{ color: Colors.status.info }}
                 >
                   Manual
                 </Text>
@@ -268,13 +266,12 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
             )}
             {item.isCustomCourse && (
               <View
-                style={[
-                  styles.customBadge,
-                  { backgroundColor: Colors.status.success + "40" },
-                ]}
+                className="rounded-lg px-1 py-[3px]"
+                style={{ backgroundColor: Colors.status.success + "40" }}
               >
                 <Text
-                  style={[styles.customText, { color: Colors.status.success }]}
+                  className="text-[10px] font-semibold"
+                  style={{ color: Colors.status.success }}
                 >
                   Custom
                 </Text>
@@ -287,7 +284,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="-mx-4">
       <FlatList
         ref={flatListRef}
         data={nearbySlots}
@@ -319,122 +316,17 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       />
 
       {/* pagination dots */}
-      <View style={styles.pagination}>
+      <View className="mt-1 flex-row justify-center gap-1.5">
         {nearbySlots.map((_, index) => (
           <View
             key={index}
-            style={[
-              styles.dot,
-              {
-                backgroundColor:
-                  index === activeIndex ? theme.text : theme.border,
-              },
-            ]}
+            className="h-1.5 w-1.5 rounded-full"
+            style={{
+              backgroundColor: index === activeIndex ? theme.text : theme.border,
+            }}
           />
         ))}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: -Spacing.md, // full bleed
-  },
-  emptyCard: {
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  cardWrapper: {
-    paddingVertical: Spacing.sm,
-  },
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-    minHeight: 140,
-  },
-  cardInactive: {
-    opacity: 0.7,
-    transform: [{ scale: 0.95 }],
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  courseName: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  timeText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  badgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    flexWrap: "wrap",
-  },
-  typeBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-  },
-  typeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.white,
-  },
-  manualBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-  },
-  manualText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  customBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-  },
-  customText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  pagination: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: Spacing.xs,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-});

@@ -1,11 +1,11 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
 import { formatTimeDisplay } from "@/stores/timetable-store";
 import type { DayOfWeek, TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 interface DayScheduleProps {
   slots: TimetableSlot[];
@@ -37,13 +37,11 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
   if (daySlots.length === 0) {
     return (
       <View
-        style={[
-          styles.emptyContainer,
-          { backgroundColor: theme.backgroundSecondary },
-        ]}
+        className="items-center justify-center rounded-2xl px-8 py-8 gap-2"
+        style={{ backgroundColor: theme.backgroundSecondary }}
       >
         <Ionicons name="cafe-outline" size={32} color={theme.textSecondary} />
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
           No classes scheduled
         </Text>
       </View>
@@ -51,7 +49,7 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="gap-2 pt-1">
       {daySlots.map((slot, index) => {
         const courseColor = getCourseColor(slot.courseId);
         const isNow =
@@ -61,35 +59,35 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
         const isPast = isToday && currentTime >= slot.endTime;
 
         return (
-          <View key={slot.id} style={styles.slotRow}>
+          <View
+            key={slot.id}
+            className="flex-row items-start min-h-[72px]"
+            style={index === 0 ? { marginTop: 4 } : undefined}
+          >
             {/* time column */}
-            <View style={styles.timeColumn}>
+            <View className="w-14 items-end pr-2 pt-0.5">
               <Text
-                style={[
-                  styles.timeText,
-                  { color: isPast ? theme.textSecondary : theme.text },
-                ]}
+                className="text-[11px] font-medium"
+                style={{ color: isPast ? theme.textSecondary : theme.text }}
               >
                 {formatTimeDisplay(slot.startTime)}
               </Text>
-              <Text style={[styles.timeDash, { color: theme.textSecondary }]}>
+              <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
                 -
               </Text>
               <Text
-                style={[
-                  styles.timeText,
-                  { color: isPast ? theme.textSecondary : theme.textSecondary },
-                ]}
+                className="text-[11px] font-medium"
+                style={{ color: isPast ? theme.textSecondary : theme.textSecondary }}
               >
                 {formatTimeDisplay(slot.endTime)}
               </Text>
             </View>
 
             {/* timeline indicator */}
-            <View style={styles.timeline}>
+            <View className="w-6 items-center">
               <View
+                className="mt-1 h-2.5 w-2.5 rounded-full"
                 style={[
-                  styles.timelineDot,
                   {
                     backgroundColor: isNow
                       ? Colors.status.success
@@ -100,54 +98,48 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
               />
               {index < daySlots.length - 1 && (
                 <View
-                  style={[
-                    styles.timelineLine,
-                    { backgroundColor: theme.border },
-                  ]}
+                  className="mt-1 w-0.5 flex-1"
+                  style={{ backgroundColor: theme.border }}
                 />
               )}
             </View>
 
             {/* slot card */}
             <View
+              className="ml-1.5 flex-1 rounded-xl p-4"
               style={[
-                styles.slotCard,
                 { backgroundColor: courseColor + (isPast ? "30" : "20") },
                 { borderLeftColor: courseColor, borderLeftWidth: 3 },
-                isNow && styles.nowCard,
+                isNow && { borderWidth: 1, borderColor: Colors.status.success },
+                !isNow && { borderWidth: 1, borderColor: theme.border },
               ]}
             >
-              <View style={styles.cardHeader}>
+              <View className="flex-row items-center justify-between gap-2">
                 <Text
-                  style={[
-                    styles.courseName,
-                    { color: isPast ? theme.textSecondary : theme.text },
-                  ]}
+                  className="flex-1 text-sm font-semibold"
+                  style={{ color: isPast ? theme.textSecondary : theme.text }}
                   numberOfLines={1}
                 >
                   {slot.courseName}
                 </Text>
                 {isNow && (
                   <View
-                    style={[
-                      styles.nowBadge,
-                      { backgroundColor: Colors.status.success },
-                    ]}
+                    className="rounded-lg px-1 py-0.5"
+                    style={{ backgroundColor: Colors.status.success }}
                   >
-                    <Text style={styles.nowText}>NOW</Text>
+                    <Text className="text-[9px] font-bold text-white">NOW</Text>
                   </View>
                 )}
               </View>
-              <View style={styles.cardFooter}>
-                <View style={styles.badgeRow}>
+              <View className="mt-1">
+                <View className="flex-row flex-wrap items-center gap-1">
                   <View
-                    style={[
-                      styles.typeBadge,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
+                    className="rounded-lg px-2 py-0.5"
+                    style={{ backgroundColor: theme.backgroundSecondary }}
                   >
                     <Text
-                      style={[styles.typeText, { color: theme.textSecondary }]}
+                      className="text-[10px]"
+                      style={{ color: theme.textSecondary }}
                     >
                       {slot.sessionType.charAt(0).toUpperCase() +
                         slot.sessionType.slice(1)}
@@ -155,16 +147,12 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                   </View>
                   {slot.isManual && (
                     <View
-                      style={[
-                        styles.manualBadge,
-                        { backgroundColor: Colors.status.info + "20" },
-                      ]}
+                      className="rounded px-1 py-0.5"
+                      style={{ backgroundColor: Colors.status.info + "20" }}
                     >
                       <Text
-                        style={[
-                          styles.manualText,
-                          { color: Colors.status.info },
-                        ]}
+                        className="text-[9px] font-medium"
+                        style={{ color: Colors.status.info }}
                       >
                         Manual
                       </Text>
@@ -172,16 +160,12 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                   )}
                   {slot.isCustomCourse && (
                     <View
-                      style={[
-                        styles.customBadge,
-                        { backgroundColor: Colors.status.success + "20" },
-                      ]}
+                      className="rounded px-1 py-0.5"
+                      style={{ backgroundColor: Colors.status.success + "20" }}
                     >
                       <Text
-                        style={[
-                          styles.customText,
-                          { color: Colors.status.success },
-                        ]}
+                        className="text-[9px] font-medium"
+                        style={{ color: Colors.status.success }}
                       >
                         Custom
                       </Text>
@@ -196,118 +180,3 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  emptyContainer: {
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  slotRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    minHeight: 72,
-  },
-  timeColumn: {
-    width: 56,
-    alignItems: "flex-end",
-    paddingRight: Spacing.sm,
-    paddingTop: 2,
-  },
-  timeText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  timeDash: {
-    fontSize: 10,
-  },
-  timeline: {
-    width: 20,
-    alignItems: "center",
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 4,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    marginTop: 4,
-  },
-  slotCard: {
-    flex: 1,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginLeft: Spacing.sm,
-  },
-  nowCard: {
-    borderWidth: 1,
-    borderColor: Colors.status.success,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  courseName: {
-    fontSize: 14,
-    fontWeight: "600",
-    flex: 1,
-  },
-  nowBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  nowText: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: Colors.white,
-  },
-  cardFooter: {
-    marginTop: Spacing.xs,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    flexWrap: "wrap",
-  },
-  typeBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  typeText: {
-    fontSize: 10,
-  },
-  manualBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  manualText: {
-    fontSize: 9,
-    fontWeight: "500",
-  },
-  customBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  customText: {
-    fontSize: 9,
-    fontWeight: "500",
-  },
-});
