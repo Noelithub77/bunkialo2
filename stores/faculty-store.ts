@@ -14,9 +14,11 @@ import {
 const SEARCH_KEYS = [
   { name: "name", weight: 2 },
   { name: "designation", weight: 1 },
+  { name: "qualification", weight: 1.2 },
   { name: "contact.room", weight: 1.5 },
+  { name: "contact.phone", weight: 1.1 },
   { name: "contact.email", weight: 0.8 },
-  { name: "areas", weight: 1 },
+  { name: "areas", weight: 1.2 },
 ];
 
 const FUSE_OPTIONS: IFuseOptions<Faculty> = {
@@ -86,12 +88,61 @@ export const useFacultyStore = create<FacultyState & FacultyActions>()(
 // pre-built fuse index for instant search
 const facultyIndex = Fuse.createIndex(SEARCH_KEYS, facultyList);
 const fuseInstance = new Fuse(facultyList, FUSE_OPTIONS, facultyIndex);
+const fuseInstanceWithMatches = new Fuse(facultyList, {
+  ...FUSE_OPTIONS,
+  includeMatches: true,
+}, facultyIndex);
+
+type MatchFieldKey =
+  | "name"
+  | "designation"
+  | "qualification"
+  | "contact.room"
+  | "contact.phone"
+  | "contact.email"
+  | "areas";
+
+const MATCH_FIELD_LABELS: Record<MatchFieldKey, string> = {
+  name: "Name",
+  designation: "Designation",
+  qualification: "Qualification",
+  "contact.room": "Room",
+  "contact.phone": "Phone",
+  "contact.email": "Email",
+  areas: "Area of expertise",
+};
+
+export interface FacultySearchResult {
+  faculty: Faculty;
+  matchedFields: string[];
+}
 
 // fuzzy search - instant, no minimum chars
 export const searchFaculty = (query: string): Faculty[] => {
   const q = query.trim();
   if (!q) return [];
   return fuseInstance.search(q, { limit: 30 }).map((r) => r.item);
+};
+
+export const searchFacultyWithMatches = (query: string): FacultySearchResult[] => {
+  const q = query.trim();
+  if (!q) return [];
+
+  return fuseInstanceWithMatches.search(q, { limit: 30 }).map((result) => {
+    const fields = new Set<string>();
+
+    result.matches?.forEach((match) => {
+      const key = match.key as MatchFieldKey | undefined;
+      if (key && MATCH_FIELD_LABELS[key]) {
+        fields.add(MATCH_FIELD_LABELS[key]);
+      }
+    });
+
+    return {
+      faculty: result.item,
+      matchedFields: Array.from(fields),
+    };
+  });
 };
 
 // get top faculty by ids

@@ -10,11 +10,13 @@ import { Pressable, Text, View } from "react-native";
 interface FacultyCardProps {
   faculty: Faculty;
   onPress: () => void;
+  matchedFields?: string[];
 }
 
 export const FacultyCard = memo(function FacultyCard({
   faculty,
   onPress,
+  matchedFields,
 }: FacultyCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -84,6 +86,15 @@ export const FacultyCard = memo(function FacultyCard({
                 {faculty.contact.room}
               </Text>
             </View>
+          )}
+          {matchedFields && matchedFields.length > 0 && (
+            <Text
+              className="mt-1 text-[11px] font-medium"
+              style={{ color: theme.textSecondary }}
+              numberOfLines={1}
+            >
+              Matched in: {matchedFields.join(", ")}
+            </Text>
           )}
         </View>
       </View>

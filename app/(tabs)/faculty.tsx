@@ -4,7 +4,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     getTopFaculty,
-    searchFaculty,
+    searchFacultyWithMatches,
     useFacultyStore,
 } from "@/stores/faculty-store";
 import type { Faculty } from "@/types";
@@ -38,9 +38,13 @@ export default function FacultyScreen() {
 
   // instant search - no debounce needed for 136 items
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    return searchFaculty(searchQuery);
+    return searchFacultyWithMatches(searchQuery);
   }, [searchQuery]);
+  const searchMatchMap = useMemo(() => {
+    return new Map(
+      searchResults.map((result) => [result.faculty.id, result.matchedFields]),
+    );
+  }, [searchResults]);
 
   const topFaculty = useMemo(() => {
     return getTopFaculty(faculties, topFacultyIds);
@@ -72,13 +76,21 @@ export default function FacultyScreen() {
   const isSearching = searchQuery.trim().length > 0;
   const showRecentSearches = !isSearching && recentSearches.length > 0;
   const showTopFaculty = !isSearching && topFaculty.length > 0;
-  const displayData = isSearching ? searchResults : topFaculty;
+  const displayData = isSearching
+    ? searchResults.map((result) => result.faculty)
+    : topFaculty;
 
   const renderItem = useCallback(
     ({ item }: { item: Faculty }) => (
-      <FacultyCard faculty={item} onPress={() => handleFacultyPress(item)} />
+      <FacultyCard
+        faculty={item}
+        onPress={() => handleFacultyPress(item)}
+        matchedFields={
+          isSearching ? searchMatchMap.get(item.id) : undefined
+        }
+      />
     ),
-    [handleFacultyPress],
+    [handleFacultyPress, isSearching, searchMatchMap],
   );
 
   const keyExtractor = useCallback((item: Faculty) => item.id, []);
@@ -108,7 +120,7 @@ export default function FacultyScreen() {
             ref={inputRef}
             className="h-full flex-1 text-[15px]"
             style={{ color: theme.text }}
-            placeholder="Search by name, room, or expertise..."
+            placeholder="Search by name, phone, qualification, room, or expertise..."
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
