@@ -5,6 +5,7 @@ import type {
   TimetableSlot,
   TimetableState,
 } from "@/types";
+import { extractCourseName } from "@/utils/course-name";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
@@ -122,7 +123,8 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
           const overrideLmsSlots =
             bunkCourse?.config?.overrideLmsSlots ?? false;
           if (overrideLmsSlots) continue;
-          const displayName = bunkCourse?.config?.alias || course.courseName;
+          const displayName =
+            bunkCourse?.config?.alias || extractCourseName(course.courseName);
 
           for (const record of course.records) {
             const parsed = parseSlotTime(record.date);
@@ -156,7 +158,8 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
         for (const course of bunkCourses) {
           if (!course.manualSlots || course.manualSlots.length === 0) continue;
 
-          const displayName = course.config?.alias || course.courseName;
+          const displayName =
+            course.config?.alias || extractCourseName(course.courseName);
 
           for (const slot of course.manualSlots) {
             manualSlots.push({

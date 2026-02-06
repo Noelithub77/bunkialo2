@@ -7,7 +7,7 @@ import type {
   CourseBunkData,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -36,6 +36,11 @@ interface UnknownEntry {
   bunkId: string | null;
   note: string;
 }
+
+const getUnknownEntryKey = (
+  courseId: string,
+  record: AttendanceRecord,
+): string => `${courseId}-${buildRecordKey(record.date, record.description)}`;
 
 // parse date for display
 const formatDate = (dateStr: string): string => {
@@ -96,6 +101,13 @@ export function UnknownStatusModal({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const [optimisticResolutionByKey, setOptimisticResolutionByKey] = useState<
+    Record<string, UnknownResolution>
+  >({});
+  const [pendingByKey, setPendingByKey] = useState<Record<string, boolean>>({});
+  const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
 
   const bunkLookup = useMemo(() => {
     const map = new Map<string, Map<string, BunkRecord>>();
@@ -119,7 +131,7 @@ export function UnknownStatusModal({
     return map;
   }, [bunkCourses]);
 
-  const unknownEntries = useMemo((): UnknownEntry[] => {
+  const baseUnknownEntries = useMemo((): UnknownEntry[] => {
     const entries: UnknownEntry[] = [];
     for (const course of courses) {
       const pastRecords = filterPast(course.records);
@@ -162,6 +174,79 @@ export function UnknownStatusModal({
       return b.record.date.localeCompare(a.record.date);
     });
   }, [courses, courseNameById, bunkLookup]);
+
+  const unknownEntries = useMemo((): UnknownEntry[] => {
+    return baseUnknownEntries
+      .map((entry) => {
+        const key = getUnknownEntryKey(entry.courseId, entry.record);
+        const optimisticResolution = optimisticResolutionByKey[key];
+        if (!optimisticResolution) return entry;
+        return { ...entry, resolution: optimisticResolution };
+      })
+      .sort((a, b) => {
+        const aResolved = a.resolution !== "assumedPresent";
+        const bResolved = b.resolution !== "assumedPresent";
+        if (aResolved !== bResolved) return aResolved ? 1 : -1;
+        return b.record.date.localeCompare(a.record.date);
+      });
+  }, [baseUnknownEntries, optimisticResolutionByKey]);
+
+  useEffect(() => {
+    const baseResolutionByKey = new Map<string, UnknownResolution>();
+    for (const entry of baseUnknownEntries) {
+      baseResolutionByKey.set(
+        getUnknownEntryKey(entry.courseId, entry.record),
+        entry.resolution,
+      );
+    }
+
+    const nextPending = { ...pendingByKey };
+    const nextOptimistic = { ...optimisticResolutionByKey };
+    let changed = false;
+
+    for (const key of Object.keys(pendingByKey)) {
+      const optimistic = optimisticResolutionByKey[key];
+      const actual = baseResolutionByKey.get(key);
+      if (optimistic && actual === optimistic) {
+        delete nextPending[key];
+        delete nextOptimistic[key];
+        const timer = pendingTimeoutsRef.current[key];
+        if (timer) {
+          clearTimeout(timer);
+          delete pendingTimeoutsRef.current[key];
+        }
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      setPendingByKey(nextPending);
+      setOptimisticResolutionByKey(nextOptimistic);
+    }
+  }, [baseUnknownEntries, optimisticResolutionByKey, pendingByKey]);
+
+  useEffect(() => {
+    return () => {
+      for (const key of Object.keys(pendingTimeoutsRef.current)) {
+        clearTimeout(pendingTimeoutsRef.current[key]);
+      }
+      pendingTimeoutsRef.current = {};
+    };
+  }, []);
+
+  const markPending = (key: string) => {
+    setPendingByKey((prev) => ({ ...prev, [key]: true }));
+    const existing = pendingTimeoutsRef.current[key];
+    if (existing) clearTimeout(existing);
+    pendingTimeoutsRef.current[key] = setTimeout(() => {
+      setPendingByKey((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      delete pendingTimeoutsRef.current[key];
+    }, 1200);
+  };
 
   const assumedPresentCount = useMemo(
     () =>
@@ -222,6 +307,8 @@ export function UnknownStatusModal({
   const renderItem = ({ item }: { item: UnknownEntry }) => {
     const time = parseTime(item.record.date);
     const resolutionMeta = getResolutionMeta(item.resolution);
+    const entryKey = getUnknownEntryKey(item.courseId, item.record);
+    const isPending = pendingByKey[entryKey] === true;
     return (
       <View
         className="mb-3 flex-row items-center justify-between rounded-2xl border px-3 py-3"
@@ -297,12 +384,22 @@ export function UnknownStatusModal({
           {item.resolution === "assumedPresent" ? (
             <>
               <Pressable
-                onPress={() => onConfirmPresent(item.courseId, item.record)}
+                onPress={() => {
+                  if (isPending) return;
+                  setOptimisticResolutionByKey((prev) => ({
+                    ...prev,
+                    [entryKey]: "present",
+                  }));
+                  markPending(entryKey);
+                  onConfirmPresent(item.courseId, item.record);
+                }}
+                disabled={isPending}
                 className="h-9 w-9 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: `${Colors.status.success}18`,
                   borderWidth: 1,
                   borderColor: `${Colors.status.success}55`,
+                  opacity: isPending ? 0.6 : 1,
                 }}
               >
                 <Ionicons
@@ -312,12 +409,22 @@ export function UnknownStatusModal({
                 />
               </Pressable>
               <Pressable
-                onPress={() => onConfirmAbsent(item.courseId, item.record)}
+                onPress={() => {
+                  if (isPending) return;
+                  setOptimisticResolutionByKey((prev) => ({
+                    ...prev,
+                    [entryKey]: "absent",
+                  }));
+                  markPending(entryKey);
+                  onConfirmAbsent(item.courseId, item.record);
+                }}
+                disabled={isPending}
                 className="h-9 w-9 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: `${Colors.status.danger}18`,
                   borderWidth: 1,
                   borderColor: `${Colors.status.danger}55`,
+                  opacity: isPending ? 0.6 : 1,
                 }}
               >
                 <Ionicons name="close" size={18} color={Colors.status.danger} />
@@ -325,12 +432,22 @@ export function UnknownStatusModal({
             </>
           ) : (
             <Pressable
-              onPress={() => onRevert(item.courseId, item.record)}
+              onPress={() => {
+                if (isPending) return;
+                setOptimisticResolutionByKey((prev) => ({
+                  ...prev,
+                  [entryKey]: "assumedPresent",
+                }));
+                markPending(entryKey);
+                onRevert(item.courseId, item.record);
+              }}
+              disabled={isPending}
               className="h-9 w-9 items-center justify-center rounded-full"
               style={{
                 backgroundColor: `${theme.textSecondary}1f`,
                 borderWidth: 1,
                 borderColor: `${theme.textSecondary}55`,
+                opacity: isPending ? 0.6 : 1,
               }}
             >
               <Ionicons name="arrow-undo" size={16} color={theme.textSecondary} />
