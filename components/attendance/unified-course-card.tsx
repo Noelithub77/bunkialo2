@@ -347,7 +347,7 @@ export function UnifiedCourseCard({
           className="pl-4"
           style={isEditMode ? { opacity: 0.85 } : undefined}
         >
-          <View className="flex-row items-start justify-between">
+          <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">
               <Text
                 className="text-base font-semibold"
@@ -478,7 +478,7 @@ export function UnifiedCourseCard({
                     setShowTotal(!showTotal);
                   }}
                 >
-                  <View className="items-center">
+                  <View className="items-center min-w-[56px]">
                     <Text
                       className="text-2xl font-bold leading-6"
                       style={{ color: bunksColor }}
@@ -514,6 +514,19 @@ export function UnifiedCourseCard({
                     Setup
                   </Text>
                 </Pressable>
+              )}
+
+              {!isEditMode && (
+                <View
+                  className="items-center justify-center rounded-full h-8 w-8"
+                  style={{ backgroundColor: `${theme.textSecondary}12` }}
+                >
+                  <Ionicons
+                    name={expanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={theme.textSecondary}
+                  />
+                </View>
               )}
             </View>
           </View>

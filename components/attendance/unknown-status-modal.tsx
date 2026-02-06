@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type {
@@ -154,8 +153,14 @@ export function UnknownStatusModal({
         }
       }
     }
-    // sort by date descending
-    return entries.sort((a, b) => b.record.date.localeCompare(a.record.date));
+    // Keep unresolved unknowns at the top; confirmed resolutions go last.
+    // Within each group, keep the existing date-descending ordering.
+    return entries.sort((a, b) => {
+      const aResolved = a.resolution !== "assumedPresent";
+      const bResolved = b.resolution !== "assumedPresent";
+      if (aResolved !== bResolved) return aResolved ? 1 : -1;
+      return b.record.date.localeCompare(a.record.date);
+    });
   }, [courses, courseNameById, bunkLookup]);
 
   const assumedPresentCount = useMemo(
@@ -171,6 +176,10 @@ export function UnknownStatusModal({
   const absentCount = useMemo(
     () => unknownEntries.filter((entry) => entry.resolution === "absent").length,
     [unknownEntries],
+  );
+  const resolvedCount = useMemo(
+    () => unknownEntries.length - assumedPresentCount,
+    [assumedPresentCount, unknownEntries.length],
   );
 
   const getResolutionMeta = (
@@ -215,9 +224,21 @@ export function UnknownStatusModal({
     const resolutionMeta = getResolutionMeta(item.resolution);
     return (
       <View
-        className="flex-row items-center justify-between border-b py-2"
-        style={{ borderBottomColor: theme.border }}
+        className="mb-3 flex-row items-center justify-between rounded-2xl border px-3 py-3"
+        style={{
+          borderColor: theme.border,
+          backgroundColor: theme.surface,
+          shadowColor: "#000",
+          shadowOpacity: isDark ? 0.2 : 0.06,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
+        }}
       >
+        <View
+          className="mr-3 h-full w-1.5 rounded-full"
+          style={{ backgroundColor: resolutionMeta.color }}
+        />
         <View className="mr-2 flex-1">
           <Text
             className="text-sm font-medium"
@@ -236,7 +257,7 @@ export function UnknownStatusModal({
               </Text>
             )}
           </View>
-          <View className="mt-1 flex-row items-center gap-1">
+          <View className="mt-1 flex-row items-center gap-1.5">
             <Ionicons
               name={resolutionMeta.icon as keyof typeof Ionicons.glyphMap}
               size={14}
@@ -248,6 +269,19 @@ export function UnknownStatusModal({
             >
               {resolutionMeta.label}
             </Text>
+            {item.resolution === "assumedPresent" ? (
+              <View
+                className="rounded-full px-2 py-0.5"
+                style={{ backgroundColor: `${Colors.status.unknown}22` }}
+              >
+                <Text
+                  className="text-[10px] font-semibold uppercase"
+                  style={{ color: Colors.status.unknown }}
+                >
+                  pending
+                </Text>
+              </View>
+            ) : null}
           </View>
           {item.note ? (
             <Text
@@ -264,26 +298,42 @@ export function UnknownStatusModal({
             <>
               <Pressable
                 onPress={() => onConfirmPresent(item.courseId, item.record)}
-                className="h-8 w-8 items-center justify-center rounded-full"
-                style={{ backgroundColor: Colors.status.success }}
+                className="h-9 w-9 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: `${Colors.status.success}18`,
+                  borderWidth: 1,
+                  borderColor: `${Colors.status.success}55`,
+                }}
               >
-                <Ionicons name="checkmark" size={16} color={Colors.white} />
+                <Ionicons
+                  name="checkmark"
+                  size={18}
+                  color={Colors.status.success}
+                />
               </Pressable>
               <Pressable
                 onPress={() => onConfirmAbsent(item.courseId, item.record)}
-                className="h-8 w-8 items-center justify-center rounded-full"
-                style={{ backgroundColor: Colors.status.danger }}
+                className="h-9 w-9 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: `${Colors.status.danger}18`,
+                  borderWidth: 1,
+                  borderColor: `${Colors.status.danger}55`,
+                }}
               >
-                <Ionicons name="close" size={16} color={Colors.white} />
+                <Ionicons name="close" size={18} color={Colors.status.danger} />
               </Pressable>
             </>
           ) : (
             <Pressable
               onPress={() => onRevert(item.courseId, item.record)}
-              className="h-8 w-8 items-center justify-center rounded-full"
-              style={{ backgroundColor: Colors.gray[600] }}
+              className="h-9 w-9 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: `${theme.textSecondary}1f`,
+                borderWidth: 1,
+                borderColor: `${theme.textSecondary}55`,
+              }}
             >
-              <Ionicons name="arrow-undo" size={16} color={Colors.white} />
+              <Ionicons name="arrow-undo" size={16} color={theme.textSecondary} />
             </Pressable>
           )}
         </View>
@@ -301,13 +351,19 @@ export function UnknownStatusModal({
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-0 bg-black/50" onPress={onClose} />
         <View
-          className="max-h-[70%] rounded-t-2xl p-6"
+          className="max-h-[72%] rounded-t-3xl px-5 pb-5 pt-4"
           style={{ backgroundColor: theme.background }}
         >
-          <View className="mb-2 flex-row items-center justify-between">
+          <View className="mb-3 items-center">
+            <View
+              className="h-1.5 w-12 rounded-full"
+              style={{ backgroundColor: theme.border }}
+            />
+          </View>
+          <View className="mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <View
-                className="h-7 w-7 items-center justify-center rounded-full"
+                className="h-8 w-8 items-center justify-center rounded-full"
                 style={{ backgroundColor: Colors.status.unknown }}
               >
                 <Ionicons name="help" size={16} color={Colors.white} />
@@ -316,10 +372,18 @@ export function UnknownStatusModal({
                 Unknown Sessions
               </Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={8}>
+            <Pressable
+              onPress={onClose}
+              hitSlop={8}
+              className="h-8 w-8 items-center justify-center rounded-full"
+              style={{ backgroundColor: theme.surface }}
+            >
               <Ionicons name="close" size={24} color={theme.textSecondary} />
             </Pressable>
           </View>
+          <Text className="mb-3 text-xs" style={{ color: theme.textSecondary }}>
+            Review pending sessions quickly. Confirmed ones are grouped at the end.
+          </Text>
 
           {unknownEntries.length === 0 ? (
             <View className="items-center gap-4 py-12">
@@ -334,27 +398,59 @@ export function UnknownStatusModal({
             </View>
           ) : (
             <>
-              <Text
-                className="mb-4 text-[13px]"
-                style={{ color: theme.textSecondary }}
-              >
-                {unknownEntries.length} total · {assumedPresentCount} assumed
-                present · {confirmedPresentCount} confirmed present ·{" "}
-                {absentCount} marked absent
-              </Text>
+              <View className="mb-3 flex-row flex-wrap gap-2">
+                <View
+                  className="rounded-full px-2.5 py-1"
+                  style={{ backgroundColor: theme.surface }}
+                >
+                  <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                    {unknownEntries.length} total
+                  </Text>
+                </View>
+                <View
+                  className="rounded-full px-2.5 py-1"
+                  style={{ backgroundColor: `${Colors.status.success}20` }}
+                >
+                  <Text className="text-xs" style={{ color: Colors.status.success }}>
+                    {assumedPresentCount} pending
+                  </Text>
+                </View>
+                <View
+                  className="rounded-full px-2.5 py-1"
+                  style={{ backgroundColor: `${Colors.status.info}20` }}
+                >
+                  <Text className="text-xs" style={{ color: Colors.status.info }}>
+                    {resolvedCount} resolved
+                  </Text>
+                </View>
+                <View
+                  className="rounded-full px-2.5 py-1"
+                  style={{ backgroundColor: `${Colors.status.success}20` }}
+                >
+                  <Text className="text-xs" style={{ color: Colors.status.success }}>
+                    {confirmedPresentCount} present
+                  </Text>
+                </View>
+                <View
+                  className="rounded-full px-2.5 py-1"
+                  style={{ backgroundColor: `${Colors.status.danger}20` }}
+                >
+                  <Text className="text-xs" style={{ color: Colors.status.danger }}>
+                    {absentCount} absent
+                  </Text>
+                </View>
+              </View>
               <FlatList
                 data={unknownEntries}
                 keyExtractor={(item, idx) =>
                   `${item.courseId}-${item.record.date}-${item.resolution}-${idx}`
                 }
                 renderItem={renderItem}
-                contentContainerStyle={{ paddingBottom: 16 }}
+                contentContainerStyle={{ paddingBottom: 4 }}
                 showsVerticalScrollIndicator={false}
               />
             </>
           )}
-
-          <Button title="Close" variant="secondary" onPress={onClose} />
         </View>
       </View>
     </Modal>
