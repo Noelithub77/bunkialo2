@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  StyleSheet,
   Text,
   View,
   type ViewToken,
@@ -25,8 +26,8 @@ interface UpNextCarouselProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.65;
-const CARD_SPACING = 8;
+const CARD_WIDTH = SCREEN_WIDTH * 0.72;
+const CARD_SPACING = 6;
 const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 
 export function UpNextCarousel({ slots }: UpNextCarouselProps) {
@@ -39,7 +40,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
   // recompute time on focus
-  const [focusKey, setFocusKey] = useState(0);
+  const [, setFocusKey] = useState(0);
   useFocusEffect(
     useCallback(() => {
       setFocusKey((k) => k + 1);
@@ -51,11 +52,14 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     return course?.config?.color || Colors.courseColors[0];
   };
 
-  const now = useMemo(() => new Date(), [focusKey]);
-  const nearbySlots = useMemo(() => getNearbySlots(slots, now), [slots, now]);
+  const now = new Date();
+  const nearbySlots = getNearbySlots(slots, now);
 
   const currentDay = now.getDay();
-  const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+  const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
 
   // find if there's a currently active class
   const currentClass = nearbySlots.find(
@@ -95,6 +99,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     if (snapTimerRef.current) {
       clearTimeout(snapTimerRef.current);
     }
+
     // start new timer - snap back after 2s inactivity
     const centerIndex = Math.min(initialScrollIndex, nearbySlots.length - 1);
     snapTimerRef.current = setTimeout(() => {
@@ -108,10 +113,12 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   // Initialize activeIndex to match initialScrollIndex to prevent jitter
   useEffect(() => {
     setActiveIndex(initialScrollIndex);
+
     // Mark as initial scrolled after a short delay since onMomentumScrollEnd may not fire
     const timer = setTimeout(() => {
       setHasInitialScrolled(true);
     }, 500);
+
     return () => clearTimeout(timer);
   }, [initialScrollIndex]);
 
@@ -128,7 +135,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
         }
       }
     },
-    [activeIndex, resetSnapTimer],
+    [activeIndex, hasInitialScrolled, resetSnapTimer],
   );
 
   if (nearbySlots.length === 0) {
@@ -164,8 +171,11 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     const isActive = index === activeIndex;
 
     const gradientColors = isDark
-      ? ([courseColor + "50", courseColor + "25"] as const)
-      : ([courseColor + "40", courseColor + "15"] as const);
+      ? ([courseColor + "70", courseColor + "32", "#04070D"] as const)
+      : ([courseColor + "45", courseColor + "18", "#FFFFFF"] as const);
+    const overlayColors = isDark
+      ? (["rgba(255,255,255,0.18)", "rgba(255,255,255,0)"] as const)
+      : (["rgba(255,255,255,0.52)", "rgba(255,255,255,0)"] as const);
 
     // day label logic
     const slotDay = item.dayOfWeek;
@@ -175,7 +185,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     // determine status color and text
     let statusColor = courseColor;
     let statusText = dayLabel;
-    let borderColor: string | undefined = undefined;
+    let borderColor: string | undefined;
     let cardOpacity = 1;
 
     if (isCurrentlyActive) {
@@ -191,39 +201,63 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       statusText = "Done";
       cardOpacity = 0.5;
     } else if (isFutureClass) {
-      cardOpacity = 0.6;
+      cardOpacity = 0.62;
     }
 
     return (
-      <View className="py-2" style={{ width: CARD_WIDTH }}>
+      <View className="py-1.5" style={{ width: CARD_WIDTH }}>
         <LinearGradient
           colors={gradientColors}
-          className="min-h-[140px] rounded-2xl p-6 gap-2"
+          locations={[0, 0.45, 1]}
+          className="relative min-h-[146px] overflow-hidden rounded-2xl px-5 py-4"
           style={[
             !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-            borderColor && {
-              borderColor,
-              borderWidth: 2,
+            {
+              borderColor:
+                borderColor ?? (isDark ? courseColor + "4A" : courseColor + "3A"),
+              borderWidth: 1,
             },
+            isCurrentlyActive &&
+              isDark && {
+                shadowColor: courseColor,
+                shadowOpacity: 0.4,
+                shadowOffset: { width: 0, height: 8 },
+                shadowRadius: 12,
+                elevation: 5,
+              },
             (isFinished || isFutureClass) && { opacity: cardOpacity },
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
+          <View
+            className="absolute -right-8 -top-8 h-24 w-24 rounded-full"
+            style={{ backgroundColor: courseColor + (isDark ? "30" : "20") }}
+          />
+          <LinearGradient
+            colors={overlayColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.9 }}
+            style={styles.glossLayer}
+          />
+
           {/* status row */}
           <View className="flex-row items-center gap-1">
             <View
               className="h-2 w-2 rounded-full"
               style={{ backgroundColor: statusColor }}
             />
-            <Text className="text-[11px] font-semibold uppercase" style={{ color: statusColor }}>
+            <Text
+              className="text-[11px] font-semibold uppercase"
+              style={{ color: statusColor, letterSpacing: 0.3 }}
+            >
               {statusText}
             </Text>
           </View>
 
           {/* course name */}
           <Text
-            className="text-lg font-bold"
+            className="mt-2 text-[22px] font-bold leading-[26px]"
             style={{ color: theme.text }}
             numberOfLines={2}
           >
@@ -231,21 +265,23 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
           </Text>
 
           {/* time */}
-          <View className="flex-row items-center gap-1">
+          <View className="mt-2 flex-row items-center gap-1">
             <Ionicons
               name="time-outline"
               size={14}
               color={theme.textSecondary}
             />
-            <Text className="text-[13px] font-medium" style={{ color: theme.text }}>
-              {formatTimeDisplay(item.startTime)} -{" "}
-              {formatTimeDisplay(item.endTime)}
+            <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
+              {formatTimeDisplay(item.startTime)} - {formatTimeDisplay(item.endTime)}
             </Text>
           </View>
 
           {/* session type and badges */}
-          <View className="flex-row flex-wrap items-center gap-1">
-            <View className="rounded-lg px-2 py-[3px]" style={{ backgroundColor: courseColor }}>
+          <View className="mt-3 flex-row flex-wrap items-center gap-1">
+            <View
+              className="rounded-lg px-2 py-[3px]"
+              style={{ backgroundColor: courseColor + "CC" }}
+            >
               <Text className="text-[11px] font-semibold text-white">
                 {item.sessionType.charAt(0).toUpperCase() +
                   item.sessionType.slice(1)}
@@ -321,7 +357,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       />
 
       {/* pagination dots */}
-      <View className="mt-1 flex-row justify-center gap-1.5">
+      <View className="mt-2 flex-row justify-center gap-1.5">
         {nearbySlots.map((_, index) => (
           <View
             key={index}
@@ -335,3 +371,12 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  glossLayer: {
+    ...StyleSheet.absoluteFillObject,
+    top: 0,
+    bottom: undefined,
+    height: 96,
+  },
+});

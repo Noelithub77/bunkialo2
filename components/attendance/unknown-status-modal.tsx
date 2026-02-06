@@ -8,13 +8,7 @@ import type {
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Modal, Pressable, Text, View } from "react-native";
 
 interface UnknownStatusModalProps {
   visible: boolean;
@@ -105,9 +99,9 @@ export function UnknownStatusModal({
     Record<string, UnknownResolution>
   >({});
   const [pendingByKey, setPendingByKey] = useState<Record<string, boolean>>({});
-  const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {},
-  );
+  const pendingTimeoutsRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
 
   const bunkLookup = useMemo(() => {
     const map = new Map<string, Map<string, BunkRecord>>();
@@ -247,25 +241,6 @@ export function UnknownStatusModal({
       delete pendingTimeoutsRef.current[key];
     }, 1200);
   };
-
-  const assumedPresentCount = useMemo(
-    () =>
-      unknownEntries.filter((entry) => entry.resolution === "assumedPresent")
-        .length,
-    [unknownEntries],
-  );
-  const confirmedPresentCount = useMemo(
-    () => unknownEntries.filter((entry) => entry.resolution === "present").length,
-    [unknownEntries],
-  );
-  const absentCount = useMemo(
-    () => unknownEntries.filter((entry) => entry.resolution === "absent").length,
-    [unknownEntries],
-  );
-  const resolvedCount = useMemo(
-    () => unknownEntries.length - assumedPresentCount,
-    [assumedPresentCount, unknownEntries.length],
-  );
 
   const getResolutionMeta = (
     resolution: UnknownResolution,
@@ -450,7 +425,11 @@ export function UnknownStatusModal({
                 opacity: isPending ? 0.6 : 1,
               }}
             >
-              <Ionicons name="arrow-undo" size={16} color={theme.textSecondary} />
+              <Ionicons
+                name="arrow-undo"
+                size={16}
+                color={theme.textSecondary}
+              />
             </Pressable>
           )}
         </View>
@@ -485,7 +464,10 @@ export function UnknownStatusModal({
               >
                 <Ionicons name="help" size={16} color={Colors.white} />
               </View>
-              <Text className="text-lg font-semibold" style={{ color: theme.text }}>
+              <Text
+                className="text-lg font-semibold"
+                style={{ color: theme.text }}
+              >
                 Unknown Sessions
               </Text>
             </View>
@@ -498,8 +480,12 @@ export function UnknownStatusModal({
               <Ionicons name="close" size={24} color={theme.textSecondary} />
             </Pressable>
           </View>
-          <Text className="mb-3 text-xs" style={{ color: theme.textSecondary }}>
-            Review pending sessions quickly. Confirmed ones are grouped at the end.
+          <Text
+            className="mb-3 text-center text-[10px] leading-3"
+            style={{ color: `${theme.textSecondary}99` }}
+          >
+            Some faculty add slots but forget to mark attendance. You can update
+            those sessions manually here.
           </Text>
 
           {unknownEntries.length === 0 ? (
@@ -515,48 +501,6 @@ export function UnknownStatusModal({
             </View>
           ) : (
             <>
-              <View className="mb-3 flex-row flex-wrap gap-2">
-                <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: theme.surface }}
-                >
-                  <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                    {unknownEntries.length} total
-                  </Text>
-                </View>
-                <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: `${Colors.status.success}20` }}
-                >
-                  <Text className="text-xs" style={{ color: Colors.status.success }}>
-                    {assumedPresentCount} pending
-                  </Text>
-                </View>
-                <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: `${Colors.status.info}20` }}
-                >
-                  <Text className="text-xs" style={{ color: Colors.status.info }}>
-                    {resolvedCount} resolved
-                  </Text>
-                </View>
-                <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: `${Colors.status.success}20` }}
-                >
-                  <Text className="text-xs" style={{ color: Colors.status.success }}>
-                    {confirmedPresentCount} present
-                  </Text>
-                </View>
-                <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: `${Colors.status.danger}20` }}
-                >
-                  <Text className="text-xs" style={{ color: Colors.status.danger }}>
-                    {absentCount} absent
-                  </Text>
-                </View>
-              </View>
               <FlatList
                 data={unknownEntries}
                 keyExtractor={(item, idx) =>
