@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
-import { router } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -29,10 +28,7 @@ export default function LoginScreen() {
       return;
     }
 
-    const success = await login(username.trim(), password);
-    if (success) {
-      router.replace("/(tabs)");
-    }
+    await login(username.trim(), password);
   };
 
   return (

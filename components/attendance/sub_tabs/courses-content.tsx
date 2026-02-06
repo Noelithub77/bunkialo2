@@ -11,6 +11,7 @@ import {
   selectAllDutyLeaves,
   useBunkStore,
 } from "@/stores/bunk-store";
+import type { AttendanceRecord, CourseAttendance, CourseBunkData } from "@/types";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
 import { AddBunkModal } from "../add-bunk-modal";
@@ -22,6 +23,87 @@ import { PresenceInputModal } from "../presence-input-modal";
 import { UnifiedCourseCard } from "../unified-course-card";
 import { UnknownStatusModal } from "../unknown-status-modal";
 import { ChangesModal } from "../changes-modal";
+
+const parseDateString = (
+  dateStr: string,
+): { date: string | null; time: string | null } => {
+  const cleaned = dateStr.trim();
+  const timeMatch = cleaned.match(
+    /(\d{1,2}(?::\d{2})?(?:AM|PM)\s*-\s*\d{1,2}(?::\d{2})?(?:AM|PM))/i,
+  );
+  const time = timeMatch ? timeMatch[1] : null;
+
+  const dateMatch = cleaned.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/);
+  if (!dateMatch) return { date: null, time };
+
+  const [, day, monthStr, year] = dateMatch;
+  const months: Record<string, string> = {
+    jan: "01",
+    feb: "02",
+    mar: "03",
+    apr: "04",
+    may: "05",
+    jun: "06",
+    jul: "07",
+    aug: "08",
+    sep: "09",
+    oct: "10",
+    nov: "11",
+    dec: "12",
+  };
+  const month = months[monthStr.toLowerCase()];
+  if (!month) return { date: null, time };
+
+  return { date: `${year}-${month}-${day.padStart(2, "0")}`, time };
+};
+
+const buildRecordKey = (record: AttendanceRecord): string =>
+  `${record.date.trim()}-${record.description.trim()}`;
+
+const filterPastRecords = (records: AttendanceRecord[]): AttendanceRecord[] => {
+  const now = new Date();
+  return records.filter((record) => {
+    const { date, time } = parseDateString(record.date);
+    if (!date) return false;
+    if (!time) return new Date(date) <= now;
+
+    const [, end] = time.split("-").map((part) => part.trim());
+    const dateTime = new Date(`${date} ${end}`);
+    if (Number.isNaN(dateTime.getTime())) return new Date(date) <= now;
+    return dateTime <= now;
+  });
+};
+
+const getEffectiveCoursePercentage = (
+  course: CourseAttendance | null,
+  bunkData: CourseBunkData | undefined,
+): number => {
+  if (!course) return Number.POSITIVE_INFINITY;
+
+  const pastRecords = filterPastRecords(course.records);
+  const totalSessions = pastRecords.length;
+  if (totalSessions === 0) return 0;
+
+  const bunkKeys = new Set<string>();
+  if (bunkData) {
+    for (const bunk of bunkData.bunks) {
+      bunkKeys.add(`${bunk.date.trim()}-${bunk.description.trim()}`);
+    }
+  }
+
+  const displayRecords = pastRecords.filter(
+    (record) => record.status !== "Unknown" || !bunkKeys.has(buildRecordKey(record)),
+  );
+  const confirmedPresentCount = pastRecords.filter(
+    (record) => record.status === "Present",
+  ).length;
+  const unknownCount = displayRecords.filter(
+    (record) => record.status === "Unknown",
+  ).length;
+  const attended = confirmedPresentCount + unknownCount;
+
+  return Math.round((attended / totalSessions) * 100);
+};
 
 export const CoursesContent = () => {
   const colorScheme = useColorScheme();
@@ -76,7 +158,22 @@ export const CoursesContent = () => {
         course: null,
         bunkData,
       }));
-    return [...lmsCourseData, ...customCourseData];
+
+    return [...lmsCourseData, ...customCourseData].sort((a, b) => {
+      const aPercentage = getEffectiveCoursePercentage(a.course, a.bunkData);
+      const bPercentage = getEffectiveCoursePercentage(b.course, b.bunkData);
+
+      if (aPercentage !== bPercentage) {
+        return aPercentage - bPercentage;
+      }
+
+      const aName =
+        a.bunkData?.config?.alias ?? a.course?.courseName ?? a.bunkData?.courseId ?? "";
+      const bName =
+        b.bunkData?.config?.alias ?? b.course?.courseName ?? b.bunkData?.courseId ?? "";
+
+      return aName.localeCompare(bName);
+    });
   }, [courses, bunkCourses]);
 
   const handleRefresh = useCallback(() => {

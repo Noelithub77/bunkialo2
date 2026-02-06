@@ -447,25 +447,25 @@ export function UnknownStatusModal({
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-0 bg-black/50" onPress={onClose} />
         <View
-          className="max-h-[72%] rounded-t-3xl px-5 pb-5 pt-4"
+          className="max-h-[72%] rounded-t-3xl px-5 pb-5 pt-3"
           style={{ backgroundColor: theme.background }}
         >
-          <View className="mb-3 items-center">
+          <View className="mb-2 items-center">
             <View
-              className="h-1.5 w-12 rounded-full"
+              className="h-1.5 w-14 rounded-full"
               style={{ backgroundColor: theme.border }}
             />
           </View>
-          <View className="mb-3 flex-row items-center justify-between">
+          <View className="mb-2 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <View
-                className="h-8 w-8 items-center justify-center rounded-full"
+                className="h-9 w-9 items-center justify-center rounded-full"
                 style={{ backgroundColor: Colors.status.unknown }}
               >
-                <Ionicons name="help" size={16} color={Colors.white} />
+                <Ionicons name="help" size={18} color={Colors.white} />
               </View>
               <Text
-                className="text-lg font-semibold"
+                className="text-[22px] font-semibold tracking-tight"
                 style={{ color: theme.text }}
               >
                 Unknown Sessions
@@ -474,19 +474,25 @@ export function UnknownStatusModal({
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              className="h-8 w-8 items-center justify-center rounded-full"
-              style={{ backgroundColor: theme.surface }}
+              className="h-9 w-9 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: theme.surface,
+                borderWidth: 1,
+                borderColor: theme.border,
+              }}
             >
-              <Ionicons name="close" size={24} color={theme.textSecondary} />
+              <Ionicons name="close" size={22} color={theme.textSecondary} />
             </Pressable>
           </View>
-          <Text
-            className="mb-3 text-center text-[10px] leading-3"
-            style={{ color: `${theme.textSecondary}99` }}
-          >
-            Some faculty add slots but forget to mark attendance. You can update
-            those sessions manually here.
-          </Text>
+          <View className="mb-4 items-center">
+            <Text
+              className="max-w-[290px] text-center text-[10px] leading-4"
+              style={{ color: `${theme.textSecondary}BF` }}
+            >
+              Some faculty add slots without marking attendance. Update those
+              sessions manually here.
+            </Text>
+          </View>
 
           {unknownEntries.length === 0 ? (
             <View className="items-center gap-4 py-12">
