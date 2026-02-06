@@ -4,6 +4,7 @@ import { useBunkStore } from "@/stores/bunk-store";
 import type { TimelineEvent } from "@/types";
 import { extractCourseName } from "@/utils/course-name";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 
 type EventCardProps = {
@@ -11,9 +12,8 @@ type EventCardProps = {
   isOverdue?: boolean;
 };
 
-const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now();
-  const diff = timestamp * 1000 - now;
+const formatRelativeTime = (timestamp: number, nowMs: number): string => {
+  const diff = timestamp * 1000 - nowMs;
   const absDiff = Math.abs(diff);
 
   const minutes = Math.floor(absDiff / (1000 * 60));
@@ -29,6 +29,41 @@ const formatRelativeTime = (timestamp: number): string => {
   if (days > 0) return `in ${days}d`;
   if (hours > 0) return `in ${hours}h`;
   return `in ${minutes}m`;
+};
+
+const formatRelativeTimeWithSeconds = (timestamp: number, nowMs: number): string => {
+  const diff = timestamp * 1000 - nowMs;
+  const absDiffSeconds = Math.floor(Math.abs(diff) / 1000);
+  const minutes = Math.floor(absDiffSeconds / 60);
+  const seconds = absDiffSeconds % 60;
+  const secondsText = seconds.toString().padStart(2, "0");
+
+  if (diff < 0) {
+    return `${minutes}:${secondsText} overdue`;
+  }
+  return `in ${minutes}:${secondsText}`;
+};
+
+const formatDetailedRelativeTime = (timestamp: number, nowMs: number): string => {
+  const diff = timestamp * 1000 - nowMs;
+  const absDiffSeconds = Math.floor(Math.abs(diff) / 1000);
+  const days = Math.floor(absDiffSeconds / 86400);
+  const hours = Math.floor((absDiffSeconds % 86400) / 3600);
+  const minutes = Math.floor((absDiffSeconds % 3600) / 60);
+  const seconds = absDiffSeconds % 60;
+  const secondsText = seconds.toString().padStart(2, "0");
+
+  if (days > 0) {
+    return diff < 0
+      ? `${days}d ${hours}h ${minutes}m ${secondsText}s overdue`
+      : `in ${days}d ${hours}h ${minutes}m ${secondsText}s`;
+  }
+  if (hours > 0) {
+    return diff < 0
+      ? `${hours}h ${minutes}m ${secondsText}s overdue`
+      : `in ${hours}h ${minutes}m ${secondsText}s`;
+  }
+  return formatRelativeTimeWithSeconds(timestamp, nowMs);
 };
 
 const formatDate = (timestamp: number): string => {
@@ -52,9 +87,18 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const [nowMs, setNowMs] = useState(Date.now());
+  const [showPreciseCountdown, setShowPreciseCountdown] = useState(false);
   const bunkCourses = useBunkStore((state) => state.courses);
   const isPastDue = isOverdue || event.overdue;
-  const dueText = formatRelativeTime(event.timesort);
+  const msToDue = event.timesort * 1000 - nowMs;
+  const isWithinNextHour = msToDue > 0 && msToDue <= 60 * 60 * 1000;
+  const dueText =
+    isWithinNextHour
+      ? formatRelativeTimeWithSeconds(event.timesort, nowMs)
+      : showPreciseCountdown
+        ? formatDetailedRelativeTime(event.timesort, nowMs)
+        : formatRelativeTime(event.timesort, nowMs);
   const rawCourseName = event.course.fullname || event.course.shortname || "";
   const courseName = extractCourseName(rawCourseName) || "Course";
   const fallbackColor =
@@ -66,6 +110,13 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
   const openOnLms = () => {
     Linking.openURL(event.url);
   };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <View
@@ -100,24 +151,29 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
           >
             {courseName}
           </Text>
-          <View
+          <Pressable
             className="self-start rounded-full px-2.5 py-1"
             style={{
               backgroundColor: isPastDue
                 ? Colors.status.danger + "22"
-                : Colors.status.info + "22",
+                : courseColor + "22",
+            }}
+            onPress={() => {
+              if (!isWithinNextHour) {
+                setShowPreciseCountdown((prev) => !prev);
+              }
             }}
           >
             <Text
               className="text-[11px] font-bold"
               style={{
-                color: isPastDue ? Colors.status.danger : Colors.status.info,
+                color: isPastDue ? Colors.status.danger : courseColor,
                 letterSpacing: 0.25,
               }}
             >
               {dueText}
             </Text>
-          </View>
+          </Pressable>
         </View>
       </View>
 

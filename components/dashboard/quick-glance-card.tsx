@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/theme";
-import type { Meal } from "@/data/mess";
+import { MEAL_COLORS, type Meal } from "@/data/mess";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatTimeDisplay } from "@/stores/timetable-store";
 import type { TimetableSlot } from "@/types";
@@ -50,6 +50,8 @@ export function QuickGlanceCard({
   const isClass = type === "class";
   const classData = isClass ? (data as TimetableSlot) : null;
   const mealData = !isClass ? (data as Meal) : null;
+  const mealAccentColor = mealData ? MEAL_COLORS[mealData.type] : Colors.status.success;
+  const accentColor = isClass ? Colors.status.info : mealAccentColor;
 
   return (
     <Pressable
@@ -57,6 +59,8 @@ export function QuickGlanceCard({
       style={{
         backgroundColor: theme.backgroundSecondary,
         borderColor: theme.border,
+        borderLeftWidth: 2,
+        borderLeftColor: accentColor,
       }}
       onPress={onPress}
     >
@@ -64,15 +68,13 @@ export function QuickGlanceCard({
         <View
           className="mr-2 h-8 w-8 items-center justify-center rounded-full"
           style={{
-            backgroundColor: isClass
-              ? Colors.status.info + "20"
-              : Colors.status.success + "20",
+            backgroundColor: accentColor + "20",
           }}
         >
           <Ionicons
             name={isClass ? "time" : "restaurant-outline"}
             size={20}
-            color={isClass ? Colors.status.info : Colors.status.success}
+            color={accentColor}
           />
         </View>
         <Text className="text-[11px] font-medium" style={{ color: theme.textSecondary }}>
