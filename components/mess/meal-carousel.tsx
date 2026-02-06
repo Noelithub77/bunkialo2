@@ -235,8 +235,9 @@ export function MealCarousel() {
               className="text-xs leading-[18px]"
               style={{ color: theme.textSecondary }}
               numberOfLines={2}
+              ellipsizeMode="tail"
             >
-              {item.items.slice(0, 4).join(", ")}...
+              {item.items.join(", ")}
             </Text>
           )}
         </View>

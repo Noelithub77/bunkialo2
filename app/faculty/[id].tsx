@@ -2,12 +2,12 @@ import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFacultyStore } from "@/stores/faculty-store";
-import type { Faculty } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import ImageViewing from "react-native-image-viewing";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function FacultyDetailScreen() {
@@ -17,6 +17,7 @@ export default function FacultyDetailScreen() {
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const { faculties } = useFacultyStore();
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
 
   const faculty = useMemo(() => {
     return faculties.find((f) => f.id === id);
@@ -63,6 +64,8 @@ export default function FacultyDetailScreen() {
     }
   };
 
+  const viewerBackgroundColor = isDark ? "#040712F5" : "#0B1220F0";
+
   return (
     <Container>
       <ScrollView
@@ -85,12 +88,19 @@ export default function FacultyDetailScreen() {
         {/* profile section */}
         <View className="mb-6 items-center">
           {faculty.imageUrl ? (
-            <Image
-              source={{ uri: faculty.imageUrl }}
-              className="mb-4 h-[100px] w-[100px] rounded-full"
-              contentFit="cover"
-              style={{ height: 100, width: 100, borderRadius: 999 }}
-            />
+            <Pressable
+              onPress={() => setIsImageViewerVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${faculty.name} profile image`}
+              className="mb-4"
+            >
+              <Image
+                source={{ uri: faculty.imageUrl }}
+                className="h-[100px] w-[100px] rounded-full"
+                contentFit="cover"
+                style={{ height: 100, width: 100, borderRadius: 999 }}
+              />
+            </Pressable>
           ) : (
             <View
               className="mb-4 h-[100px] w-[100px] items-center justify-center rounded-full"
@@ -275,6 +285,55 @@ export default function FacultyDetailScreen() {
           </View>
         )}
       </ScrollView>
+      {faculty.imageUrl ? (
+        <ImageViewing
+          images={[{ uri: faculty.imageUrl }]}
+          imageIndex={0}
+          visible={isImageViewerVisible}
+          onRequestClose={() => setIsImageViewerVisible(false)}
+          backgroundColor={viewerBackgroundColor}
+          swipeToCloseEnabled
+          doubleTapToZoomEnabled
+          presentationStyle="overFullScreen"
+          HeaderComponent={() => (
+            <View className="px-5 pt-14">
+              <View className="flex-row items-start justify-between">
+                <View
+                  className="max-w-[80%] rounded-2xl px-4 py-2.5"
+                  style={{ backgroundColor: "#FFFFFF1A" }}
+                >
+                  <Text className="text-[16px] font-semibold text-white">
+                    {faculty.name}
+                  </Text>
+                  <Text className="mt-0.5 text-[12px] text-white/80">
+                    {faculty.designation}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setIsImageViewerVisible(false)}
+                  className="h-10 w-10 items-center justify-center rounded-full"
+                  style={{ backgroundColor: "#FFFFFF22" }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            </View>
+          )}
+          FooterComponent={() => (
+            <View className="items-center px-6 pb-12">
+              <View
+                className="rounded-full px-4 py-2"
+                style={{ backgroundColor: "#FFFFFF1A" }}
+              >
+                <Text className="text-[12px] text-white/90">
+                  Pinch or double-tap to zoom • Swipe down to close
+                </Text>
+              </View>
+            </View>
+          )}
+        />
+      ) : null}
     </Container>
   );
 }

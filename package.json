@@ -52,11 +52,13 @@
     "expo-web-browser": "~15.0.10",
     "fuse.js": "^7.1.0",
     "htmlparser2": "^10.0.0",
+    "nativewind": "^4.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-calendars": "^1.1313.0",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-image-viewing": "^0.2.2",
     "react-native-pager-view": "6.9.1",
     "react-native-paper": "^5.14.5",
     "react-native-reanimated": "~4.1.1",
@@ -66,7 +68,6 @@
     "react-native-vector-icons": "^10.3.0",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
-    "nativewind": "^4.1.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
