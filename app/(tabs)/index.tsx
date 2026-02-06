@@ -140,7 +140,7 @@ export default function DashboardScreen() {
   return (
     <Container>
       <ScrollView
-        contentContainerClassName="p-4 pb-12"
+        contentContainerClassName="p-4 pb-14"
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -150,13 +150,20 @@ export default function DashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="mb-6 flex-row items-start justify-between">
-          <View className="shrink gap-0.5">
-            <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
+        <View className="mb-5 flex-row items-start justify-between">
+          <View className="shrink gap-1">
+            <Text className="text-[30px] font-bold tracking-tight" style={{ color: theme.text }}>
               Dashboard
             </Text>
             {lastSyncTime && (
-              <View className="flex-row items-center gap-1 self-start rounded-full px-1.5 py-0.5">
+              <View
+                className="flex-row items-center gap-1 self-start rounded-full px-2 py-1"
+                style={{
+                  backgroundColor: isDark
+                    ? Colors.gray[900]
+                    : Colors.gray[100],
+                }}
+              >
                 <Ionicons
                   name="refresh-outline"
                   size={12}
@@ -214,21 +221,21 @@ export default function DashboardScreen() {
         {hasOverdue && (
           <View className="mb-6">
             <Pressable
-              className="flex-row items-center justify-between rounded-xl border p-4"
+              className="flex-row items-center justify-between rounded-2xl border px-4 py-3.5"
               style={{
                 backgroundColor: Colors.status.danger + "15",
-                borderColor: Colors.status.danger,
+                borderColor: Colors.status.danger + "B3",
               }}
               onPress={() => setShowOverdue(!showOverdue)}
             >
               <View className="flex-row items-center gap-2">
                 <Ionicons
-                  name="warning-outline"
-                  size={18}
+                  name="alert-circle"
+                  size={19}
                   color={Colors.status.danger}
                 />
-                <Text className="text-sm font-semibold" style={{ color: Colors.status.danger }}>
-                  {overdueEvents.length} Overdue
+                <Text className="text-sm font-bold uppercase tracking-wide" style={{ color: Colors.status.danger }}>
+                  {overdueEvents.length} overdue task{overdueEvents.length > 1 ? "s" : ""}
                 </Text>
               </View>
               <Ionicons
@@ -251,7 +258,7 @@ export default function DashboardScreen() {
         {/* Upcoming Timeline */}
         {!isHydratingFromCache && (
           <View className="mb-6">
-            <Text className="mb-4 text-base font-semibold" style={{ color: theme.text }}>
+            <Text className="mb-4 text-lg font-bold tracking-tight" style={{ color: theme.text }}>
               Upcoming
             </Text>
             <TimelineSection events={upcomingEvents} />
