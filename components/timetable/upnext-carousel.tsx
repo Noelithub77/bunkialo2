@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
-  StyleSheet,
   Text,
   View,
   type ViewToken,
@@ -173,9 +172,6 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     const gradientColors = isDark
       ? ([courseColor + "70", courseColor + "32", "#04070D"] as const)
       : ([courseColor + "45", courseColor + "18", "#FFFFFF"] as const);
-    const overlayColors = isDark
-      ? (["rgba(255,255,255,0.18)", "rgba(255,255,255,0)"] as const)
-      : (["rgba(255,255,255,0.52)", "rgba(255,255,255,0)"] as const);
 
     // day label logic
     const slotDay = item.dayOfWeek;
@@ -230,17 +226,6 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <View
-            className="absolute -right-8 -top-8 h-24 w-24 rounded-full"
-            style={{ backgroundColor: courseColor + (isDark ? "30" : "20") }}
-          />
-          <LinearGradient
-            colors={overlayColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0.9 }}
-            style={styles.glossLayer}
-          />
-
           {/* status row */}
           <View className="flex-row items-center gap-1">
             <View
@@ -321,8 +306,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
 
   return (
     <View
-      className="-mx-4"
-      style={{ marginHorizontal: -28, paddingHorizontal: 28 }}
+      className="items-center"
       onStartShouldSetResponderCapture={() => true}
       onMoveShouldSetResponderCapture={() => true}
     >
@@ -334,6 +318,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + CARD_SPACING}
+        snapToAlignment="start"
         decelerationRate="fast"
         contentContainerStyle={{
           paddingHorizontal: SIDE_SPACING,
@@ -371,12 +356,3 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  glossLayer: {
-    ...StyleSheet.absoluteFillObject,
-    top: 0,
-    bottom: undefined,
-    height: 96,
-  },
-});

@@ -86,6 +86,11 @@ const getSessionType = (
   return "regular";
 };
 
+const timeToMinutes = (time: string): number => {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+};
+
 const generateId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -130,9 +135,35 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
             const parsed = parseSlotTime(record.date);
             if (!parsed) continue;
 
-            const key = `${course.courseId}-${parsed.dayOfWeek}-${parsed.startTime}`;
+            // merge with existing slot if same course+day and start within 5 min
+            const existingEntry = Array.from(autoSlotMap.entries()).find(
+              ([, s]) =>
+                s.courseId === course.courseId &&
+                s.dayOfWeek === parsed.dayOfWeek &&
+                Math.abs(
+                  timeToMinutes(s.startTime) - timeToMinutes(parsed.startTime),
+                ) <= 5,
+            );
 
-            if (!autoSlotMap.has(key)) {
+            if (existingEntry) {
+              const [oldKey, existing] = existingEntry;
+              autoSlotMap.delete(oldKey);
+              const mergedStart =
+                existing.startTime < parsed.startTime
+                  ? existing.startTime
+                  : parsed.startTime;
+              const mergedEnd =
+                existing.endTime > parsed.endTime
+                  ? existing.endTime
+                  : parsed.endTime;
+              const newKey = `${course.courseId}-${parsed.dayOfWeek}-${mergedStart}`;
+              autoSlotMap.set(newKey, {
+                ...existing,
+                startTime: mergedStart,
+                endTime: mergedEnd,
+              });
+            } else {
+              const key = `${course.courseId}-${parsed.dayOfWeek}-${parsed.startTime}`;
               autoSlotMap.set(key, {
                 id: generateId(),
                 courseId: course.courseId,
