@@ -13,18 +13,23 @@ const groupByDate = (events: TimelineEvent[]): Map<string, TimelineEvent[]> => {
 
   events.forEach((event) => {
     const date = new Date(event.timesort * 1000);
-    const key = date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    const key = `${year}-${month}-${day}`;
 
     const existing = groups.get(key) || [];
     groups.set(key, [...existing, event]);
   });
 
   return groups;
+};
+
+const formatCompactDate = (isoDate: string): string => {
+  const date = new Date(`${isoDate}T00:00:00`);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return `${date.getDate()} ${months[date.getMonth()]} (${weekdays[date.getDay()]})`;
 };
 
 export const TimelineSection = ({ events }: TimelineSectionProps) => {
@@ -54,7 +59,7 @@ export const TimelineSection = ({ events }: TimelineSectionProps) => {
               style={{ backgroundColor: Colors.status.info }}
             />
             <Text className="text-sm font-semibold" style={{ color: theme.text }}>
-              {date}
+              {formatCompactDate(date)}
             </Text>
           </View>
           <View className="flex-row pl-1">

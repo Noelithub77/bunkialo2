@@ -284,7 +284,12 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   };
 
   return (
-    <View className="-mx-4">
+    <View
+      className="-mx-4"
+      style={{ marginHorizontal: -28, paddingHorizontal: 28 }}
+      onStartShouldSetResponderCapture={() => true}
+      onMoveShouldSetResponderCapture={() => true}
+    >
       <FlatList
         ref={flatListRef}
         data={nearbySlots}

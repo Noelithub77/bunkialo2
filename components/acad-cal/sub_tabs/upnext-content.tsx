@@ -8,9 +8,9 @@ import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import {
   CATEGORY_META,
-  formatLongDate,
   formatRange,
   formatShortDate,
+  formatWeekday,
   toISODate,
 } from "../constants";
 
@@ -93,7 +93,7 @@ export const UpNextContent = ({ termEvents }: UpNextContentProps) => {
                     className="mt-0.5 text-xs"
                     style={{ color: theme.textSecondary }}
                   >
-                    {formatLongDate(date).split(",")[0]}
+                    {formatWeekday(date)}
                   </Text>
                   <View
                     className="mt-2 h-2.5 w-2.5 rounded-full"

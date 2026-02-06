@@ -83,20 +83,56 @@ const parseDateString = (dateStr: string): string | null => {
   return `${year}-${month}-${day.padStart(2, "0")}`;
 };
 
+const parseTimeToMinutes = (timeStr: string): number | null => {
+  const match = timeStr.trim().match(/^(\d{1,2})(?::(\d{2}))?(AM|PM)$/i);
+  if (!match) return null;
+
+  const [, hourStr, minuteStr, meridiem] = match;
+  const hour12 = parseInt(hourStr, 10);
+  const minutes = minuteStr ? parseInt(minuteStr, 10) : 0;
+  if (hour12 < 1 || hour12 > 12 || minutes < 0 || minutes > 59) return null;
+
+  let hour24 = hour12 % 12;
+  if (meridiem.toUpperCase() === "PM") hour24 += 12;
+  return hour24 * 60 + minutes;
+};
+
+const getSessionEndDateTime = (
+  date: string,
+  timeSlot: string | null,
+): Date | null => {
+  const baseDate = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(baseDate.getTime())) return null;
+  if (!timeSlot) return baseDate;
+
+  const [, endPartRaw] = timeSlot.split("-").map((part) => part.trim());
+  if (!endPartRaw) return baseDate;
+
+  const endMinutes = parseTimeToMinutes(endPartRaw);
+  if (endMinutes === null) return baseDate;
+
+  const endDate = new Date(baseDate);
+  endDate.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+  return endDate;
+};
+
 const buildBunkKey = (date: string, description: string): string =>
   `${date.trim()}-${description.trim()}`;
 
-// check if date is today or past
-const isPastOrToday = (dateStr: string): boolean => {
+// check if session end time is in the past (or exactly now)
+const isPastOrCompleted = (dateStr: string): boolean => {
   const parsed = parseDateString(dateStr);
   if (!parsed) return false;
+  const timeSlot = parseTimeSlot(dateStr);
+  const sessionEnd = getSessionEndDateTime(parsed, timeSlot);
+  if (!sessionEnd) return false;
   const now = new Date();
-  return new Date(parsed) <= now;
+  return sessionEnd <= now;
 };
 
-// filter bunks to past dates only
+// filter bunks to completed sessions only
 export const filterPastBunks = (bunks: BunkRecord[]): BunkRecord[] => {
-  return bunks.filter((b) => isPastOrToday(b.date));
+  return bunks.filter((b) => isPastOrCompleted(b.date));
 };
 
 export const useBunkStore = create<BunkStoreState & BunkActions>()(

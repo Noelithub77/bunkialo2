@@ -100,12 +100,17 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const formatShortDate = (value: string): string => {
     const date = parseISODate(value);
-    return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+    return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 };
 
 export const formatLongDate = (value: string): string => {
     const date = parseISODate(value);
-    return `${WEEKDAYS[date.getDay()]}, ${MONTHS[date.getMonth()]} ${date.getDate()}`;
+    return `${date.getDate()} ${MONTHS[date.getMonth()]} ${WEEKDAYS[date.getDay()]}`;
+};
+
+export const formatWeekday = (value: string): string => {
+    const date = parseISODate(value);
+    return WEEKDAYS[date.getDay()];
 };
 
 export const formatRange = (event: AcademicEvent): string => {

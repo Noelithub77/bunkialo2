@@ -3,15 +3,22 @@ import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-    getTopFaculty,
-    searchFacultyWithMatches,
-    useFacultyStore,
+  getTopFaculty,
+  searchFacultyWithMatches,
+  useFacultyStore,
 } from "@/stores/faculty-store";
 import type { Faculty } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Keyboard, Pressable, Text, TextInput, View } from "react-native";
+import {
+  FlatList,
+  Keyboard,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 export default function FacultyScreen() {
   const colorScheme = useColorScheme();
@@ -85,9 +92,7 @@ export default function FacultyScreen() {
       <FacultyCard
         faculty={item}
         onPress={() => handleFacultyPress(item)}
-        matchedFields={
-          isSearching ? searchMatchMap.get(item.id) : undefined
-        }
+        matchedFields={isSearching ? searchMatchMap.get(item.id) : undefined}
       />
     ),
     [handleFacultyPress, isSearching, searchMatchMap],
@@ -95,16 +100,16 @@ export default function FacultyScreen() {
 
   const keyExtractor = useCallback((item: Faculty) => item.id, []);
 
-  const ItemSeparator = useCallback(
-    () => <View style={styles.separator} />,
-    [],
-  );
+  const ItemSeparator = useCallback(() => <View className="h-2" />, []);
 
   return (
     <Container>
       {/* fixed search header - outside FlatList to prevent keyboard dismiss */}
       <View className="px-4 pt-4">
-        <Text className="mb-4 text-[28px] font-bold" style={{ color: theme.text }}>
+        <Text
+          className="mb-4 text-[28px] font-bold"
+          style={{ color: theme.text }}
+        >
           Faculty
         </Text>
 
@@ -118,9 +123,16 @@ export default function FacultyScreen() {
           <Ionicons name="search" size={18} color={theme.textSecondary} />
           <TextInput
             ref={inputRef}
-            className="h-full flex-1 text-[15px]"
-            style={{ color: theme.text }}
-            placeholder="Search by name, phone, qualification, room, or expertise..."
+            className="h-10 flex-1 py-0 text-[15px]"
+            style={{
+              color: theme.text,
+              textAlignVertical: "center",
+              includeFontPadding: false,
+              lineHeight: 18,
+              paddingTop: 0,
+              paddingBottom: 0,
+            }}
+            placeholder="Search by name, room, qualification"
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -152,7 +164,10 @@ export default function FacultyScreen() {
                 Recent Searches
               </Text>
               <Pressable onPress={clearRecentSearches} hitSlop={8}>
-                <Text className="text-[13px] font-medium" style={{ color: Colors.status.danger }}>
+                <Text
+                  className="text-[13px] font-medium"
+                  style={{ color: Colors.status.danger }}
+                >
                   Clear
                 </Text>
               </Pressable>
@@ -163,7 +178,9 @@ export default function FacultyScreen() {
                   key={query}
                   className="flex-row items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-1.5"
                   style={{
-                    backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200],
+                    backgroundColor: isDark
+                      ? Colors.gray[800]
+                      : Colors.gray[200],
                   }}
                   onPress={() => handleRecentSearchPress(query)}
                 >
@@ -222,7 +239,7 @@ export default function FacultyScreen() {
         data={displayData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        contentContainerClassName="px-4 pb-8"
         ItemSeparatorComponent={ItemSeparator}
         keyboardShouldPersistTaps="always"
         removeClippedSubviews={true}
@@ -236,7 +253,10 @@ export default function FacultyScreen() {
                 size={48}
                 color={theme.textSecondary}
               />
-              <Text className="text-center text-sm" style={{ color: theme.textSecondary }}>
+              <Text
+                className="text-center text-sm"
+                style={{ color: theme.textSecondary }}
+              >
                 No faculty found for &quot;{searchQuery}&quot;
               </Text>
             </View>
@@ -246,7 +266,3 @@ export default function FacultyScreen() {
     </Container>
   );
 }
-
-const styles = {
-  separator: { height: 8 },
-};

@@ -66,15 +66,6 @@ const formatDetailedRelativeTime = (timestamp: number, nowMs: number): string =>
   return formatRelativeTimeWithSeconds(timestamp, nowMs);
 };
 
-const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-};
-
 const formatTime = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
   return date.toLocaleTimeString("en-US", {
@@ -193,7 +184,7 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
             style={{ color: theme.textSecondary }}
             numberOfLines={1}
           >
-            {formatDate(event.timesort)} at {formatTime(event.timesort)}
+            {formatTime(event.timesort)}
           </Text>
         </View>
 
