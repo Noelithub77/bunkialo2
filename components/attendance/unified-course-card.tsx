@@ -257,8 +257,16 @@ export function UnifiedCourseCard({
   );
 
   const unknownCount = unresolvedUnknown.length;
+  const correctedPresentCount = useMemo(
+    () =>
+      bunkData
+        ? filterPastBunks(bunkData.bunks).filter((bunk) => bunk.isMarkedPresent)
+            .length
+        : 0,
+    [bunkData],
+  );
   // unknown ("?") defaults to present unless user explicitly confirms absent
-  const attended = confirmedPresentCount + unknownCount;
+  const attended = confirmedPresentCount + unknownCount + correctedPresentCount;
   const percentage =
     totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
   const percentageColor = getPercentageColor(percentage);

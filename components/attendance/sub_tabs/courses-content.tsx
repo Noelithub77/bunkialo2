@@ -7,6 +7,7 @@ import { useCourseActions } from "@/hooks/use-course-actions";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
 import {
+  filterPastBunks,
   getDisplayName,
   selectAllDutyLeaves,
   useBunkStore,
@@ -100,7 +101,11 @@ const getEffectiveCoursePercentage = (
   const unknownCount = displayRecords.filter(
     (record) => record.status === "Unknown",
   ).length;
-  const attended = confirmedPresentCount + unknownCount;
+  const correctedPresentCount = bunkData
+    ? filterPastBunks(bunkData.bunks).filter((bunk) => bunk.isMarkedPresent)
+        .length
+    : 0;
+  const attended = confirmedPresentCount + unknownCount + correctedPresentCount;
 
   return Math.round((attended / totalSessions) * 100);
 };
