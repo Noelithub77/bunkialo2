@@ -17,6 +17,7 @@
     },
     "android": {
       "versionCode": 27,
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": ["RECEIVE_BOOT_COMPLETED"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -35,6 +36,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-build-properties",
       [
         "expo-splash-screen",
         {

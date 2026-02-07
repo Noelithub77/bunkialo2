@@ -8,43 +8,23 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
-  Keyboard,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import {
+  KeyboardAwareScrollView,
+  KeyboardProvider,
+} from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const { login, isLoading, error, setError } = useAuthStore();
-  const scrollRef = useRef<ScrollView>(null);
   const heroProgress = useRef(new Animated.Value(0)).current;
   const cardProgress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const showListener = Keyboard.addListener(showEvent, () => {
-      setIsKeyboardVisible(true);
-    });
-    const hideListener = Keyboard.addListener(hideEvent, () => {
-      setIsKeyboardVisible(false);
-    });
-
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-  }, []);
 
   useEffect(() => {
     heroProgress.setValue(0);
@@ -66,12 +46,6 @@ export default function LoginScreen() {
       }),
     ]).start();
   }, [cardProgress, heroProgress]);
-
-  const scrollToForm = () => {
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
-  };
 
   const clearErrorIfNeeded = () => {
     if (error) {
@@ -145,19 +119,13 @@ export default function LoginScreen() {
       />
       <View className="absolute inset-0 bg-black/28" />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
-        className="flex-1"
-      >
+      <KeyboardProvider>
         <SafeAreaView className="flex-1 px-6 pb-8" edges={["top", "bottom"]}>
-          <ScrollView
-            ref={scrollRef}
+          <KeyboardAwareScrollView
             className="flex-1"
-            contentContainerStyle={[
-              styles.scrollContent,
-              isKeyboardVisible && styles.scrollContentKeyboard,
-            ]}
+            contentContainerStyle={styles.scrollContent}
+            bottomOffset={24}
+            extraKeyboardSpace={32}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={
               Platform.OS === "ios" ? "interactive" : "on-drag"
@@ -188,19 +156,13 @@ export default function LoginScreen() {
                   className="rounded-[32px] border border-zinc-700/55 bg-[#080808]/80 p-6"
                   style={styles.formCard}
                 >
-                  <View className="mb-6">
-                    <Text className="text-sm text-zinc-400">
-                      Sign in with your LMS creds.
-                    </Text>
-                  </View>
-
                   <View className="gap-4">
                     <View className="gap-2">
                       <Text className="ml-1 text-xs font-medium uppercase tracking-[2px] text-zinc-400">
                         Roll Number
                       </Text>
                       <Input
-                        placeholder="Enter your lms username"
+                        placeholder="lms username"
                         value={username}
                         onChangeText={handleUsernameChange}
                         autoCapitalize="none"
@@ -211,7 +173,6 @@ export default function LoginScreen() {
                         placeholderTextColor="#71717A"
                         style={styles.input}
                         returnKeyType="next"
-                        onFocus={scrollToForm}
                         blurOnSubmit={false}
                       />
                     </View>
@@ -221,7 +182,7 @@ export default function LoginScreen() {
                         Password
                       </Text>
                       <Input
-                        placeholder="Enter your lms password"
+                        placeholder="lms password"
                         value={password}
                         onChangeText={handlePasswordChange}
                         secureTextEntry
@@ -233,7 +194,6 @@ export default function LoginScreen() {
                         placeholderTextColor="#71717A"
                         style={styles.input}
                         returnKeyType="go"
-                        onFocus={scrollToForm}
                         onSubmitEditing={() => {
                           if (canSubmit) {
                             void handleLogin();
@@ -269,9 +229,9 @@ export default function LoginScreen() {
                 </View>
               </Animated.View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
-      </KeyboardAvoidingView>
+      </KeyboardProvider>
     </View>
   );
 }
@@ -302,10 +262,5 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingVertical: 28,
-  },
-  scrollContentKeyboard: {
-    justifyContent: "flex-start",
-    paddingTop: 20,
-    paddingBottom: 24,
   },
 });
