@@ -110,7 +110,7 @@ export default function LoginScreen() {
       <StatusBar style="light" />
       <GrainyGradient
         colors={["#111113", "#1B1B20", "#26262C", "#16161A"]}
-        speed={3}
+        speed={3.2}
         intensity={0.13}
         size={1.8}
         amplitude={0.16}
