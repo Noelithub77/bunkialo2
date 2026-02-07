@@ -167,8 +167,12 @@ export default function LoginScreen() {
                         onChangeText={handleUsernameChange}
                         autoCapitalize="none"
                         autoCorrect={false}
-                        autoComplete="username"
-                        textContentType="username"
+                        autoComplete={
+                          Platform.OS === "android" ? "username" : undefined
+                        }
+                        textContentType={
+                          Platform.OS === "ios" ? "username" : "none"
+                        }
                         importantForAutofill="yes"
                         placeholderTextColor="#71717A"
                         style={styles.input}
@@ -188,8 +192,14 @@ export default function LoginScreen() {
                         secureTextEntry
                         autoCapitalize="none"
                         autoCorrect={false}
-                        autoComplete="password"
-                        textContentType="password"
+                        autoComplete={
+                          Platform.OS === "android"
+                            ? "current-password"
+                            : undefined
+                        }
+                        textContentType={
+                          Platform.OS === "ios" ? "password" : "none"
+                        }
                         importantForAutofill="yes"
                         placeholderTextColor="#71717A"
                         style={styles.input}
