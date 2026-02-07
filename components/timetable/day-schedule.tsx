@@ -13,6 +13,31 @@ interface DayScheduleProps {
   selectedDay: DayOfWeek;
 }
 
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const formatBreakDuration = (gapMinutes: number): string => {
+  if (gapMinutes < 60) {
+    return `${gapMinutes}m`;
+  }
+
+  const hours = Math.floor(gapMinutes / 60);
+  const minutes = gapMinutes % 60;
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${minutes}m`;
+};
+
+const getGapSpacing = (gapMinutes: number): number => {
+  if (gapMinutes <= 5) return 3;
+  if (gapMinutes <= 20) return 7;
+  if (gapMinutes <= 60) return 11;
+  return 16;
+};
+
 export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -37,9 +62,24 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
   };
 
   const daySlots = useMemo(() => {
-    return slots
+    const sortedSlots = slots
       .filter((s) => s.dayOfWeek === selectedDay)
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    return sortedSlots.map((slot, index) => {
+      const previousSlot = sortedSlots[index - 1];
+      const gapMinutes = previousSlot
+        ? Math.max(
+            0,
+            timeToMinutes(slot.startTime) - timeToMinutes(previousSlot.endTime),
+          )
+        : 0;
+
+      return {
+        slot,
+        gapMinutes,
+      };
+    });
   }, [slots, selectedDay]);
 
   const now = new Date();
@@ -62,98 +102,115 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
   }
 
   return (
-    <View className="gap-1 pt-1">
-      {daySlots.map((slot, index) => {
+    <View className="pt-1">
+      {daySlots.map(({ slot, gapMinutes }, index) => {
         const courseColor = getCourseColor(slot.courseId);
         const isNow =
           isToday &&
           currentTime >= slot.startTime &&
           currentTime < slot.endTime;
         const isPast = isToday && currentTime >= slot.endTime;
+        const shouldShowBreak = index > 0 && gapMinutes >= 30;
+        const rowTopSpacing =
+          index === 0 ? 2 : shouldShowBreak ? 8 : getGapSpacing(gapMinutes);
         const sessionLabel =
           slot.sessionType.charAt(0).toUpperCase() + slot.sessionType.slice(1);
 
         return (
-          <View
-            key={slot.id}
-            className="flex-row items-start min-h-[66px]"
-            style={index === 0 ? { marginTop: 2 } : undefined}
-          >
-            {/* time column */}
-            <View className="w-14 items-end pr-2 pt-0.5">
-              <Text
-                className="text-[11px] font-medium"
-                style={{ color: isPast ? theme.textSecondary : theme.text }}
-              >
-                {formatTimeDisplay(slot.startTime)}
-              </Text>
-              <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
-                -
-              </Text>
-              <Text
-                className="text-[11px] font-medium"
-                style={{ color: isPast ? theme.textSecondary : theme.textSecondary }}
-              >
-                {formatTimeDisplay(slot.endTime)}
-              </Text>
-            </View>
-
-            {/* timeline indicator */}
-            <View className="w-5 items-center">
-              <View
-                className="mt-1 h-2.5 w-2.5 rounded-full"
-                style={[
-                  {
-                    backgroundColor: isNow
-                      ? Colors.status.success
-                      : courseColor,
-                  },
-                  isPast && { opacity: 0.4 },
-                ]}
-              />
-              {index < daySlots.length - 1 && (
-                <View
-                  className="mt-0.5 w-0.5 flex-1"
-                  style={{ backgroundColor: theme.border }}
-                />
-              )}
-            </View>
-
-            {/* slot card */}
-            <View
-              className="ml-1 flex-1 overflow-hidden rounded-xl"
-              style={[
-                { borderLeftColor: courseColor, borderLeftWidth: 3 },
-                isNow && { borderWidth: 1, borderColor: Colors.status.success },
-                !isNow && { borderWidth: 1, borderColor: theme.border },
-                isNow && isDark && { shadowColor: courseColor, shadowOpacity: 0.35, shadowRadius: 10 },
-              ]}
-            >
-              <LinearGradient
-                colors={getSlotGradient(courseColor, isPast)}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="px-3 py-2.5"
-              >
-                <View className="flex-row items-center justify-between gap-2">
+          <View key={slot.id}>
+            {shouldShowBreak && (
+              <View className="flex-row items-center" style={{ marginTop: 2 }}>
+                <View className="w-[76px] items-end pr-3">
                   <Text
-                    className="flex-1 text-sm font-semibold"
-                    style={{ color: isPast ? theme.textSecondary : theme.text }}
-                    numberOfLines={1}
+                    className="text-[10px] font-medium"
+                    style={{ color: theme.textSecondary }}
                   >
-                    {slot.courseName}
+                    Break
                   </Text>
-                  {isNow && (
-                    <View
-                      className="rounded-lg px-1.5 py-0.5"
-                      style={{ backgroundColor: Colors.status.success }}
-                    >
-                      <Text className="text-[9px] font-bold text-white">NOW</Text>
-                    </View>
-                  )}
                 </View>
-                <View className="mt-1">
-                  <View className="flex-row flex-wrap items-center gap-1">
+                <View className="flex-1 flex-row items-center">
+                  <View
+                    className="h-px flex-1"
+                    style={{ backgroundColor: theme.border }}
+                  />
+                  <View
+                    className="mx-2 rounded-full border px-2 py-0.5"
+                    style={{
+                      backgroundColor: theme.backgroundSecondary,
+                      borderColor: theme.border,
+                    }}
+                  >
+                    <Text
+                      className="text-[10px] font-medium"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      {formatBreakDuration(gapMinutes)}
+                    </Text>
+                  </View>
+                  <View
+                    className="h-px flex-1"
+                    style={{ backgroundColor: theme.border }}
+                  />
+                </View>
+              </View>
+            )}
+
+            <View className="flex-row items-start" style={{ marginTop: rowTopSpacing }}>
+              {/* time column */}
+              <View className="w-[76px] items-end pr-3 pt-0.5">
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{ color: isPast ? theme.textSecondary : theme.text }}
+                >
+                  {formatTimeDisplay(slot.startTime)}
+                </Text>
+                <Text
+                  className="text-[11px]"
+                  style={{ color: theme.textSecondary }}
+                >
+                  {formatTimeDisplay(slot.endTime)}
+                </Text>
+              </View>
+
+              {/* slot card */}
+              <View
+                className="ml-0.5 flex-1 overflow-hidden rounded-2xl"
+                style={[
+                  { borderLeftColor: courseColor, borderLeftWidth: 3 },
+                  isNow && { borderWidth: 1, borderColor: Colors.status.success },
+                  !isNow && { borderWidth: 1, borderColor: theme.border },
+                  isNow &&
+                    isDark && {
+                      shadowColor: courseColor,
+                      shadowOpacity: 0.35,
+                      shadowRadius: 10,
+                    },
+                ]}
+              >
+                <LinearGradient
+                  colors={getSlotGradient(courseColor, isPast)}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  className="px-3.5 py-2.5"
+                >
+                  <View className="flex-row items-center justify-between gap-2">
+                    <Text
+                      className="flex-1 text-[16px] font-semibold"
+                      style={{ color: isPast ? theme.textSecondary : theme.text }}
+                      numberOfLines={1}
+                    >
+                      {slot.courseName}
+                    </Text>
+                    {isNow && (
+                      <View
+                        className="rounded-lg px-1.5 py-0.5"
+                        style={{ backgroundColor: Colors.status.success }}
+                      >
+                        <Text className="text-[9px] font-bold text-white">NOW</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View className="mt-2 flex-row flex-wrap items-center gap-1">
                     <View
                       className="rounded-lg px-2 py-0.5"
                       style={{ backgroundColor: theme.backgroundSecondary + "DD" }}
@@ -192,8 +249,8 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                       </View>
                     )}
                   </View>
-                </View>
-              </LinearGradient>
+                </LinearGradient>
+              </View>
             </View>
           </View>
         );

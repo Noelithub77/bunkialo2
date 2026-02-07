@@ -221,7 +221,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     }
 
     return (
-      <View className="py-1.5" style={{ width: CARD_WIDTH }}>
+      <View className="py-0.5" style={{ width: CARD_WIDTH }}>
         <LinearGradient
           colors={gradientColors}
           locations={[0, 0.45, 1]}
@@ -372,7 +372,7 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       />
 
       {/* pagination dots */}
-      <View className="mt-2 flex-row justify-center gap-1.5">
+      <View className="mt-1.5 flex-row justify-center gap-1.5">
         {nearbySlots.map((_, index) => (
           <View
             key={index}

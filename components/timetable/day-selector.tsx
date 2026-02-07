@@ -28,7 +28,10 @@ export function DaySelector({ selectedDay, onSelect }: DaySelectorProps) {
   };
 
   return (
-    <View className="flex-row gap-2 py-2">
+    <View
+      className="mt-2 flex-row rounded-2xl p-1"
+      style={{ backgroundColor: theme.backgroundSecondary }}
+    >
       {DAYS.map(({ day, label }) => {
         const isSelected = day === selectedDay;
         const isToday = day === new Date().getDay();
@@ -42,10 +45,10 @@ export function DaySelector({ selectedDay, onSelect }: DaySelectorProps) {
               {
                 backgroundColor: isSelected
                   ? theme.text
-                  : theme.backgroundSecondary,
+                  : "transparent",
               },
               isToday &&
-                !isSelected && { borderColor: theme.text, borderWidth: 1 },
+                !isSelected && { borderColor: theme.border, borderWidth: 1 },
             ]}
           >
             <Text

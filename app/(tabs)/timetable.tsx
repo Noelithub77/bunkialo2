@@ -177,18 +177,21 @@ export default function TimetableScreen() {
         {slots.length > 0 && (
           <>
             {/* up next carousel */}
-            <View className="mt-6">
-              <Text className="text-base font-semibold mb-2" style={{ color: theme.text }}>
+            <View className="mt-3">
+              <Text
+                className="mb-2 text-base font-semibold tracking-[0.2px]"
+                style={{ color: theme.text }}
+              >
                 Up Next
               </Text>
               <UpNextCarousel slots={slots} />
             </View>
 
             {/* day schedule */}
-            <View className="mt-6">
+            <View className="mt-4">
               <View className="flex-row items-center justify-between">
                 <Text
-                  className="text-base font-semibold"
+                  className="text-base font-semibold tracking-[0.2px]"
                   style={{ color: theme.text }}
                 >
                   Schedule

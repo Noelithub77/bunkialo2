@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { MEAL_COLORS, type Meal } from "@/data/mess";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useBunkStore } from "@/stores/bunk-store";
 import { formatTimeDisplay } from "@/stores/timetable-store";
 import type { TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ export function QuickGlanceCard({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const bunkCourses = useBunkStore((state) => state.courses);
 
   if (!data) {
     return (
@@ -50,8 +52,12 @@ export function QuickGlanceCard({
   const isClass = type === "class";
   const classData = isClass ? (data as TimetableSlot) : null;
   const mealData = !isClass ? (data as Meal) : null;
+  const classAccentColor =
+    classData &&
+    bunkCourses.find((course) => course.courseId === classData.courseId)?.config
+      ?.color;
   const mealAccentColor = mealData ? MEAL_COLORS[mealData.type] : Colors.status.success;
-  const accentColor = isClass ? Colors.status.info : mealAccentColor;
+  const accentColor = isClass ? (classAccentColor ?? Colors.status.info) : mealAccentColor;
 
   return (
     <Pressable
