@@ -60,8 +60,7 @@
     },
     "runtimeVersion": "0.1.0",
     "updates": {
-      "url": "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
-      "assetPatternsToBeBundled": ["assets/**/*"]
+      "url": "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63"
     }
   }
 }
