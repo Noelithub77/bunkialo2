@@ -30,6 +30,10 @@ interface SwipeableAttendanceSlotProps {
 
 const SWIPE_THRESHOLD = 80;
 const ACTION_WIDTH = 80;
+const SWIPE_ACTIVE_OFFSET_X: [number, number] = [-10, 10];
+const SWIPE_FAIL_OFFSET_Y: [number, number] = [-15, 15];
+const ACTION_OPACITY_THRESHOLD = 20;
+type IoniconName = keyof typeof Ionicons.glyphMap;
 
 // status colors
 const getStatusColor = (status: AttendanceStatus): string => {
@@ -47,7 +51,7 @@ const getStatusColor = (status: AttendanceStatus): string => {
   }
 };
 
-const getStatusIcon = (status: AttendanceStatus): string => {
+const getStatusIcon = (status: AttendanceStatus): IoniconName => {
   switch (status) {
     case "Present":
       return "checkmark";
@@ -102,8 +106,8 @@ export function SwipeableAttendanceSlot({
   };
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-15, 15])
+    .activeOffsetX(SWIPE_ACTIVE_OFFSET_X)
+    .failOffsetY(SWIPE_FAIL_OFFSET_Y)
     .onUpdate((e) => {
       translateX.value = Math.max(
         -ACTION_WIDTH,
@@ -124,11 +128,15 @@ export function SwipeableAttendanceSlot({
   }));
 
   const leftActionStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(translateX.value < -20 ? 1 : 0, { duration: 150 }),
+    opacity: withTiming(translateX.value < -ACTION_OPACITY_THRESHOLD ? 1 : 0, {
+      duration: 150,
+    }),
   }));
 
   const rightActionStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(translateX.value > 20 ? 1 : 0, { duration: 150 }),
+    opacity: withTiming(translateX.value > ACTION_OPACITY_THRESHOLD ? 1 : 0, {
+      duration: 150,
+    }),
   }));
 
   const statusColor = getStatusColor(record.status);
@@ -230,7 +238,7 @@ export function SwipeableAttendanceSlot({
                 style={{ backgroundColor: statusColor }}
               >
                 <Ionicons
-                  name={statusIcon as any}
+                  name={statusIcon}
                   size={12}
                   color={Colors.white}
                 />

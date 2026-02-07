@@ -6,18 +6,21 @@ import {
   type MealType,
 } from "@/data/mess";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useGestureUiStore } from "@/stores/gesture-ui-store";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
-  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   Text,
   View,
   type ViewToken,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.65;
@@ -36,20 +39,23 @@ export function MealCarousel() {
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
   const flatListRef = useRef<FlatList>(null);
+  const setHorizontalContentGestureActive = useGestureUiStore(
+    (state) => state.setHorizontalContentGestureActive,
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>(null);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
   // recompute time on focus
-  const [focusKey, setFocusKey] = useState(0);
+  const [, setFocusKey] = useState(0);
   useFocusEffect(
     useCallback(() => {
       setFocusKey((k) => k + 1);
     }, []),
   );
 
-  const now = useMemo(() => new Date(), [focusKey]);
-  const { meals, initialIndex } = useMemo(() => getNearbyMeals(now), [now]);
+  const now = new Date();
+  const { meals, initialIndex } = getNearbyMeals(now);
 
   const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
@@ -70,6 +76,20 @@ export function MealCarousel() {
       });
     }, 2000);
   }, [initialIndex]);
+
+  const clearSnapTimer = useCallback(() => {
+    if (snapTimerRef.current) {
+      clearTimeout(snapTimerRef.current);
+      snapTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearSnapTimer();
+      setHorizontalContentGestureActive(false);
+    };
+  }, [clearSnapTimer, setHorizontalContentGestureActive]);
 
   // Initialize activeIndex to match initialIndex to prevent jitter
   useEffect(() => {
@@ -94,7 +114,7 @@ export function MealCarousel() {
         }
       }
     },
-    [activeIndex, resetSnapTimer],
+    [activeIndex, hasInitialScrolled, resetSnapTimer],
   );
 
   if (meals.length === 0) {
@@ -253,6 +273,9 @@ export function MealCarousel() {
         renderItem={renderCard}
         keyExtractor={(item) => item.type}
         horizontal
+        directionalLockEnabled
+        nestedScrollEnabled
+        scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         decelerationRate="fast"
@@ -266,7 +289,18 @@ export function MealCarousel() {
           offset: (CARD_WIDTH + CARD_SPACING) * index,
           index,
         })}
+        onScrollBeginDrag={() => {
+          clearSnapTimer();
+          setHorizontalContentGestureActive(true);
+        }}
+        onScrollEndDrag={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const velocityX = event.nativeEvent.velocity?.x ?? 0;
+          if (Math.abs(velocityX) < 0.01) {
+            setHorizontalContentGestureActive(false);
+          }
+        }}
         onMomentumScrollEnd={() => {
+          setHorizontalContentGestureActive(false);
           if (!hasInitialScrolled) {
             setHasInitialScrolled(true);
           } else {

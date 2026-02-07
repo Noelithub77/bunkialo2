@@ -9,11 +9,11 @@ import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
 // parse date for display
@@ -37,6 +37,9 @@ interface SwipeableBunkItemProps {
 
 const SWIPE_THRESHOLD = 80;
 const ACTION_WIDTH = 80;
+const SWIPE_ACTIVE_OFFSET_X: [number, number] = [-10, 10];
+const SWIPE_FAIL_OFFSET_Y: [number, number] = [-15, 15];
+const ACTION_OPACITY_THRESHOLD = 20;
 
 export function SwipeableBunkItem({
   bunk,
@@ -88,7 +91,8 @@ export function SwipeableBunkItem({
   };
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
+    .activeOffsetX(SWIPE_ACTIVE_OFFSET_X)
+    .failOffsetY(SWIPE_FAIL_OFFSET_Y)
     .onUpdate((e) => {
       // clamp translation
       translateX.value = Math.max(
@@ -112,11 +116,15 @@ export function SwipeableBunkItem({
   }));
 
   const leftActionStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(translateX.value < -20 ? 1 : 0, { duration: 150 }),
+    opacity: withTiming(translateX.value < -ACTION_OPACITY_THRESHOLD ? 1 : 0, {
+      duration: 150,
+    }),
   }));
 
   const rightActionStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(translateX.value > 20 ? 1 : 0, { duration: 150 }),
+    opacity: withTiming(translateX.value > ACTION_OPACITY_THRESHOLD ? 1 : 0, {
+      duration: 150,
+    }),
   }));
 
   // determine item state styling

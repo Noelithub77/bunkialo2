@@ -6,9 +6,9 @@ import { useBunkStore } from "@/stores/bunk-store";
 import type { AttendanceRecord, MarkedDates } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ScrollView } from "react-native-gesture-handler";
 
 interface AbsenceInfo {
   courseId: string;
@@ -197,58 +197,56 @@ export function TotalAbsenceCalendar({
 
       {/* selected date absences - swipeable */}
       {selectedDate && selectedAbsences.length > 0 && (
-        <GestureHandlerRootView className="flex-1">
-          <View className="mt-4 border-t pt-4" style={{ borderTopColor: theme.border }}>
-            <Text className="mb-1 text-[14px] font-semibold" style={{ color: theme.text }}>
-              {new Date(selectedDate).toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
-            </Text>
-            <Text className="mb-2 text-[10px] opacity-60" style={{ color: theme.textSecondary }}>
-              Swipe left = Present · Swipe right = DL/Absent
-            </Text>
-            <ScrollView
-              className="max-h-[250px]"
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-              {selectedAbsences.map((absence, idx) => (
-                <View key={idx} className="mb-2">
-                  <Text
-                    className="mb-0.5 text-[11px] font-semibold"
-                    style={{ color: absence.courseColor }}
-                  >
-                    {absence.courseName}
-                  </Text>
-                  <SwipeableAttendanceSlot
-                    record={absence.record}
-                    timeSlot={absence.timeSlot}
-                    courseColor={absence.courseColor}
-                    isDutyLeave={absence.isDutyLeave}
-                    isMarkedPresent={absence.isMarkedPresent}
-                    attendanceModuleId={absence.attendanceModuleId}
-                    onMarkPresent={() => {
-                      if (absence.isMarkedPresent && absence.bunkId) {
-                        onRemovePresent?.(absence.courseId, absence.bunkId);
-                      } else {
-                        onMarkPresent?.(absence.courseId, absence.record);
-                      }
-                    }}
-                    onMarkDL={() => {
-                      if (absence.isDutyLeave && absence.bunkId) {
-                        onRemoveDL?.(absence.courseId, absence.bunkId);
-                      } else {
-                        onMarkDL?.(absence.courseId, absence.record);
-                      }
-                    }}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </GestureHandlerRootView>
+        <View className="mt-4 border-t pt-4" style={{ borderTopColor: theme.border }}>
+          <Text className="mb-1 text-[14px] font-semibold" style={{ color: theme.text }}>
+            {new Date(selectedDate).toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })}
+          </Text>
+          <Text className="mb-2 text-[10px] opacity-60" style={{ color: theme.textSecondary }}>
+            Swipe left = Present · Swipe right = DL/Absent
+          </Text>
+          <ScrollView
+            className="max-h-[250px]"
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {selectedAbsences.map((absence, idx) => (
+              <View key={idx} className="mb-2">
+                <Text
+                  className="mb-0.5 text-[11px] font-semibold"
+                  style={{ color: absence.courseColor }}
+                >
+                  {absence.courseName}
+                </Text>
+                <SwipeableAttendanceSlot
+                  record={absence.record}
+                  timeSlot={absence.timeSlot}
+                  courseColor={absence.courseColor}
+                  isDutyLeave={absence.isDutyLeave}
+                  isMarkedPresent={absence.isMarkedPresent}
+                  attendanceModuleId={absence.attendanceModuleId}
+                  onMarkPresent={() => {
+                    if (absence.isMarkedPresent && absence.bunkId) {
+                      onRemovePresent?.(absence.courseId, absence.bunkId);
+                    } else {
+                      onMarkPresent?.(absence.courseId, absence.record);
+                    }
+                  }}
+                  onMarkDL={() => {
+                    if (absence.isDutyLeave && absence.bunkId) {
+                      onRemoveDL?.(absence.courseId, absence.bunkId);
+                    } else {
+                      onMarkDL?.(absence.courseId, absence.record);
+                    }
+                  }}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {selectedDate && selectedAbsences.length === 0 && (

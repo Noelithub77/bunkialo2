@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useGestureUiStore } from "@/stores/gesture-ui-store";
 import { Ionicons } from "@expo/vector-icons";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { withLayoutContext } from "expo-router";
@@ -13,6 +14,9 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const isHorizontalContentGestureActive = useGestureUiStore(
+    (state) => state.isHorizontalContentGestureActive,
+  );
   const insets = useSafeAreaInsets();
   const tabLabelStyle = { fontSize: 12, lineHeight: 16 };
   const iconSize = 22;
@@ -48,7 +52,7 @@ export default function TabLayout() {
           paddingBottom: insets.bottom,
           paddingTop: 2,
         },
-        swipeEnabled: true,
+        swipeEnabled: !isHorizontalContentGestureActive,
       }}
     >
       {/* left side: faculty, timetable */}

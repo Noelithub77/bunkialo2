@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
+import { useGestureUiStore } from "@/stores/gesture-ui-store";
 import {
   formatTimeDisplay,
   getDayName,
@@ -14,11 +15,13 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
-  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Text,
   View,
   type ViewToken,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 
 interface UpNextCarouselProps {
   slots: TimetableSlot[];
@@ -35,6 +38,9 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   const theme = isDark ? Colors.dark : Colors.light;
   const bunkCourses = useBunkStore((state) => state.courses);
   const flatListRef = useRef<FlatList>(null);
+  const setHorizontalContentGestureActive = useGestureUiStore(
+    (state) => state.setHorizontalContentGestureActive,
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
@@ -108,6 +114,20 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       });
     }, 2000);
   }, [nearbySlots.length, initialScrollIndex]);
+
+  const clearSnapTimer = useCallback(() => {
+    if (snapTimerRef.current) {
+      clearTimeout(snapTimerRef.current);
+      snapTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearSnapTimer();
+      setHorizontalContentGestureActive(false);
+    };
+  }, [clearSnapTimer, setHorizontalContentGestureActive]);
 
   // Initialize activeIndex to match initialScrollIndex to prevent jitter
   useEffect(() => {
@@ -305,17 +325,16 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   };
 
   return (
-    <View
-      className="items-center"
-      onStartShouldSetResponderCapture={() => true}
-      onMoveShouldSetResponderCapture={() => true}
-    >
+    <View className="items-center">
       <FlatList
         ref={flatListRef}
         data={nearbySlots}
         renderItem={renderCard}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         horizontal
+        directionalLockEnabled
+        nestedScrollEnabled
+        scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         snapToAlignment="start"
@@ -332,7 +351,18 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
           offset: (CARD_WIDTH + CARD_SPACING) * index,
           index,
         })}
+        onScrollBeginDrag={() => {
+          clearSnapTimer();
+          setHorizontalContentGestureActive(true);
+        }}
+        onScrollEndDrag={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const velocityX = event.nativeEvent.velocity?.x ?? 0;
+          if (Math.abs(velocityX) < 0.01) {
+            setHorizontalContentGestureActive(false);
+          }
+        }}
         onMomentumScrollEnd={() => {
+          setHorizontalContentGestureActive(false);
           if (!hasInitialScrolled) {
             setHasInitialScrolled(true);
           } else {

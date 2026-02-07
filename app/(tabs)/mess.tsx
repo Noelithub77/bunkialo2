@@ -5,7 +5,8 @@ import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useState } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, Text, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 
 export default function MessScreen() {
   const colorScheme = useColorScheme();

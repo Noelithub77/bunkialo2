@@ -19,10 +19,10 @@ import {
   InteractionManager,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   View,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { FAB, Portal } from "react-native-paper";
 
 export default function TimetableScreen() {
@@ -177,11 +177,7 @@ export default function TimetableScreen() {
         {slots.length > 0 && (
           <>
             {/* up next carousel */}
-            <View
-              className="mt-6"
-              onStartShouldSetResponderCapture={() => true}
-              onMoveShouldSetResponderCapture={() => true}
-            >
+            <View className="mt-6">
               <Text className="text-base font-semibold mb-2" style={{ color: theme.text }}>
                 Up Next
               </Text>
