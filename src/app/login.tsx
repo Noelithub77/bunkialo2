@@ -33,14 +33,14 @@ export default function LoginScreen() {
     Animated.parallel([
       Animated.timing(heroProgress, {
         toValue: 1,
-        duration: 220,
+        duration: 150,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(cardProgress, {
         toValue: 1,
-        duration: 280,
-        delay: 60,
+        duration: 190,
+        delay: 30,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -110,10 +110,10 @@ export default function LoginScreen() {
       <StatusBar style="light" />
       <GrainyGradient
         colors={["#111113", "#1B1B20", "#26262C", "#16161A"]}
-        speed={1.95}
+        speed={3}
         intensity={0.13}
         size={1.8}
-        amplitude={0.14}
+        amplitude={0.16}
         brightness={0.02}
         style={styles.absoluteFill}
       />
