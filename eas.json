@@ -6,21 +6,24 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "channel": "production"
+      "channel": "production",
+      "bun": "1.3.8"
     },
     "preview": {
       "autoIncrement": true,
       "channel": "production",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "bun": "1.3.8"
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "bun": "1.3.8"
     }
   },
   "submit": {
