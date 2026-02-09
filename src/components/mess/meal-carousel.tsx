@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import {
+  MEAL_COLORS,
   MEAL_TIMES,
   getNearbyMeals,
   type Meal,
@@ -162,7 +163,7 @@ export function MealCarousel() {
 
     let statusColor = theme.text;
     let statusText = MEAL_TIMES[item.type].name;
-    let borderColor: string | undefined;
+    let borderColor: string | undefined = MEAL_COLORS[item.type];
     let cardOpacity = 1;
 
     if (isCurrentlyActive) {
@@ -170,9 +171,9 @@ export function MealCarousel() {
       statusText = "Now";
       borderColor = Colors.status.success;
     } else if (isNextMeal) {
-      statusColor = Colors.status.unknown;
+      statusColor = MEAL_COLORS[item.type];
       statusText = "Next";
-      borderColor = Colors.status.unknown;
+      borderColor = MEAL_COLORS[item.type];
     } else if (isFinished) {
       statusColor = theme.textSecondary;
       statusText = "Done";
