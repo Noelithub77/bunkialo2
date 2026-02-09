@@ -22,7 +22,7 @@ import { useEffect, useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { FAB, Portal } from "react-native-paper";
 
-const VIEW_MODES: ViewMode[] = ["calendar", "upnext"];
+const VIEW_MODES: ViewMode[] = ["upnext", "calendar"];
 
 export default function AcademicCalendarScreen() {
   const colorScheme = useColorScheme();

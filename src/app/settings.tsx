@@ -125,6 +125,8 @@ export default function SettingsScreen() {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showWifixIntervalModal, setShowWifixIntervalModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showNotificationPermissionModal, setShowNotificationPermissionModal] =
+    useState(false);
   const [availableUpdateInfo, setAvailableUpdateInfo] = useState<{
     message?: string;
     updateId?: string;
@@ -271,12 +273,7 @@ export default function SettingsScreen() {
       const hasPermission =
         await requestNotificationPermissionsWithExplanation();
       if (!hasPermission) {
-        setInfoModalContent({
-          title: "Permission Required",
-          message:
-            "Notifications are needed to remind you about upcoming assignments and deadlines. Please enable them in your device settings.",
-        });
-        setShowInfoModal(true);
+        setShowNotificationPermissionModal(true);
         return;
       }
 
@@ -307,6 +304,11 @@ export default function SettingsScreen() {
     } finally {
       setIsTestingNotification(false);
     }
+  };
+
+  const handleRetryNotificationPermission = () => {
+    setShowNotificationPermissionModal(false);
+    void handleTestNotification();
   };
 
   return (
@@ -740,6 +742,16 @@ export default function SettingsScreen() {
         icon="cloud-download-outline"
         onCancel={() => setShowUpdateModal(false)}
         onConfirm={handleUpdateConfirm}
+      />
+
+      <ConfirmModal
+        visible={showNotificationPermissionModal}
+        title="Permission Required"
+        message="Notifications are needed to remind you about upcoming assignments and deadlines. Tap 'Ask Again' to retry the permission prompt."
+        confirmText="Ask Again"
+        icon="notifications-outline"
+        onCancel={() => setShowNotificationPermissionModal(false)}
+        onConfirm={handleRetryNotificationPermission}
       />
 
       <ConfirmModal

@@ -30,7 +30,7 @@ interface AcadCalUIState {
 }
 
 export const useAcadCalUIStore = create<AcadCalUIState>((set) => ({
-    viewMode: "calendar",
+    viewMode: "upnext",
     selectedDate: "",
     isEditMode: false,
     showFabMenu: false,
@@ -45,7 +45,7 @@ export const useAcadCalUIStore = create<AcadCalUIState>((set) => ({
     closeModal: () => set({ activeModal: null }),
     reset: () =>
         set({
-            viewMode: "calendar",
+            viewMode: "upnext",
             isEditMode: false,
             showFabMenu: false,
             activeModal: null,
