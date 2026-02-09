@@ -177,6 +177,7 @@ export function TotalAbsenceCalendar({
 
       {/* calendar */}
       <Calendar
+        key={`total-absence-calendar-${isDark ? "dark" : "light"}`}
         markingType="multi-dot"
         markedDates={markedDates}
         onDayPress={handleDayPress}
@@ -186,9 +187,14 @@ export function TotalAbsenceCalendar({
           calendarBackground: calTheme.calendarBackground,
           dayTextColor: calTheme.dayTextColor,
           textDisabledColor: calTheme.textDisabledColor,
+          textSectionTitleColor: calTheme.textDisabledColor,
           monthTextColor: calTheme.monthTextColor,
           arrowColor: calTheme.arrowColor,
           todayTextColor: calTheme.todayTextColor,
+          textDayStyle: {
+            color: calTheme.dayTextColor,
+          },
+          textDayHeaderFontWeight: "600",
           textDayFontSize: 14,
           textMonthFontSize: 14,
           textMonthFontWeight: "600",

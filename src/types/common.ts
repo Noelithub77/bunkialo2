@@ -35,3 +35,5 @@ export interface DebugInfo {
   cookieCount: number;
   cookies: Record<string, string>;
 }
+
+export type ThemePreference = "system" | "light" | "dark";

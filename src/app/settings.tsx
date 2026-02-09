@@ -30,6 +30,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import type { ThemePreference } from "@/types";
 
 type SettingRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -101,6 +102,8 @@ export default function SettingsScreen() {
     toggleNotifications,
     devDashboardSyncEnabled,
     setDevDashboardSyncEnabled,
+    themePreference,
+    setThemePreference,
   } = useSettingsStore();
   const {
     backgroundIntervalMinutes,
@@ -119,6 +122,7 @@ export default function SettingsScreen() {
   const [showResetBunksModal, setShowResetBunksModal] = useState(false);
   const [showRefreshIntervalModal, setShowRefreshIntervalModal] =
     useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const [showWifixIntervalModal, setShowWifixIntervalModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [availableUpdateInfo, setAvailableUpdateInfo] = useState<{
@@ -173,6 +177,16 @@ export default function SettingsScreen() {
 
   const handleSetWifixInterval = () => {
     setShowWifixIntervalModal(true);
+  };
+
+  const handleSetTheme = () => {
+    setShowThemeModal(true);
+  };
+
+  const themeLabelMap: Record<ThemePreference, string> = {
+    system: "System",
+    light: "Light",
+    dark: "Dark",
   };
 
   const handleAddReminder = () => {
@@ -498,6 +512,16 @@ export default function SettingsScreen() {
             style={{ borderColor: theme.border }}
           >
             <SettingRow
+              icon="color-palette-outline"
+              label={`Theme: ${themeLabelMap[themePreference]}`}
+              onPress={handleSetTheme}
+              theme={theme}
+            />
+            <View
+              className="h-px"
+              style={{ marginLeft: 48, backgroundColor: theme.border }}
+            />
+            <SettingRow
               icon="cloud-download-outline"
               label="Check for Updates"
               onPress={handleCheckForUpdates}
@@ -659,6 +683,29 @@ export default function SettingsScreen() {
         onSelect={(value) => {
           if (typeof value === "number") setRefreshInterval(value);
           void syncDashboardBackgroundTask();
+        }}
+      />
+
+      <SelectionModal
+        visible={showThemeModal}
+        title="App Theme"
+        message="Choose how Bunkialo decides light/dark mode"
+        icon="color-palette-outline"
+        selectedValue={themePreference}
+        options={[
+          { label: "System", value: "system" },
+          { label: "Light", value: "light" },
+          { label: "Dark", value: "dark" },
+        ]}
+        onClose={() => setShowThemeModal(false)}
+        onSelect={(value) => {
+          if (
+            value === "system" ||
+            value === "light" ||
+            value === "dark"
+          ) {
+            setThemePreference(value);
+          }
         }}
       />
 

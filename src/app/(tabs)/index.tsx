@@ -58,6 +58,7 @@ export default function DashboardScreen() {
   const refreshIntervalMinutes = useSettingsStore(
     (state) => state.refreshIntervalMinutes,
   );
+  const toggleTheme = useSettingsStore((state) => state.toggleTheme);
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
@@ -136,6 +137,8 @@ export default function DashboardScreen() {
     paddingHorizontal: 8,
     paddingVertical: 4,
   };
+  const themeIconName =
+    isDark ? "moon-outline" : "sunny-outline";
 
   return (
     <Container>
@@ -179,6 +182,13 @@ export default function DashboardScreen() {
             )}
           </View>
           <View className="flex-row items-center gap-2">
+            <Pressable onPress={toggleTheme} className="p-2">
+              <Ionicons
+                name={themeIconName}
+                size={20}
+                color={theme.textSecondary}
+              />
+            </Pressable>
             <Pressable
               onPress={() => setShowDevInfo(true)}
               className="p-2"

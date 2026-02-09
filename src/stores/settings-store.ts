@@ -1,21 +1,27 @@
-import type { DashboardSettings } from "@/types";
+import type { DashboardSettings, ThemePreference } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 interface SettingsState extends DashboardSettings {
+  themePreference: ThemePreference;
   setRefreshInterval: (minutes: number) => void;
   addReminder: (minutes: number) => void;
   removeReminder: (minutes: number) => void;
   toggleNotifications: (enabled: boolean) => void;
   setDevDashboardSyncEnabled: (enabled: boolean) => void;
+  setThemePreference: (preference: ThemePreference) => void;
+  toggleTheme: () => void;
 }
 
-const DEFAULT_SETTINGS: DashboardSettings = {
+const DEFAULT_SETTINGS: DashboardSettings & {
+  themePreference: ThemePreference;
+} = {
   refreshIntervalMinutes: 30,
   reminders: [30, 10],
   notificationsEnabled: true,
   devDashboardSyncEnabled: false,
+  themePreference: "system",
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -41,6 +47,19 @@ export const useSettingsStore = create<SettingsState>()(
 
       setDevDashboardSyncEnabled: (enabled) =>
         set({ devDashboardSyncEnabled: enabled }),
+
+      setThemePreference: (preference) => set({ themePreference: preference }),
+
+      toggleTheme: () =>
+        set((state) => {
+          if (state.themePreference === "light") {
+            return { themePreference: "dark" };
+          }
+          if (state.themePreference === "dark") {
+            return { themePreference: "light" };
+          }
+          return { themePreference: "dark" };
+        }),
     }),
     {
       name: "settings-storage",

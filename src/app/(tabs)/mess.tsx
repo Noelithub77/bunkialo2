@@ -46,7 +46,10 @@ export default function MessScreen() {
         </View>
 
         {/* up next carousel */}
-        <Text className="text-base font-semibold mt-6 mb-2" style={{ color: theme.text }}>
+        <Text
+          className="text-base font-semibold mt-6 mb-2"
+          style={{ color: theme.text }}
+        >
           Up Next
         </Text>
         <MealCarousel />

@@ -116,7 +116,7 @@ export const CalendarTheme = {
   light: {
     calendarBackground: "transparent",
     dayTextColor: "#171717",
-    textDisabledColor: "#D4D4D4",
+    textDisabledColor: "#A3A3A3",
     monthTextColor: "#171717",
     arrowColor: "#525252",
     todayTextColor: "#3B82F6",
