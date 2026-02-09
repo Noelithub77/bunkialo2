@@ -4,13 +4,14 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import type {
-    CourseBunkData,
-    CourseConfig,
-    DayOfWeek,
-    ManualSlotInput,
-    SessionType,
+  CourseBunkData,
+  CourseConfig,
+  DayOfWeek,
+  ManualSlotInput,
+  SessionType,
 } from "@/types";
 import { getRandomCourseColor } from "@/utils/course-color";
+import { inferRecurringLmsSlots } from "@/utils/timetable-inference";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useState } from "react";
@@ -46,8 +47,6 @@ const DAYS: { label: string; value: DayOfWeek }[] = [
   { label: "Sat", value: 6 },
   { label: "Sun", value: 0 },
 ];
-
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const TIME_OPTIONS = [
   "08:00",
@@ -85,63 +84,6 @@ const formatSlotDisplay = (slot: ManualSlotInput): string => {
   )}`;
 };
 
-const parseSlotTime = (
-  dateStr: string,
-): { dayOfWeek: DayOfWeek; startTime: string; endTime: string } | null => {
-  const dayMatch = dateStr.match(/^(\w{3})\s/);
-  if (!dayMatch) return null;
-
-  const dayIndex = DAY_NAMES.indexOf(dayMatch[1]);
-  if (dayIndex === -1) return null;
-
-  const timeMatch = dateStr.match(
-    /(\d{1,2}(?::\d{2})?(?:AM|PM))\s*-\s*(\d{1,2}(?::\d{2})?(?:AM|PM))/i,
-  );
-  if (!timeMatch) return null;
-
-  const normalize = (t: string): string => {
-    const match = t.match(/(\d{1,2})(?::(\d{2}))?(AM|PM)/i);
-    if (!match) return t;
-    let hours = parseInt(match[1], 10);
-    const minutes = match[2] || "00";
-    const period = match[3].toUpperCase();
-    if (period === "PM" && hours < 12) hours += 12;
-    if (period === "AM" && hours === 12) hours = 0;
-    return `${hours.toString().padStart(2, "0")}:${minutes}`;
-  };
-
-  return {
-    dayOfWeek: dayIndex as DayOfWeek,
-    startTime: normalize(timeMatch[1]),
-    endTime: normalize(timeMatch[2]),
-  };
-};
-
-const calculateDuration = (startTime: string, endTime: string): number => {
-  const [startHour, startMin] = startTime.split(":").map(Number);
-  const [endHour, endMin] = endTime.split(":").map(Number);
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
-  return endMinutes - startMinutes;
-};
-
-const getSessionType = (
-  desc: string,
-  startTime?: string,
-  endTime?: string,
-): SessionType => {
-  const lower = desc.toLowerCase();
-  if (lower.includes("lab")) return "lab";
-  if (lower.includes("tutorial")) return "tutorial";
-
-  if (startTime && endTime) {
-    const duration = calculateDuration(startTime, endTime);
-    if (duration >= 110) return "lab";
-  }
-
-  return "regular";
-};
-
 export function CourseEditModal({
   visible,
   course,
@@ -177,31 +119,14 @@ export function CourseEditModal({
     );
     if (!attendanceCourse) return [];
 
-    const slotMap = new Map<string, ManualSlotInput>();
-    for (const record of attendanceCourse.records) {
-      const parsed = parseSlotTime(record.date);
-      if (!parsed) continue;
-      const key = `${parsed.dayOfWeek}-${parsed.startTime}`;
-      if (!slotMap.has(key)) {
-        slotMap.set(key, {
-          dayOfWeek: parsed.dayOfWeek,
-          startTime: parsed.startTime,
-          endTime: parsed.endTime,
-          sessionType: getSessionType(
-            record.description,
-            parsed.startTime,
-            parsed.endTime,
-          ),
-        });
-      }
-    }
-
-    const result = Array.from(slotMap.values());
-    result.sort((a, b) => {
-      if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
-      return a.startTime.localeCompare(b.startTime);
-    });
-    return result;
+    return inferRecurringLmsSlots(attendanceCourse.records, {
+      startToleranceMinutes: 20,
+    }).map((slot) => ({
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      sessionType: slot.sessionType,
+    }));
   }, [attendanceCourses, course]);
 
   const orderedSlots = useMemo(() => {

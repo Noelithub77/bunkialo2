@@ -1,11 +1,11 @@
 import type {
   DayOfWeek,
-  SessionType,
   SlotConflict,
   TimetableSlot,
   TimetableState,
 } from "@/types";
 import { extractCourseName } from "@/utils/course-name";
+import { inferRecurringLmsSlots } from "@/utils/timetable-inference";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
@@ -19,77 +19,9 @@ interface TimetableActions {
   clearConflicts: () => void;
 }
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-// parse "Thu 16 Jan 2026 10AM - 10:55AM" -> { dayOfWeek, startTime, endTime }
-const parseSlotTime = (
-  dateStr: string,
-): { dayOfWeek: DayOfWeek; startTime: string; endTime: string } | null => {
-  const dayMatch = dateStr.match(/^(\w{3})\s/);
-  if (!dayMatch) return null;
-
-  const dayIndex = DAY_NAMES.indexOf(dayMatch[1]);
-  if (dayIndex === -1) return null;
-
-  const timeMatch = dateStr.match(
-    /(\d{1,2}(?::\d{2})?(?:AM|PM))\s*-\s*(\d{1,2}(?::\d{2})?(?:AM|PM))/i,
-  );
-  if (!timeMatch) return null;
-
-  // normalize time to 24h format for sorting
-  const normalize = (t: string): string => {
-    const match = t.match(/(\d{1,2})(?::(\d{2}))?(AM|PM)/i);
-    if (!match) return t;
-    let hours = parseInt(match[1], 10);
-    const minutes = match[2] || "00";
-    const period = match[3].toUpperCase();
-    if (period === "PM" && hours < 12) hours += 12;
-    if (period === "AM" && hours === 12) hours = 0;
-    return `${hours.toString().padStart(2, "0")}:${minutes}`;
-  };
-
-  return {
-    dayOfWeek: dayIndex as DayOfWeek,
-    startTime: normalize(timeMatch[1]),
-    endTime: normalize(timeMatch[2]),
-  };
-};
-
-// calculate duration between two times in minutes
-const calculateDuration = (startTime: string, endTime: string): number => {
-  const [startHour, startMin] = startTime.split(":").map(Number);
-  const [endHour, endMin] = endTime.split(":").map(Number);
-
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
-
-  return endMinutes - startMinutes;
-};
-
-const getSessionType = (
-  desc: string,
-  startTime?: string,
-  endTime?: string,
-): SessionType => {
-  const lower = desc.toLowerCase();
-  // first check description for explicit mentions
-  if (lower.includes("lab")) return "lab";
-  if (lower.includes("tutorial")) return "tutorial";
-
-  // auto-detect based on duration if times are provided
-  if (startTime && endTime) {
-    const duration = calculateDuration(startTime, endTime);
-    // 2-hour slots (typically 110-120 minutes) are labs
-    if (duration >= 110) return "lab";
-  }
-
-  return "regular";
-};
-
-const timeToMinutes = (time: string): number => {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-};
+const TIMETABLE_PERSIST_VERSION = 2;
+const RECOMPUTE_MAX_RETRIES = 20;
+const RECOMPUTE_RETRY_DELAY_MS = 200;
 
 const generateId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -102,6 +34,25 @@ const timesOverlap = (
   end2: string,
 ): boolean => {
   return start1 < end2 && start2 < end1;
+};
+
+const recomputeWhenBaseStoresHydrated = (generateTimetable: () => void) => {
+  let attempts = 0;
+
+  const run = () => {
+    const attendanceHydrated = useAttendanceStore.getState().hasHydrated;
+    const bunkHydrated = useBunkStore.getState().hasHydrated;
+
+    if ((attendanceHydrated && bunkHydrated) || attempts >= RECOMPUTE_MAX_RETRIES) {
+      generateTimetable();
+      return;
+    }
+
+    attempts += 1;
+    setTimeout(run, RECOMPUTE_RETRY_DELAY_MS);
+  };
+
+  setTimeout(run, 0);
 };
 
 export const useTimetableStore = create<TimetableState & TimetableActions>()(
@@ -131,55 +82,23 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
           const displayName =
             bunkCourse?.config?.alias || extractCourseName(course.courseName);
 
-          for (const record of course.records) {
-            const parsed = parseSlotTime(record.date);
-            if (!parsed) continue;
+          const inferredSlots = inferRecurringLmsSlots(course.records, {
+            startToleranceMinutes: 20,
+          });
 
-            // merge with existing slot if same course+day and start within 5 min
-            const existingEntry = Array.from(autoSlotMap.entries()).find(
-              ([, s]) =>
-                s.courseId === course.courseId &&
-                s.dayOfWeek === parsed.dayOfWeek &&
-                Math.abs(
-                  timeToMinutes(s.startTime) - timeToMinutes(parsed.startTime),
-                ) <= 5,
-            );
-
-            if (existingEntry) {
-              const [oldKey, existing] = existingEntry;
-              autoSlotMap.delete(oldKey);
-              const mergedStart =
-                existing.startTime < parsed.startTime
-                  ? existing.startTime
-                  : parsed.startTime;
-              const mergedEnd =
-                existing.endTime > parsed.endTime
-                  ? existing.endTime
-                  : parsed.endTime;
-              const newKey = `${course.courseId}-${parsed.dayOfWeek}-${mergedStart}`;
-              autoSlotMap.set(newKey, {
-                ...existing,
-                startTime: mergedStart,
-                endTime: mergedEnd,
-              });
-            } else {
-              const key = `${course.courseId}-${parsed.dayOfWeek}-${parsed.startTime}`;
-              autoSlotMap.set(key, {
-                id: generateId(),
-                courseId: course.courseId,
-                courseName: displayName,
-                dayOfWeek: parsed.dayOfWeek,
-                startTime: parsed.startTime,
-                endTime: parsed.endTime,
-                sessionType: getSessionType(
-                  record.description,
-                  parsed.startTime,
-                  parsed.endTime,
-                ),
-                isManual: false,
-                isCustomCourse: false,
-              });
-            }
+          for (const inferred of inferredSlots) {
+            const key = `${course.courseId}-${inferred.dayOfWeek}-${inferred.startTime}`;
+            autoSlotMap.set(key, {
+              id: generateId(),
+              courseId: course.courseId,
+              courseName: displayName,
+              dayOfWeek: inferred.dayOfWeek,
+              startTime: inferred.startTime,
+              endTime: inferred.endTime,
+              sessionType: inferred.sessionType,
+              isManual: false,
+              isCustomCourse: false,
+            });
           }
         }
 
@@ -291,12 +210,39 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
     }),
     {
       name: "timetable-storage",
+      version: TIMETABLE_PERSIST_VERSION,
       storage: createJSONStorage(() => zustandStorage),
+      migrate: (persistedState, version) => {
+        const state = (persistedState ?? {}) as Partial<TimetableState>;
+
+        // reset old persisted timetable slots so they get regenerated by current inference logic
+        if (version < TIMETABLE_PERSIST_VERSION) {
+          return {
+            ...state,
+            slots: [],
+            conflicts: [],
+          };
+        }
+
+        return state;
+      },
       partialize: (state) => ({
         slots: state.slots,
         conflicts: state.conflicts,
         lastGeneratedAt: state.lastGeneratedAt,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+
+        const hadPersistedTimetable =
+          state.slots.length > 0 ||
+          state.conflicts.length > 0 ||
+          state.lastGeneratedAt !== null;
+
+        if (!hadPersistedTimetable) return;
+
+        recomputeWhenBaseStoresHydrated(state.generateTimetable);
+      },
     },
   ),
 );
