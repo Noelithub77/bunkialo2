@@ -189,9 +189,15 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     const isFutureClass = !isCurrentlyActive && !isNextClass && !isFinished;
     const isActive = index === activeIndex;
 
-    const gradientColors = isDark
+    const defaultGradientColors = isDark
       ? ([courseColor + "70", courseColor + "32", "#04070D"] as const)
       : ([courseColor + "45", courseColor + "18", "#FFFFFF"] as const);
+    const nowGradientColors = isDark
+      ? ([Colors.status.success + "36", "#04120C"] as const)
+      : ([Colors.status.success + "26", "#FFFFFF"] as const);
+    const gradientColors = isCurrentlyActive
+      ? nowGradientColors
+      : defaultGradientColors;
 
     // day label logic
     const slotDay = item.dayOfWeek;
@@ -207,7 +213,9 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     if (isCurrentlyActive) {
       statusColor = Colors.status.success;
       statusText = "Now";
-      borderColor = Colors.status.success;
+      borderColor = isDark
+        ? Colors.status.success + "BF"
+        : Colors.status.success + "8F";
     } else if (isNextClass) {
       statusColor = Colors.status.unknown;
       statusText = "Next";
@@ -224,7 +232,6 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
       <View className="py-0.5" style={{ width: CARD_WIDTH }}>
         <LinearGradient
           colors={gradientColors}
-          locations={[0, 0.45, 1]}
           className="relative min-h-[146px] overflow-hidden rounded-2xl px-5 py-4"
           style={[
             !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
@@ -233,14 +240,6 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
                 borderColor ?? (isDark ? courseColor + "4A" : courseColor + "3A"),
               borderWidth: 1,
             },
-            isCurrentlyActive &&
-              isDark && {
-                shadowColor: courseColor,
-                shadowOpacity: 0.4,
-                shadowOffset: { width: 0, height: 8 },
-                shadowRadius: 12,
-                elevation: 5,
-              },
             (isFinished || isFutureClass) && { opacity: cardOpacity },
           ]}
           start={{ x: 0, y: 0 }}
@@ -285,7 +284,11 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
           <View className="mt-3 flex-row flex-wrap items-center gap-1">
             <View
               className="rounded-lg px-2 py-[3px]"
-              style={{ backgroundColor: courseColor + "CC" }}
+              style={{
+                backgroundColor: isCurrentlyActive
+                  ? Colors.status.success + "CC"
+                  : courseColor + "CC",
+              }}
             >
               <Text className="text-[11px] font-semibold text-white">
                 {item.sessionType.charAt(0).toUpperCase() +

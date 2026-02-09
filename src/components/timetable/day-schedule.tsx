@@ -49,7 +49,25 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
     return course?.config?.color || Colors.courseColors[0];
   };
 
-  const getSlotGradient = (courseColor: string, isPast: boolean) => {
+  const getSlotGradient = (
+    courseColor: string,
+    isPast: boolean,
+    isNow: boolean,
+  ) => {
+    if (isNow) {
+      return isDark
+        ? ([
+            Colors.status.success + "2E",
+            Colors.status.success + "14",
+            "#05080D",
+          ] as const)
+        : ([
+            Colors.status.success + "22",
+            Colors.status.success + "10",
+            "#FFFFFF",
+          ] as const);
+    }
+
     if (isDark) {
       return isPast
         ? ([courseColor + "1A", theme.backgroundSecondary, "#050505"] as const)
@@ -176,19 +194,27 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
               <View
                 className="ml-0.5 flex-1 overflow-hidden rounded-2xl"
                 style={[
-                  { borderLeftColor: courseColor, borderLeftWidth: 3 },
-                  isNow && { borderWidth: 1, borderColor: Colors.status.success },
+                  {
+                    borderLeftColor: isNow ? Colors.status.success : courseColor,
+                    borderLeftWidth: 3,
+                  },
+                  isNow && {
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? Colors.status.success + "B8"
+                      : Colors.status.success + "85",
+                  },
                   !isNow && { borderWidth: 1, borderColor: theme.border },
                   isNow &&
                     isDark && {
-                      shadowColor: courseColor,
-                      shadowOpacity: 0.35,
-                      shadowRadius: 10,
+                      shadowColor: Colors.status.success,
+                      shadowOpacity: 0.2,
+                      shadowRadius: 9,
                     },
                 ]}
               >
                 <LinearGradient
-                  colors={getSlotGradient(courseColor, isPast)}
+                  colors={getSlotGradient(courseColor, isPast, isNow)}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   className="px-3.5 py-2.5"
