@@ -314,7 +314,7 @@ export function SlotConflictModal({
                             className="text-[10px] font-bold"
                             style={{ color: Colors.status.warning }}
                           >
-                            Outlier Slot
+                            Outlier
                           </Text>
                           <Text
                             className="text-[9px]"
@@ -392,12 +392,6 @@ export function SlotConflictModal({
                           </Pressable>
                         </View>
                       </View>
-                      <Text
-                        className="text-[10px] font-semibold"
-                        style={{ color: theme.text }}
-                      >
-                        {conflict.slot.courseName}
-                      </Text>
                       <Text
                         className="text-[9px]"
                         style={{ color: theme.textSecondary }}
