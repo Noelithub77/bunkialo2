@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Application from "expo-application";
@@ -8,8 +8,8 @@ import {
   Linking,
   Modal,
   Pressable,
-  StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -19,9 +19,11 @@ type DevInfoModalProps = {
 };
 
 export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
+  const { height } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const isCompactMobile = height <= 740;
 
   const expoConfig = Constants.expoConfig;
   const configBuildNumber =
@@ -51,51 +53,80 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
 
   // Show update section if we have any OTA update info
   const hasUpdateInfo = updateId && Constants.appOwnership !== "expo";
+  const buyMeCoffeeUrl = "upi://pay?pa=noelmcv7@oksbi&cu=INR";
+  const linkColor = isDark ? "#60A5FA" : "#2563EB";
+
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch(() => {
+      // Ignore errors to avoid blocking the modal flow if target app/browser is unavailable.
+    });
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <View style={[styles.content, { backgroundColor: theme.background }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>About</Text>
-            <Pressable onPress={onClose} style={styles.closeBtn}>
+      <Pressable
+        className={`flex-1 items-center justify-center bg-black/55 ${isCompactMobile ? "p-2.5" : "p-3"}`}
+        onPress={onClose}
+      >
+        <Pressable
+          className={`w-full rounded-3xl border ${isCompactMobile ? "max-w-[320px] p-3.5" : "max-w-[330px] p-4"}`}
+          style={{
+            backgroundColor: theme.background,
+            borderColor: theme.border,
+          }}
+          onPress={(event) => event.stopPropagation()}
+        >
+          <View className={`${isCompactMobile ? "mb-2" : "mb-3"} flex-row items-center justify-between`}>
+            <Text className={`${isCompactMobile ? "text-[17px]" : "text-[18px]"} font-semibold`} style={{ color: theme.text }}>
+              About
+            </Text>
+            <Pressable
+              onPress={onClose}
+              className="h-8 w-8 items-center justify-center rounded-full"
+              style={{ backgroundColor: theme.backgroundSecondary }}
+            >
               <Ionicons name="close" size={22} color={theme.textSecondary} />
             </Pressable>
           </View>
 
-          {/* Version */}
-          <View style={styles.versionRow}>
-            <Text style={[styles.appName, { color: theme.text }]}>
+          <View
+            className={`${isCompactMobile ? "mb-2.5 px-3 py-2" : "mb-4 px-4 py-3"} rounded-2xl border`}
+            style={{
+              backgroundColor: theme.backgroundSecondary,
+              borderColor: theme.border,
+            }}
+          >
+            <Text className={`${isCompactMobile ? "text-[15px]" : "text-base"} font-semibold`} style={{ color: theme.text }}>
               Bunkialo
             </Text>
-            <Text style={[styles.version, { color: theme.textSecondary }]}>
+            <Text className={`${isCompactMobile ? "mt-0.5 text-[12px]" : "mt-1 text-[13px]"}`} style={{ color: theme.textSecondary }}>
               {buildVersion ? `${appVersion} (${buildVersion})` : appVersion}
             </Text>
           </View>
 
-          {/* OTA Update Info */}
           {hasUpdateInfo && (
             <View
-              style={[
-                styles.updateBox,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              className={`${isCompactMobile ? "mb-2.5 px-3 py-2" : "mb-3 px-3.5 py-2.5"} rounded-2xl border`}
+              style={{
+                backgroundColor: theme.backgroundSecondary,
+                borderColor: theme.border,
+              }}
             >
-              <Text
-                style={[styles.updateLabel, { color: theme.textSecondary }]}
-              >
+              <Text className="text-[11px] font-semibold uppercase tracking-[1.1px]" style={{ color: theme.textSecondary }}>
                 Current Update
               </Text>
               {updateMessage && (
-                <Text style={[styles.updateMessage, { color: theme.text }]}>
+                <Text
+                  className={`${isCompactMobile ? "mt-0.5 text-[12px]" : "mt-1 text-[13px]"}`}
+                  style={{ color: theme.text }}
+                  numberOfLines={1}
+                >
                   {updateMessage}
                 </Text>
               )}
-              <View style={styles.updateMeta}>
+              <View className={`${isCompactMobile ? "mt-1.5" : "mt-2"} flex-row items-center justify-between`}>
                 {updateCreatedAt && (
-                  <Text
-                    style={[styles.updateDate, { color: theme.textSecondary }]}
-                  >
+                  <Text className={`${isCompactMobile ? "text-[10px]" : "text-[11px]"}`} style={{ color: theme.textSecondary }}>
                     {updateCreatedAt.toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -104,7 +135,8 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
                   </Text>
                 )}
                 <Text
-                  style={[styles.updateHash, { color: theme.textSecondary }]}
+                  className={`${isCompactMobile ? "text-[10px]" : "text-[11px]"}`}
+                  style={{ color: theme.textSecondary, fontFamily: "monospace" }}
                   numberOfLines={1}
                 >
                   {updateId.slice(0, 8)}
@@ -113,163 +145,68 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
             </View>
           )}
 
-          {/* Credits */}
-          <View style={styles.credits}>
-            <View style={styles.creditRow}>
+          <View
+            className={`${isCompactMobile ? "px-3 py-2" : "px-3.5 py-2.5"} rounded-2xl border`}
+            style={{
+              backgroundColor: theme.backgroundSecondary,
+              borderColor: theme.border,
+            }}
+          >
+            <View className={`${isCompactMobile ? "gap-1.5" : "gap-2"}`}>
               <Text
-                style={[styles.creditLabel, { color: theme.textSecondary }]}
+                className="text-[11px] font-semibold uppercase tracking-[1.1px]"
+                style={{ color: theme.textSecondary }}
               >
-                Made by
+                Credits
               </Text>
-              <Pressable
-                onPress={() =>
-                  Linking.openURL("https://www.linkedin.com/in/noel-georgi/")
-                }
-              >
+              <Text className={`${isCompactMobile ? "text-[12px]" : "text-[13px]"}`} style={{ color: theme.textSecondary }}>
+                Made by{" "}
                 <Text
-                  style={[styles.creditLink, { color: Colors.status.info }]}
+                  onPress={() => openUrl("https://www.linkedin.com/in/noel-georgi/")}
+                  className="underline"
+                  style={{ color: linkColor, fontWeight: "600" }}
                 >
                   Noel Georgi
                 </Text>
+              </Text>
+
+              <Text className={`${isCompactMobile ? "text-[12px]" : "text-[13px]"}`} style={{ color: theme.textSecondary }}>
+                Ideas by{" "}
+                <Text
+                  onPress={() =>
+                    openUrl("https://www.linkedin.com/in/srimoneyshankar-ajith-a5a6831ba/")
+                  }
+                  className="underline"
+                  style={{ color: linkColor, fontWeight: "600" }}
+                >
+                  Srimoney
+                </Text>
+                {" & "}
+                <Text
+                  onPress={() => openUrl("https://www.linkedin.com/in/niranjan-vasudevan/")}
+                  className="underline"
+                  style={{ color: linkColor, fontWeight: "600" }}
+                >
+                  Niranjan V
+                </Text>
+              </Text>
+
+              <Pressable
+                onPress={() => openUrl(buyMeCoffeeUrl)}
+                className="mt-1 self-start rounded-xl px-3 py-2"
+                style={{ backgroundColor: Colors.status.warning }}
+              >
+                <View className="flex-row items-center gap-1.5">
+                  <Ionicons name="cafe-outline" size={14} color={Colors.black} />
+                  <Text className={`${isCompactMobile ? "text-[12px]" : "text-[13px]"} font-semibold`} style={{ color: Colors.black }}>
+                    Buy me a coffee
+                  </Text>
+                </View>
               </Pressable>
             </View>
-
-            <View style={styles.creditRow}>
-              <Text
-                style={[styles.creditLabel, { color: theme.textSecondary }]}
-              >
-                Ideas by
-              </Text>
-              <View style={styles.creditLinks}>
-                <Pressable
-                  onPress={() =>
-                    Linking.openURL(
-                      "https://www.linkedin.com/in/srimoneyshankar-ajith-a5a6831ba/",
-                    )
-                  }
-                >
-                  <Text
-                    style={[styles.creditLink, { color: Colors.status.info }]}
-                  >
-                    Srimoney
-                  </Text>
-                </Pressable>
-                <Text
-                  style={[styles.creditLabel, { color: theme.textSecondary }]}
-                >
-                  {" & "}
-                </Text>
-                <Pressable
-                  onPress={() =>
-                    Linking.openURL(
-                      "https://www.linkedin.com/in/niranjan-vasudevan/",
-                    )
-                  }
-                >
-                  <Text
-                    style={[styles.creditLink, { color: Colors.status.info }]}
-                  >
-                    Niranjan V
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
           </View>
-        </View>
+        </Pressable>
       </Pressable>
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.lg,
-  },
-  content: {
-    width: "100%",
-    maxWidth: 320,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  closeBtn: {
-    padding: Spacing.xs,
-  },
-  versionRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  appName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  version: {
-    fontSize: 14,
-  },
-  updateBox: {
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  updateLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  updateMessage: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  updateMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: Spacing.xs,
-  },
-  updateDate: {
-    fontSize: 11,
-  },
-  updateHash: {
-    fontSize: 11,
-    fontFamily: "monospace",
-  },
-  credits: {
-    gap: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(128,128,128,0.2)",
-  },
-  creditRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  creditLabel: {
-    fontSize: 13,
-  },
-  creditLinks: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  creditLink: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-});

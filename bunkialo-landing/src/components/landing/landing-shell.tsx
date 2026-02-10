@@ -1,10 +1,15 @@
 "use client";
 
-import { ArrowUpRight, Check, Copy, QrCode } from "lucide-react";
+import { ArrowUpRight, QrCode } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { SiAndroid, SiApple, SiGoogleplay } from "react-icons/si";
+import {
+  SiAndroid,
+  SiApple,
+  SiExpo,
+  SiGoogleplay,
+} from "react-icons/si";
 
 import { AnimatedLogo } from "@/components/landing/animated-logo";
 import { LandingSplash } from "@/components/landing/landing-splash";
@@ -31,6 +36,18 @@ export interface LandingShellProps {
 
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.codialo.Bunkialo2";
+const BUY_ME_COFFEE_UPI_URL = "upi://pay?pa=noelmcv7@oksbi&cu=INR";
+const DEVELOPER_LINKEDIN_URL = "https://www.linkedin.com/in/noel-georgi/";
+const IDEAS_BY_LINKS = [
+  {
+    name: "Srimoney",
+    href: "https://www.linkedin.com/in/srimoneyshankar-ajith-a5a6831ba/",
+  },
+  {
+    name: "Niranjan V",
+    href: "https://www.linkedin.com/in/niranjan-vasudevan/",
+  },
+];
 
 function normalizePlatformTab(value: string): PlatformTab {
   return value === "ios" ? "ios" : "android";
@@ -41,11 +58,8 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
   const [activeTab, setActiveTab] = useState<PlatformTab>(initialTab);
   const [showSplash, setShowSplash] = useState(true);
   const [isMobileClient, setIsMobileClient] = useState(false);
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
-    "idle",
-  );
 
-  const shouldShowQrPanel = !isMobileClient || activeTab === "ios";
+  const shouldShowQrPanel = !isMobileClient;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(
@@ -66,40 +80,17 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
     );
   }, []);
 
-  useEffect(() => {
-    if (copyState !== "copied") {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => setCopyState("idle"), 1800);
-    return () => window.clearTimeout(timeoutId);
-  }, [copyState]);
-
-  async function handleCopyUrl() {
-    if (!navigator.clipboard) {
-      setCopyState("error");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(expUrl);
-      setCopyState("copied");
-    } catch {
-      setCopyState("error");
-    }
-  }
-
   return (
     <>
       <LandingSplash show={showSplash} />
-      <main className="landing-page h-dvh overflow-hidden px-3 py-3 sm:px-8 sm:py-6">
+      <main className="landing-page h-[100svh] overflow-hidden px-2 py-2 sm:px-8 sm:py-6">
         <motion.div
-          className="landing-shell mx-auto grid h-full w-full max-w-6xl gap-4 overflow-hidden rounded-3xl p-4 sm:gap-6 sm:p-6 lg:grid-cols-[1.14fr_0.86fr] lg:gap-7 lg:p-8"
+          className="landing-shell mx-auto grid h-full w-full max-w-6xl gap-3 overflow-hidden rounded-3xl p-3 sm:gap-6 sm:p-6 lg:grid-cols-[1.14fr_0.86fr] lg:gap-7 lg:p-8"
           initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: shouldReduceMotion ? 0.2 : 0.55 }}
         >
-          <section className="min-w-0 flex flex-col gap-4 sm:gap-5">
+          <section className="min-w-0 flex min-h-0 flex-col gap-3 sm:gap-5">
             <motion.div
               className="flex flex-wrap items-center gap-3"
               initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -123,7 +114,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
             </motion.div>
 
             <motion.div
-              className="space-y-3"
+              className="space-y-2 sm:space-y-3"
               initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -131,10 +122,10 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 duration: 0.45,
               }}
             >
-              <h1 className="font-display text-[2.65rem] leading-[0.92] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <h1 className="font-display text-[2.25rem] leading-[0.92] tracking-tight text-white sm:text-5xl lg:text-6xl">
                 Bunkialo
               </h1>
-              <p className="max-w-xl text-sm leading-relaxed text-white/72 sm:text-base">
+              <p className="max-w-xl text-[13px] leading-relaxed text-white/72 sm:text-base">
                 Your IIIT Kottayam academic companion with attendance, timeline,
                 bunk planning, and assignment tracking in one fast app
                 experience.
@@ -148,7 +139,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
               onValueChange={(value) =>
                 setActiveTab(normalizePlatformTab(value))
               }
-              className="w-full gap-4"
+              className="w-full gap-3"
             >
               <TabsList
                 variant="line"
@@ -172,7 +163,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="android" className="mt-0 space-y-4">
+              <TabsContent value="android" className="mt-0 space-y-3">
                 <motion.div
                   className="space-y-4"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -185,8 +176,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                         Android Install
                       </CardTitle>
                       <CardDescription className="text-white/65">
-                        Install the latest production build directly from Google
-                        Play.
+                        Please drop a review too!
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 px-5 pb-5 sm:space-y-3">
@@ -212,7 +202,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="ios" className="mt-0 space-y-4">
+              <TabsContent value="ios" className="mt-0 space-y-3">
                 <motion.div
                   className="space-y-4"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -225,7 +215,8 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                         iOS Install
                       </CardTitle>
                       <CardDescription className="text-white/65">
-                        Open the production update instantly with Expo Go.
+                        As publishing on app store is like 10k/year, I can only
+                        afford serving over Expo Go
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 px-5 pb-5">
@@ -236,34 +227,73 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                       >
                         <Button asChild size="lg" className="w-full rounded-xl">
                           <a href={expUrl}>
+                            <SiExpo className="size-4 text-neutral-900" />
                             Open in Expo Go
                             <ArrowUpRight className="size-4 opacity-75" />
                           </a>
                         </Button>
                       </motion.div>
-                      <Button
-                        size="lg"
-                        variant="secondary"
-                        onClick={handleCopyUrl}
-                        className="w-full rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/16"
-                      >
-                        {copyState === "copied" ? (
-                          <>
-                            <Check className="size-4" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="size-4" />
-                            Copy Expo Link
-                          </>
-                        )}
-                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
               </TabsContent>
             </Tabs>
+
+            <motion.div
+              className="mt-auto rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 backdrop-blur-sm"
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.24,
+                duration: 0.38,
+              }}
+            >
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div className="space-y-1.5 text-xs text-white/65">
+                  <p className="leading-relaxed">
+                  Made by{" "}
+                  <a
+                    href={DEVELOPER_LINKEDIN_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-white/80 underline underline-offset-2 transition-colors hover:text-white"
+                  >
+                    Noel Georgi
+                  </a>
+                  </p>
+                  <p className="leading-relaxed">
+                  Ideas by{" "}
+                  <a
+                    href={IDEAS_BY_LINKS[0].href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-white/80 underline underline-offset-2 transition-colors hover:text-white"
+                  >
+                    {IDEAS_BY_LINKS[0].name}
+                  </a>
+                  {" & "}
+                  <a
+                    href={IDEAS_BY_LINKS[1].href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-white/80 underline underline-offset-2 transition-colors hover:text-white"
+                  >
+                    {IDEAS_BY_LINKS[1].name}
+                  </a>
+                  </p>
+                </div>
+                <div className="sm:justify-self-end">
+                  <Button
+                    asChild
+                    size="sm"
+                    className="h-9 rounded-xl border-0 px-4 text-sm font-semibold text-neutral-950 shadow-[0_8px_24px_rgba(255,171,0,0.28)] transition-all hover:brightness-95"
+                    style={{ backgroundColor: "#FFAB00" }}
+                  >
+                    <a href={BUY_ME_COFFEE_UPI_URL}>Buy me a coffee</a>
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
           </section>
 
           {shouldShowQrPanel ? (
@@ -288,8 +318,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                     Scan & Launch
                   </CardTitle>
                   <CardDescription className="text-white/62">
-                    Scan the production QR with Expo Go to open Bunkialo
-                    instantly.
+                    Scan the QR with Expo Go to open Bunkialo instantly.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5 pb-5">
@@ -300,7 +329,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                     <div className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-white p-3">
                       <Image
                         src={qrUrl}
-                        alt="Bunkialo production QR code"
+                        alt="Bunkialo QR code"
                         fill
                         unoptimized
                         sizes="(max-width: 768px) 80vw, 28vw"
