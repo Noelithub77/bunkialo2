@@ -59,13 +59,28 @@ export interface InferredRecurringSlot {
   occurrenceCount: number;
   weekCount: number;
   dayActiveWeekCount: number;
+  totalWeekSpanCount: number;
+  dayObservationCount: number;
   score: number;
+}
+
+export interface InferredRecurringSlotCandidate extends InferredRecurringSlot {
+  slotKey: string;
+  selectedByRule: boolean;
+}
+
+export interface InferredRecurringResult {
+  selectedSlots: InferredRecurringSlot[];
+  candidates: InferredRecurringSlotCandidate[];
 }
 
 interface InferenceOptions {
   now?: Date;
   startToleranceMinutes?: number;
+  totalWeekSpanOverride?: number;
 }
+
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
 type ParseFailureReason =
   | "missing_day"
@@ -135,6 +150,25 @@ const getIsoWeekKey = (date: Date): string => {
   );
 
   return `${isoYear}-${weekNo.toString().padStart(2, "0")}`;
+};
+
+const getStartOfIsoWeekUtcMs = (timestampMs: number): number => {
+  const date = new Date(timestampMs);
+  const day = date.getUTCDay() || 7;
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() - (day - 1));
+  return date.getTime();
+};
+
+const getInclusiveIsoWeekSpan = (
+  fromTimestampMs: number,
+  toTimestampMs: number,
+): number => {
+  if (toTimestampMs <= fromTimestampMs) return 1;
+  const start = getStartOfIsoWeekUtcMs(fromTimestampMs);
+  const end = getStartOfIsoWeekUtcMs(toTimestampMs);
+  if (end <= start) return 1;
+  return Math.floor((end - start) / MS_PER_WEEK) + 1;
 };
 
 const parseAttendanceSlot = (
@@ -207,11 +241,43 @@ const resolveSessionType = (
   return entries[0][0];
 };
 
-export const inferRecurringLmsSlots = (
+const buildCandidateSlot = (
+  cluster: SlotCluster,
+  score: number,
+  dayActiveWeekCount: number,
+  totalWeekSpanCount: number,
+  dayObservationCount: number,
+): InferredRecurringSlotCandidate => {
+  const startMinutes = median(cluster.startSamples);
+  let endMinutes = median(cluster.endSamples);
+  if (endMinutes <= startMinutes) {
+    endMinutes = Math.min(23 * 60 + 59, startMinutes + 55);
+  }
+
+  const startTime = minutesToTime(startMinutes);
+  const endTime = minutesToTime(endMinutes);
+
+  return {
+    slotKey: `${cluster.dayOfWeek}-${startTime}-${endTime}`,
+    dayOfWeek: cluster.dayOfWeek,
+    startTime,
+    endTime,
+    sessionType: resolveSessionType(cluster.sessionTypeCounts),
+    occurrenceCount: cluster.count,
+    weekCount: cluster.weekKeys.size,
+    dayActiveWeekCount,
+    totalWeekSpanCount,
+    dayObservationCount,
+    score,
+    selectedByRule: false,
+  };
+};
+
+export const inferRecurringLmsSlotsVerbose = (
   records: AttendanceRecord[],
   options: InferenceOptions = {},
-): InferredRecurringSlot[] => {
-  if (records.length === 0) return [];
+): InferredRecurringResult => {
+  if (records.length === 0) return { selectedSlots: [], candidates: [] };
 
   const nowMs = (options.now ?? new Date()).getTime();
   const startToleranceMinutes = options.startToleranceMinutes ?? 20;
@@ -259,7 +325,7 @@ export const inferRecurringLmsSlots = (
       totalRows: records.length,
       failures: parseFailures,
     });
-    return [];
+    return { selectedSlots: [], candidates: [] };
   }
 
   const pastSlots = parsed.filter((slot) => slot.endedAtMs <= nowMs);
@@ -270,6 +336,24 @@ export const inferRecurringLmsSlots = (
       { parseableRows: parsed.length },
     );
   }
+
+  const oldestObservedMs = observedSlots.reduce(
+    (min, slot) => Math.min(min, slot.endedAtMs),
+    observedSlots[0]?.endedAtMs ?? nowMs,
+  );
+  const latestObservedMs = observedSlots.reduce(
+    (max, slot) => Math.max(max, slot.endedAtMs),
+    observedSlots[0]?.endedAtMs ?? nowMs,
+  );
+  const timelineEndMs = Math.max(nowMs, latestObservedMs);
+  const computedWeekSpanCount = getInclusiveIsoWeekSpan(
+    oldestObservedMs,
+    timelineEndMs,
+  );
+  const totalWeekSpanCount =
+    options.totalWeekSpanOverride && options.totalWeekSpanOverride > 0
+      ? options.totalWeekSpanOverride
+      : computedWeekSpanCount;
 
   const clustersByDay = new Map<DayOfWeek, SlotCluster[]>();
   const dayWeeks = new Map<DayOfWeek, Set<string>>();
@@ -321,6 +405,7 @@ export const inferRecurringLmsSlots = (
   }
 
   const selected: InferredRecurringSlot[] = [];
+  const candidates: InferredRecurringSlotCandidate[] = [];
 
   for (const [dayOfWeek, clusters] of clustersByDay.entries()) {
     if (clusters.length === 0) continue;
@@ -362,23 +447,35 @@ export const inferRecurringLmsSlots = (
       });
     }
 
-    for (const { cluster, score } of effectiveKept) {
-      const startMinutes = median(cluster.startSamples);
-      let endMinutes = median(cluster.endSamples);
-      if (endMinutes <= startMinutes) {
-        endMinutes = Math.min(23 * 60 + 59, startMinutes + 55);
-      }
+    const selectedClusterSet = new Set(
+      effectiveKept.map(({ cluster }) => cluster),
+    );
 
-      selected.push({
-        dayOfWeek: cluster.dayOfWeek,
-        startTime: minutesToTime(startMinutes),
-        endTime: minutesToTime(endMinutes),
-        sessionType: resolveSessionType(cluster.sessionTypeCounts),
-        occurrenceCount: cluster.count,
-        weekCount: cluster.weekKeys.size,
-        dayActiveWeekCount: activeWeeksForDay,
+    for (const { cluster, score } of scored) {
+      const candidate = buildCandidateSlot(
+        cluster,
         score,
-      });
+        activeWeeksForDay,
+        totalWeekSpanCount,
+        totalObservations,
+      );
+      candidate.selectedByRule = selectedClusterSet.has(cluster);
+      candidates.push(candidate);
+
+      if (candidate.selectedByRule) {
+        selected.push({
+          dayOfWeek: candidate.dayOfWeek,
+          startTime: candidate.startTime,
+          endTime: candidate.endTime,
+          sessionType: candidate.sessionType,
+          occurrenceCount: candidate.occurrenceCount,
+          weekCount: candidate.weekCount,
+          dayActiveWeekCount: candidate.dayActiveWeekCount,
+          totalWeekSpanCount: candidate.totalWeekSpanCount,
+          dayObservationCount: candidate.dayObservationCount,
+          score: candidate.score,
+        });
+      }
     }
   }
 
@@ -387,5 +484,16 @@ export const inferRecurringLmsSlots = (
     return a.startTime.localeCompare(b.startTime);
   });
 
-  return selected;
+  candidates.sort((a, b) => {
+    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+    return a.startTime.localeCompare(b.startTime);
+  });
+
+  return { selectedSlots: selected, candidates };
 };
+
+export const inferRecurringLmsSlots = (
+  records: AttendanceRecord[],
+  options: InferenceOptions = {},
+): InferredRecurringSlot[] =>
+  inferRecurringLmsSlotsVerbose(records, options).selectedSlots;

@@ -38,6 +38,14 @@ interface CourseEditModalProps {
   ) => void;
 }
 
+interface AutoSlotDisplay extends ManualSlotInput {
+  occurrenceCount: number;
+  dayActiveWeekCount: number;
+  totalWeekSpanCount: number;
+  dayObservationCount: number;
+  score: number;
+}
+
 const DAYS: { label: string; value: DayOfWeek }[] = [
   { label: "Mon", value: 1 },
   { label: "Tue", value: 2 },
@@ -69,6 +77,21 @@ const SESSION_TYPES: { label: string; value: SessionType }[] = [
 ];
 
 const CREDIT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+const MONTH_MAP: Record<string, number> = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+};
 
 const formatTime = (time: string): string => {
   const [hours] = time.split(":").map(Number);
@@ -82,6 +105,38 @@ const formatSlotDisplay = (slot: ManualSlotInput): string => {
   return `${dayLabel} ${formatTime(slot.startTime)} - ${formatTime(
     slot.endTime,
   )}`;
+};
+
+const getStartOfIsoWeekUtcMs = (timestampMs: number): number => {
+  const date = new Date(timestampMs);
+  const day = date.getUTCDay() || 7;
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() - (day - 1));
+  return date.getTime();
+};
+
+const getInclusiveIsoWeekSpan = (
+  fromTimestampMs: number,
+  toTimestampMs: number,
+): number => {
+  if (toTimestampMs <= fromTimestampMs) return 1;
+  const start = getStartOfIsoWeekUtcMs(fromTimestampMs);
+  const end = getStartOfIsoWeekUtcMs(toTimestampMs);
+  if (end <= start) return 1;
+  return Math.floor((end - start) / MS_PER_WEEK) + 1;
+};
+
+const parseAttendanceDateMs = (value: string): number | null => {
+  const dateMatch = value.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+  if (!dateMatch) return null;
+  const day = Number(dateMatch[1]);
+  const month = MONTH_MAP[dateMatch[2].toLowerCase()];
+  const year = Number(dateMatch[3]);
+  if (month === undefined) return null;
+  const date = new Date(year, month, day);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
 };
 
 export function CourseEditModal({
@@ -112,20 +167,43 @@ export function CourseEditModal({
     useState<SessionType>("regular");
   const [error, setError] = useState("");
 
-  const autoSlots = useMemo<ManualSlotInput[]>(() => {
+  const autoSlots = useMemo<AutoSlotDisplay[]>(() => {
     if (!course || course.isCustomCourse) return [];
     const attendanceCourse = attendanceCourses.find(
       (c) => c.courseId === course.courseId,
     );
     if (!attendanceCourse) return [];
 
+    let oldestRecordMs: number | null = null;
+    for (const attendance of attendanceCourses) {
+      for (const record of attendance.records) {
+        const parsedMs = parseAttendanceDateMs(record.date);
+        if (parsedMs === null) continue;
+        oldestRecordMs =
+          oldestRecordMs === null
+            ? parsedMs
+            : Math.min(oldestRecordMs, parsedMs);
+      }
+    }
+
+    const totalWeekSpanOverride =
+      oldestRecordMs === null
+        ? undefined
+        : getInclusiveIsoWeekSpan(oldestRecordMs, Date.now());
+
     return inferRecurringLmsSlots(attendanceCourse.records, {
       startToleranceMinutes: 20,
+      totalWeekSpanOverride,
     }).map((slot) => ({
       dayOfWeek: slot.dayOfWeek,
       startTime: slot.startTime,
       endTime: slot.endTime,
       sessionType: slot.sessionType,
+      occurrenceCount: slot.occurrenceCount,
+      dayActiveWeekCount: slot.dayActiveWeekCount,
+      totalWeekSpanCount: slot.totalWeekSpanCount,
+      dayObservationCount: slot.dayObservationCount,
+      score: slot.score,
     }));
   }, [attendanceCourses, course]);
 
@@ -551,7 +629,10 @@ export function CourseEditModal({
                               className="text-[11px] capitalize"
                               style={{ color: theme.textSecondary }}
                             >
-                              {slot.sessionType}
+                              {slot.sessionType} · weeks {slot.occurrenceCount}/
+                              {Math.max(slot.totalWeekSpanCount, 1)} · obs{" "}
+                              {slot.occurrenceCount}/
+                              {Math.max(slot.dayObservationCount, 1)}
                             </Text>
                           </View>
                         </View>

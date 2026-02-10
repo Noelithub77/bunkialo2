@@ -2,13 +2,14 @@ import { DaySchedule } from "@/components/timetable/day-schedule";
 import { DaySelector } from "@/components/timetable/day-selector";
 import { TimetableExportModal } from "@/components/timetable/timetable-export-modal";
 import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
+import { SlotConflictModal } from "@/components/modals/slot-conflict-modal";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useTimetableStore } from "@/stores/timetable-store";
-import type { DayOfWeek } from "@/types";
+import type { DayOfWeek, SlotConflict } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -30,18 +31,31 @@ export default function TimetableScreen() {
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
 
-  const { slots, lastGeneratedAt, isLoading, generateTimetable } =
-    useTimetableStore();
+  const {
+    slots,
+    conflicts,
+    lastGeneratedAt,
+    isLoading,
+    generateTimetable,
+    resolveConflict,
+    resolveAllAutoConflicts,
+    revertAutoConflictResolution,
+  } = useTimetableStore();
   const {
     courses: attendanceCourses,
     fetchAttendance,
     isLoading: isAttendanceLoading,
   } = useAttendanceStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showSlotConflictModal, setShowSlotConflictModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showTimetableExport, setShowTimetableExport] = useState(false);
   const hasGenerated = useRef(false);
   const isFocused = useIsFocused();
+  const unresolvedConflictCount = conflicts.filter((conflict: SlotConflict) => {
+    if (conflict.type === "manual-auto") return true;
+    return conflict.resolvedChoice === null;
+  }).length;
 
   // recompute day on focus
   const getDefaultDay = (): DayOfWeek => {
@@ -76,15 +90,28 @@ export default function TimetableScreen() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await fetchAttendance();
-    generateTimetable();
-    setRefreshing(false);
+    try {
+      await fetchAttendance();
+      generateTimetable();
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchAttendance, generateTimetable]);
 
-  const handleRegenerate = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    generateTimetable();
-  };
+  const handleOpenConflicts = useCallback(() => {
+    if (conflicts.length === 0) {
+      Haptics.selectionAsync();
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowSlotConflictModal(true);
+  }, [conflicts.length]);
+
+  useEffect(() => {
+    if (conflicts.length === 0) {
+      setShowSlotConflictModal(false);
+    }
+  }, [conflicts.length]);
 
   const formatLastGenerated = (timestamp: number | null): string => {
     if (!timestamp) return "";
@@ -117,7 +144,7 @@ export default function TimetableScreen() {
         }
       >
         {/* header */}
-        <View className="flex-row items-start justify-between mb-4">
+        <View className="mb-4 flex-row items-start justify-between">
           <View className="flex-shrink gap-0.5">
             <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
               Timetable
@@ -138,8 +165,51 @@ export default function TimetableScreen() {
               </View>
             )}
           </View>
-          <Pressable onPress={handleRegenerate} className="p-1">
-            <Ionicons name="refresh" size={16} color={theme.textSecondary} />
+
+          <Pressable
+            onPress={handleOpenConflicts}
+            className="relative p-1"
+            hitSlop={8}
+            style={conflicts.length === 0 ? { opacity: 0.6 } : undefined}
+          >
+            <Ionicons
+              name={
+                unresolvedConflictCount > 0
+                  ? "warning-outline"
+                  : "checkmark-circle-outline"
+              }
+              size={18}
+              color={
+                unresolvedConflictCount > 0
+                  ? Colors.status.warning
+                  : theme.textSecondary
+              }
+            />
+            {conflicts.length > 0 && (
+              <View
+                className="absolute -right-1 -top-1 min-w-[16px] rounded-full px-1 items-center"
+                style={{
+                  backgroundColor:
+                    unresolvedConflictCount > 0
+                      ? Colors.status.danger
+                      : theme.border,
+                }}
+              >
+                <Text
+                  className="text-[10px] font-bold"
+                  style={{
+                    color:
+                      unresolvedConflictCount > 0 ? Colors.white : theme.textSecondary,
+                  }}
+                >
+                  {unresolvedConflictCount > 0
+                    ? unresolvedConflictCount > 9
+                      ? "9+"
+                      : unresolvedConflictCount
+                    : "0"}
+                </Text>
+              </View>
+            )}
           </Pressable>
         </View>
 
@@ -242,6 +312,15 @@ export default function TimetableScreen() {
         visible={showTimetableExport}
         onClose={() => setShowTimetableExport(false)}
         slots={slots}
+      />
+
+      <SlotConflictModal
+        visible={showSlotConflictModal && conflicts.length > 0}
+        conflicts={conflicts}
+        onResolve={resolveConflict}
+        onResolveAllPreferred={() => resolveAllAutoConflicts("preferred")}
+        onRevertAutoConflict={revertAutoConflictResolution}
+        onClose={() => setShowSlotConflictModal(false)}
       />
     </Container>
   );

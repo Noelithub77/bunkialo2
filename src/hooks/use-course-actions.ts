@@ -14,7 +14,13 @@ export const useCourseActions = () => {
     setManualSlots,
   } = useBunkStore();
 
-  const { generateTimetable, resolveConflict, conflicts } = useTimetableStore();
+  const {
+    generateTimetable,
+    resolveConflict,
+    resolveAllAutoConflicts,
+    revertAutoConflictResolution,
+    conflicts,
+  } = useTimetableStore();
   const { openModal, closeModal, toggleEditMode } = useAttendanceUIStore();
 
   // config handlers
@@ -84,10 +90,30 @@ export const useCourseActions = () => {
   );
 
   const handleResolveConflict = useCallback(
-    (conflictIndex: number, keep: "manual" | "auto") => {
+    (
+      conflictIndex: number,
+      keep:
+        | "manual"
+        | "auto"
+        | "preferred"
+        | "alternative"
+        | "keep-outlier"
+        | "ignore-outlier",
+    ) => {
       resolveConflict(conflictIndex, keep);
     },
     [resolveConflict],
+  );
+
+  const handleResolveAllPreferred = useCallback(() => {
+    resolveAllAutoConflicts("preferred");
+  }, [resolveAllAutoConflicts]);
+
+  const handleRevertAutoConflict = useCallback(
+    (conflictId: string) => {
+      revertAutoConflictResolution(conflictId);
+    },
+    [revertAutoConflictResolution],
   );
 
   const handleOpenCreateCourse = useCallback(() => {
@@ -106,6 +132,8 @@ export const useCourseActions = () => {
     handleCreateCourse,
     handleDeleteCustomCourse,
     handleResolveConflict,
+    handleResolveAllPreferred,
+    handleRevertAutoConflict,
     handleOpenCreateCourse,
     handleToggleEditMode,
     conflicts,

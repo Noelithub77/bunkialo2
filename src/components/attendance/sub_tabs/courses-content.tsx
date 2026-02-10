@@ -141,7 +141,9 @@ export const CoursesContent = () => {
     handleCreateCourse,
     handleDeleteCustomCourse,
     handleResolveConflict,
+    handleResolveAllPreferred,
     conflicts,
+    handleRevertAutoConflict,
   } = useCourseActions();
 
   const allDutyLeaves = useMemo(
@@ -393,6 +395,8 @@ export const CoursesContent = () => {
         visible={isSlotConflictVisible && conflicts.length > 0}
         conflicts={conflicts}
         onResolve={handleResolveConflict}
+        onResolveAllPreferred={handleResolveAllPreferred}
+        onRevertAutoConflict={handleRevertAutoConflict}
         onClose={closeModal}
       />
 

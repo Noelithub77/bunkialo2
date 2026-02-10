@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest-16-core
     permissions:
       contents: write
+    env:
+      EAS_USE_CACHE: "1"
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -16,7 +18,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: bun
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,17 +37,17 @@ jobs:
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         env:
-          EXPO_USE_NPM: "1"
+          EXPO_USE_BUN: "1"
         with:
           token: ${{ secrets.EXPO_TOKEN }}
           expo-version: latest
           eas-version: latest
 
       - name: Setup EAS local builds
-        run: npm install -g eas-cli-local-build-plugin
+        run: bun add -g eas-cli-local-build-plugin
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Configure global Gradle properties
         run: |
@@ -54,7 +61,7 @@ jobs:
 
       - name: Build Android (production)
         run: |
-          eas build --local \
+          bunx eas build --local \
             --non-interactive \
             --output=./app-build \
             --platform=android \

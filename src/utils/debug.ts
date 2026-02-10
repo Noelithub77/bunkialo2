@@ -13,11 +13,11 @@ type LogCategory =
   | "TIMETABLE";
 
 const ENABLED_CATEGORIES: LogCategory[] = [
-  "AUTH",
-  "COOKIE",
-  "API",
-  "STORE",
-  "WIFIX",
+  // "AUTH",
+  // "COOKIE",
+  // "API",
+  // "STORE",
+  // "WIFIX",
   "TIMETABLE",
   // "COURSE_NAME",
 ];

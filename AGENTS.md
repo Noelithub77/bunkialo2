@@ -2,8 +2,8 @@
 
 ## Project Overview
 
-always use npm for expo projects
-ALWAYS USE NATIVEWIND (TAILWIND FOR REACT NATIVE)
+use bun as package manager; keep Expo workflows consistent
+ALWAYS USE NATIVEWIND (TAILWIND FOR REACT NATIVE) and preffer it over stylesheets
 **Bunkialo** - React Native (Expo) app that scrapes attendance and assignments from IIIT Kottayam Moodle LMS.
 
 **LMS**: `https://lmsug24.iiitkottayam.ac.in`
@@ -23,6 +23,7 @@ ALWAYS USE NATIVEWIND (TAILWIND FOR REACT NATIVE)
 - **Date Utils**: date-fns
 - **UI**: react-native-paper (Material Design) + NativeWind (Tailwind)
 - **Search**: fuse.js (fuzzy search)
+- **Background tasks**: expo-background-task, expo-task-manager (WiFix auto reconnect)
 
 ## Project Structure
 
@@ -31,9 +32,7 @@ app/                    # Expo Router screens
   ├── _layout.tsx      # Root layout, auth routing
   ├── login.tsx        # Login screen
   ├── settings.tsx     # Settings screen
-  ├── (fab-group)/     # FAB modal routes
-  │   ├── acad-cal.tsx # Academic calendar
-  │   └── gpa.tsx      # GPA calculator
+  ├── (fab-group)/     # FAB modal routes (acad-cal, gpa, wifix)
   ├── faculty/         # Faculty detail page
   │   └── [id].tsx     # Dynamic route for faculty details
   └── (tabs)/
@@ -44,143 +43,38 @@ app/                    # Expo Router screens
       ├── mess.tsx      # Mess menu display
       └── _layout.tsx   # Tab navigator config
 
+screens/                # Lazy-loaded screen bundles
+  ├── acad-cal-screen.tsx
+  ├── gpa-screen.tsx
+  └── wifix-screen.tsx
+
 components/            # React components organized by tab
-  ├── acad-cal/       # Academic calendar components
-  │   ├── changes-modal.tsx
-  │   ├── event-editor-modal.tsx
-  │   ├── export-calendar-modal.tsx
-  │   ├── constants.ts
-  │   ├── sub_tabs/
-  │   │   ├── calendar-content.tsx
-  │   │   └── upnext-content.tsx
-  │   └── index.ts
-  ├── dashboard/      # Dashboard-specific components
-  │   ├── event-card.tsx
-  │   ├── quick-glance-card.tsx
-  │   ├── timeline-section.tsx
-  │   ├── up-next-section.tsx
-  │   └── index.ts
-  ├── attendance/     # Attendance & bunk management components
-  │   ├── add-bunk-modal.tsx
-  │   ├── attendance-card.tsx
-  │   ├── changes-modal.tsx
-  │   ├── course-edit-modal.tsx
-  │   ├── create-course-modal.tsx
-  │   ├── dl-input-modal.tsx
-  │   ├── duty-leave-modal.tsx
-  │   ├── presence-input-modal.tsx
-  │   ├── slot-editor-modal.tsx
-  │   ├── swipeable-attendance-slot.tsx
-  │   ├── swipeable-bunk-item.tsx
-  │   ├── sub_tabs/    # Attendance sub-tab components
-  │   ├── total-absence-calendar.tsx
-  │   ├── unified-course-card.tsx
-  │   ├── unknown-status-modal.tsx
-  │   └── index.ts
-  ├── timetable/      # Timetable-specific components
-  │   ├── day-schedule.tsx
-  │   ├── day-selector.tsx
-  │   ├── upnext-carousel.tsx
-  │   └── index.ts
-  ├── faculty/        # Faculty-specific components
-  │   ├── faculty-card.tsx
-  │   └── index.ts
-  ├── mess/          # Mess-specific components
-  │   ├── day-meals.tsx
-  │   ├── meal-carousel.tsx
-  │   ├── meal-day-selector.tsx
-  │   └── index.ts
-  ├── shared/        # Components used across multiple tabs
-  │   ├── current-class-card.tsx
-  │   ├── external-link.tsx
-  │   ├── haptic-tab.tsx
-  │   ├── logs-section.tsx
-  │   └── index.ts
-  ├── ui/            # Base UI components
-  │   ├── button.tsx
-  │   ├── collapsible.tsx
-  │   ├── container.tsx
-  │   ├── gradient-card.tsx
-  │   ├── icon-symbol.tsx
-  │   ├── icon-symbol.ios.tsx
-  │   ├── input.tsx
-  │   └── index.ts
-  ├── modals/        # Modal re-exports and shared modals
-  │   ├── confirm-modal.tsx
-  │   ├── selection-modal.tsx
-  │   ├── slot-conflict-modal.tsx
-  │   └── index.ts
-  ├── themed-text.tsx # Theme text component
-  ├── themed-view.tsx # Theme view component
-  ├── index.ts       # Main export file
-  └── README.md      # Component organization guide
+  ├── acad-cal/
+  ├── attendance/
+  ├── dashboard/
+  ├── faculty/
+  ├── mess/
+  ├── timetable/
+  ├── wifix/           # WiFix log modal + exports
+  ├── shared/
+  ├── ui/
+  ├── modals/
+  ├── themed-text.tsx
+  ├── themed-view.tsx
+  ├── index.ts
+  └── README.md
 
 hooks/                 # Custom React hooks
-  ├── use-bunk-actions.ts
-  ├── use-color-scheme.ts
-  ├── use-color-scheme.web.ts
-  ├── use-course-actions.ts
-  └── use-theme-color.ts
-
 services/              # Business logic (NO React)
-  ├── api.ts          # Axios + cookie interceptors
-  ├── auth.ts         # Login/logout
-  ├── baseurl.ts      # LMS base URL configuration
-  ├── cookie-store.ts # Cookie management utilities
-  ├── dashboard.ts     # Moodle Timeline/Events API
-  ├── scraper.ts      # Moodle API + HTML parsing
-  └── wifix.ts        # Captive portal login helpers
-
-background/
-  ├── dashboard-background.ts # Refresh & Notifications
-  └── wifix-background.ts     # WiFix background login
-
-stores/                # Zustand stores
-  ├── acad-cal-ui-store.ts      # Academic calendar UI state
-  ├── academic-calendar-store.ts # Academic calendar data
-  ├── attendance-store.ts
-  ├── attendance-ui-store.ts
-  ├── auth-store.ts
-  ├── bunk-store.ts
-  ├── dashboard-store.ts # Events, logs, sync state
-  ├── faculty-store.ts    # Faculty directory state
-  ├── gpa-store.ts         # GPA calculator state
-  ├── settings-store.ts  # Refresh interval, reminders
-  ├── storage.ts          # AsyncStorage wrapper
-  ├── timetable-store.ts  # Generated timetable state
-  └── wifix-store.ts       # WiFix settings state
-
-data/                  # Static data
-  ├── acad-cal.ts      # Academic calendar events
-  ├── credits.ts      # Course credits data
-  ├── faculty.ts      # Faculty directory data
-  └── mess.ts         # Mess menu data and helpers
-
-types/                 # TypeScript types (split by domain)
-  ├── academic-calendar.ts
-  ├── attendance.ts
-  ├── auth.ts
-  ├── bunk.ts
-  ├── calendar.ts
-  ├── common.ts
-  ├── dashboard.ts
-  ├── faculty.ts
-  ├── gpa.ts
-  ├── index.ts         # Central re-exports
-  ├── lms.ts
-  ├── timetable.ts
-  └── wifix.ts
-
-utils/                 # Utility functions
-  ├── attendance-helpers.ts # Attendance-specific helpers
-  ├── course-name.ts  # Course name utilities
-  ├── debug.ts        # Debug logging
-  ├── html-parser.ts  # HTML parsing helpers
-  ├── ics-export.ts   # ICS calendar export
-  └── notifications.ts # Notification helpers
-
-constants/             # App constants
-  └── theme.ts        # Theme colors, gradients, spacing
+background/            # Background tasks (dashboard refresh, WiFix login)
+stores/                # Zustand stores (includes wifix-store, wifix-log-store)
+data/                  # Static data (acad-cal, credits, faculty, mess)
+types/                 # TypeScript types (domain-split, central index)
+utils/                 # Utilities (html-parser, debug, notifications, ics-export)
+constants/             # App constants (theme, wifix)
+scripts/               # Node utilities (generate-icons, test-scraper, test-dashboard, test-timetable)
+assets/                # Images/icons
+global.css             # Web baseline
 ```
 
 ## Key Types (`types/index.ts`)
@@ -291,6 +185,30 @@ interface MoodleAjaxResponse<T> {
   exception?;
   data: T;
 }
+
+// WiFix (types/wifix.ts)
+type WifixConnectionState = "idle" | "checking" | "online" | "captive" | "offline" | "error";
+type WifixPortalSource = "auto" | "manual";
+interface WifixConnectivityResult {
+  state;
+  portalUrl;
+  portalBaseUrl;
+  statusCode;
+  message;
+}
+interface WifixLoginResult {
+  success;
+  portalBaseUrl;
+  statusCode;
+  message;
+}
+interface WifixSettings {
+  autoReconnectEnabled;
+  backgroundIntervalMinutes;
+  portalBaseUrl;
+  manualPortalUrl;
+  portalSource;
+}
 ```
 
 **Rule**: Never use `any`. Always import types from `types/index.ts`.
@@ -351,7 +269,7 @@ components/
 ### Notes
 
 - Bunk management functionality is part of the `attendance` directory as it's accessed from the Attendance tab
-- Academic Calendar and GPA Calculator are accessed via FAB (Floating Action Button) modal routes
+- Academic Calendar, GPA Calculator, and WiFix are accessed via FAB (Floating Action Button) modal routes
 - Modal components are re-exported from the `modals` directory for convenience
 - Theme components (`themed-text.tsx`, `themed-view.tsx`) remain at the root as they're fundamental utilities
 
@@ -407,6 +325,14 @@ components/
 3. Credit-weighted GPA calculation.
 4. Automatic CGPA computation from all semesters.
 
+### WiFix (Captive Portal Auto Login)
+
+1. Screen: `screens/wifix-screen.tsx` (lazy-loaded via `app/(fab-group)/wifix.tsx`).
+2. Background task: `background/wifix-background.ts` (expo-background-task + task manager).
+3. Service: `services/wifix.ts` handles connectivity detection, login/logout, URL normalization.
+4. Store: `stores/wifix-store.ts` for settings; `stores/wifix-log-store.ts` for logs; `components/wifix/wifix-log-modal.tsx` for viewing logs.
+5. Constants: `constants/wifix.ts` presets and defaults; types in `types/wifix.ts`.
+
 ## Background Tasks & Notifications
 
 ```typescript
@@ -429,7 +355,7 @@ debug.scraper("Dashboard refresh triggered", data);
 3. **No `any` types**
 4. **Initial Route** - `index` (dashboard) is the default tab
 5. **Functional components only**
-6. **FAB Routes** - Academic Calendar and GPA Calculator are modal routes accessed via FAB\*\*
+6. **FAB Routes** - Academic Calendar, GPA Calculator, WiFix are modal routes accessed via FAB
 
 ## Common Errors
 
@@ -445,8 +371,10 @@ debug.scraper("Dashboard refresh triggered", data);
 node scripts/test-scraper.mjs
 # Test dashboard
 node scripts/test-dashboard.mjs
+# Test timetable
+node scripts/test-timetable-logic.mjs
 ```
 
 ---
 
-**Expo SDK**: 54 | **React Native**: 0.81.5 | **TypeScript**: 5.9.2 (strict)
+**Expo SDK**: 54 | **React Native**: 0.81.5 | **TypeScript**: 5.9.2 (strict) | **React**: 19.1.0 | **Preferred package manager**: pnpm
