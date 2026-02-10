@@ -10,7 +10,8 @@ import {
   Smartphone,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 import { AnimatedLogo } from "@/components/landing/animated-logo";
 import { LandingSplash } from "@/components/landing/landing-splash";
@@ -42,14 +43,6 @@ function normalizePlatformTab(value: string): PlatformTab {
   return value === "ios" ? "ios" : "android";
 }
 
-function getCompactUrl(url: string) {
-  if (url.length <= 72) {
-    return url;
-  }
-
-  return `${url.slice(0, 56)}...${url.slice(-12)}`;
-}
-
 export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
   const shouldReduceMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<PlatformTab>(initialTab);
@@ -59,7 +52,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
     "idle",
   );
 
-  const compactUrl = useMemo(() => getCompactUrl(expUrl), [expUrl]);
+  const shouldShowQrPanel = !isMobileClient || activeTab === "ios";
 
   useEffect(() => {
     const timeoutId = window.setTimeout(
@@ -106,14 +99,14 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
   return (
     <>
       <LandingSplash show={showSplash} />
-      <main className="landing-page px-4 py-6 sm:px-8 sm:py-10">
+      <main className="landing-page h-dvh overflow-hidden px-3 py-3 sm:px-8 sm:py-6">
         <motion.div
-          className="landing-shell mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl gap-7 overflow-hidden rounded-3xl p-5 sm:p-7 lg:grid-cols-[1.14fr_0.86fr] lg:p-10"
+          className="landing-shell mx-auto grid h-full w-full max-w-6xl gap-4 overflow-hidden rounded-3xl p-4 sm:gap-6 sm:p-6 lg:grid-cols-[1.14fr_0.86fr] lg:gap-7 lg:p-8"
           initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: shouldReduceMotion ? 0.2 : 0.55 }}
         >
-          <section className="flex flex-col gap-5">
+          <section className="min-w-0 flex flex-col gap-4 sm:gap-5">
             <motion.div
               className="flex flex-wrap items-center gap-3"
               initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -145,7 +138,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 duration: 0.45,
               }}
             >
-              <h1 className="font-display text-4xl leading-[0.92] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <h1 className="font-display text-[2.65rem] leading-[0.92] tracking-tight text-white sm:text-5xl lg:text-6xl">
                 Bunkialo
               </h1>
               <p className="max-w-xl text-sm leading-relaxed text-white/72 sm:text-base">
@@ -166,12 +159,12 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
             >
               <TabsList
                 variant="line"
-                className="h-auto w-full justify-start gap-2 rounded-none bg-transparent p-0"
+                className="grid h-auto w-full grid-cols-2 justify-start gap-2 rounded-none bg-transparent p-0"
               >
                 <TabsTrigger
                   value="android"
                   className={cn(
-                    "h-10 max-w-[11rem] grow rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white/70 data-[state=active]:border-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white",
+                    "h-10 min-w-0 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/70 data-[state=active]:border-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white",
                   )}
                 >
                   <Smartphone className="size-4" />
@@ -179,7 +172,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 </TabsTrigger>
                 <TabsTrigger
                   value="ios"
-                  className="h-10 max-w-[11rem] grow rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white/70 data-[state=active]:border-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white"
+                  className="h-10 min-w-0 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/70 data-[state=active]:border-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white"
                 >
                   <Apple className="size-4" />
                   iOS
@@ -289,76 +282,58 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 </motion.div>
               </TabsContent>
             </Tabs>
-
-            <p className="text-xs text-white/52">
-              {copyState === "error"
-                ? "Clipboard access is blocked on this browser. Use the visible link manually."
-                : "Links point to your production runtime channel (0.1.0)."}
-            </p>
           </section>
 
-          <motion.aside
-            className="flex flex-col gap-4"
-            initial={shouldReduceMotion ? false : { opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{
-              delay: shouldReduceMotion ? 0 : 0.16,
-              duration: 0.45,
-            }}
-          >
-            <Card className="landing-card border-white/14 bg-white/[0.04] py-0">
-              <CardHeader className="space-y-2 px-5 pt-5 pb-3">
-                <Badge
-                  variant="outline"
-                  className="w-fit rounded-full border-white/25 bg-white/8 text-[10px] tracking-[0.16em] text-white/75 uppercase"
-                >
-                  QR Install
-                </Badge>
-                <CardTitle className="font-display text-2xl text-white">
-                  Scan & Launch
-                </CardTitle>
-                <CardDescription className="text-white/62">
-                  Scan the production QR with Expo Go to open Bunkialo
-                  instantly.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 px-5 pb-5">
-                <a
-                  href={expUrl}
-                  className="group block rounded-2xl border border-white/12 bg-black/35 p-3 transition-colors hover:border-white/30"
-                >
-                  <div className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-white p-3">
-                    <img
-                      src={qrUrl}
-                      alt="Bunkialo production QR code"
-                      className="size-full object-contain"
-                    />
-                  </div>
-                  <div className="mt-2.5 flex items-center gap-2 text-xs text-white/72">
-                    <QrCode className="size-3.5" />
-                    Tap QR block to open link directly
-                  </div>
-                </a>
+          {shouldShowQrPanel ? (
+            <motion.aside
+              className="min-w-0 flex h-full flex-col gap-4"
+              initial={shouldReduceMotion ? false : { opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.16,
+                duration: 0.45,
+              }}
+            >
+              <Card className="landing-card h-full border-white/14 bg-white/[0.04] py-0">
+                <CardHeader className="space-y-2 px-5 pt-5 pb-3">
+                  <Badge
+                    variant="outline"
+                    className="w-fit rounded-full border-white/25 bg-white/8 text-[10px] tracking-[0.16em] text-white/75 uppercase"
+                  >
+                    QR Install
+                  </Badge>
+                  <CardTitle className="font-display text-2xl text-white">
+                    Scan & Launch
+                  </CardTitle>
+                  <CardDescription className="text-white/62">
+                    Scan the production QR with Expo Go to open Bunkialo
+                    instantly.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 px-5 pb-5">
+                  <a
+                    href={expUrl}
+                    className="group block rounded-2xl border border-white/12 bg-black/35 p-3 transition-colors hover:border-white/30"
+                  >
+                    <div className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-white p-3">
+                      <Image
+                        src={qrUrl}
+                        alt="Bunkialo production QR code"
+                        fill
+                        sizes="(max-width: 768px) 80vw, 28vw"
+                        className="object-contain p-3"
+                      />
+                    </div>
+                    <div className="mt-2.5 flex items-center gap-2 text-xs text-white/72">
+                      <QrCode className="size-3.5" />
+                      Tap QR block to open link directly
+                    </div>
+                  </a>
 
-                <div className="rounded-xl border border-white/12 bg-black/30 p-3">
-                  <p className="mb-2 text-[11px] tracking-[0.12em] text-white/58 uppercase">
-                    Deep Link
-                  </p>
-                  <code className="block overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white/88">
-                    {compactUrl}
-                  </code>
-                </div>
-
-                {!isMobileClient ? (
-                  <p className="text-xs leading-relaxed text-white/58">
-                    Desktop browsers may not handle{" "}
-                    <span className="font-semibold text-white/72">exp://</span>{" "}
-                    URLs directly. Scan the QR on your phone with Expo Go.
-                  </p>
-                ) : null}
-              </CardContent>
-            </Card>
-          </motion.aside>
+                </CardContent>
+              </Card>
+            </motion.aside>
+          ) : null}
         </motion.div>
       </main>
     </>
