@@ -153,14 +153,8 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
             }}
           >
             <View className={`${isCompactMobile ? "gap-1.5" : "gap-2"}`}>
-              <Text
-                className="text-[11px] font-semibold uppercase tracking-[1.1px]"
-                style={{ color: theme.textSecondary }}
-              >
-                Credits
-              </Text>
-              <Text className={`${isCompactMobile ? "text-[12px]" : "text-[13px]"}`} style={{ color: theme.textSecondary }}>
-                Made by{" "}
+              <Text className={`${isCompactMobile ? "text-[11px]" : "text-[12px]"}`} style={{ color: theme.textSecondary }}>
+                Built by{" "}
                 <Text
                   onPress={() => openUrl("https://www.linkedin.com/in/noel-georgi/")}
                   className="underline"
@@ -170,7 +164,7 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
                 </Text>
               </Text>
 
-              <Text className={`${isCompactMobile ? "text-[12px]" : "text-[13px]"}`} style={{ color: theme.textSecondary }}>
+              <Text className={`${isCompactMobile ? "text-[11px]" : "text-[12px]"}`} style={{ color: theme.textSecondary }}>
                 Ideas by{" "}
                 <Text
                   onPress={() =>
@@ -193,12 +187,12 @@ export const DevInfoModal = ({ visible, onClose }: DevInfoModalProps) => {
 
               <Pressable
                 onPress={() => openUrl(buyMeCoffeeUrl)}
-                className="mt-1 self-start rounded-xl px-3 py-2"
+                className="mt-1 w-full rounded-xl px-3 py-2"
                 style={{ backgroundColor: Colors.status.warning }}
               >
-                <View className="flex-row items-center gap-1.5">
+                <View className="flex-row items-center justify-center gap-1.5">
                   <Ionicons name="cafe-outline" size={14} color={Colors.black} />
-                  <Text className={`${isCompactMobile ? "text-[12px]" : "text-[13px]"} font-semibold`} style={{ color: Colors.black }}>
+                  <Text className={`${isCompactMobile ? "text-[11px]" : "text-[12px]"} font-semibold`} style={{ color: Colors.black }}>
                     Buy me a coffee
                   </Text>
                 </View>

@@ -22,6 +22,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { UpiQrModalContent } from "@/components/landing/upi-qr-modal-content";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -36,7 +41,8 @@ export interface LandingShellProps {
 
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.codialo.Bunkialo2";
-const BUY_ME_COFFEE_UPI_URL = "upi://pay?pa=noelmcv7@oksbi&cu=INR";
+const BUY_ME_COFFEE_UPI_URL =
+  "upi://pay?pa=noelmcv7@oksbi&pn=Noel%20Georgi&tn=Support%20Bunkialo&cu=INR";
 const DEVELOPER_LINKEDIN_URL = "https://www.linkedin.com/in/noel-georgi/";
 const IDEAS_BY_LINKS = [
   {
@@ -283,14 +289,29 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                   </p>
                 </div>
                 <div className="sm:justify-self-end">
-                  <Button
-                    asChild
-                    size="sm"
-                    className="h-9 rounded-xl border-0 px-4 text-sm font-semibold text-neutral-950 shadow-[0_8px_24px_rgba(255,171,0,0.28)] transition-all hover:brightness-95"
-                    style={{ backgroundColor: "#FFAB00" }}
-                  >
-                    <a href={BUY_ME_COFFEE_UPI_URL}>Buy me a coffee</a>
-                  </Button>
+                  {isMobileClient ? (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-9 rounded-xl border-0 px-4 text-sm font-semibold text-neutral-950 shadow-[0_8px_24px_rgba(255,171,0,0.28)] transition-all hover:brightness-95"
+                      style={{ backgroundColor: "#FFAB00" }}
+                    >
+                      <a href={BUY_ME_COFFEE_UPI_URL}>Buy me a coffee</a>
+                    </Button>
+                  ) : (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="h-9 rounded-xl border-0 px-4 text-sm font-semibold text-neutral-950 shadow-[0_8px_24px_rgba(255,171,0,0.28)] transition-all hover:brightness-95"
+                          style={{ backgroundColor: "#FFAB00" }}
+                        >
+                          Buy me a coffee
+                        </Button>
+                      </DialogTrigger>
+                      <UpiQrModalContent upiUrl={BUY_ME_COFFEE_UPI_URL} />
+                    </Dialog>
+                  )}
                 </div>
               </div>
             </motion.div>
