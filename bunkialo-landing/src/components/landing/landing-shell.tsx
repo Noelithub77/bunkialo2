@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  Apple,
-  ArrowUpRight,
-  Check,
-  Copy,
-  Download,
-  QrCode,
-  Smartphone,
-} from "lucide-react";
+import { ArrowUpRight, Check, Copy, QrCode } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { SiAndroid, SiApple, SiGoogleplay } from "react-icons/si";
 
 import { AnimatedLogo } from "@/components/landing/animated-logo";
 import { LandingSplash } from "@/components/landing/landing-splash";
@@ -124,7 +117,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                   variant="outline"
                   className="rounded-full border-white/20 bg-black/25 px-2.5 py-1 text-[10px] tracking-[0.16em] text-white/70 uppercase"
                 >
-                  Production Channel
+                  Public release
                 </Badge>
               </div>
             </motion.div>
@@ -167,14 +160,14 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                     "h-10 min-w-0 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/70 data-[state=active]:border-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white",
                   )}
                 >
-                  <Smartphone className="size-4" />
+                  <SiAndroid className="size-4 text-white/80" />
                   Android
                 </TabsTrigger>
                 <TabsTrigger
                   value="ios"
                   className="h-10 min-w-0 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/70 data-[state=active]:border-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white"
                 >
-                  <Apple className="size-4" />
+                  <SiApple className="size-3.5 text-white/80" />
                   iOS
                 </TabsTrigger>
               </TabsList>
@@ -192,11 +185,11 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                         Android Install
                       </CardTitle>
                       <CardDescription className="text-white/65">
-                        Install from Play Store or launch the production Expo
-                        channel directly.
+                        Install the latest production build directly from Google
+                        Play.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3 px-5 pb-5">
+                    <CardContent className="space-y-2 px-5 pb-5 sm:space-y-3">
                       <motion.div
                         whileHover={
                           shouldReduceMotion ? undefined : { y: -1.5 }
@@ -208,23 +201,12 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                             target="_blank"
                             rel="noreferrer"
                           >
-                            <Download className="size-4" />
+                            <SiGoogleplay className="size-4 text-neutral-900" />
                             Open in Play Store
                             <ArrowUpRight className="size-4 opacity-75" />
                           </a>
                         </Button>
                       </motion.div>
-                      <Button
-                        asChild
-                        size="lg"
-                        variant="secondary"
-                        className="w-full rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/16"
-                      >
-                        <a href={expUrl}>
-                          Open Production in Expo Go
-                          <ArrowUpRight className="size-4 opacity-70" />
-                        </a>
-                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -320,6 +302,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                         src={qrUrl}
                         alt="Bunkialo production QR code"
                         fill
+                        unoptimized
                         sizes="(max-width: 768px) 80vw, 28vw"
                         className="object-contain p-3"
                       />
@@ -329,7 +312,6 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                       Tap QR block to open link directly
                     </div>
                   </a>
-
                 </CardContent>
               </Card>
             </motion.aside>
