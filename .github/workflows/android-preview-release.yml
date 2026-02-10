@@ -9,6 +9,7 @@ jobs:
     permissions:
       contents: write
     env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EAS_USE_CACHE: "1"
     steps:
       - name: Checkout repo
@@ -70,18 +71,25 @@ jobs:
 
       - name: Build Android (preview)
         run: |
+          mkdir -p "$RUNNER_TEMP/artifacts"
           bunx eas build --local \
             --non-interactive \
-            --output=./app-build \
+            --output="$RUNNER_TEMP/artifacts/app-preview.apk" \
             --platform=android \
-            --profile=preview
+            --profile=preview \
+            --build-logger-level=debug \
+            --verbose-logs
+        env:
+          EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ runner.temp }}/artifacts
+          EAS_LOCAL_BUILD_WORKINGDIR: ${{ runner.temp }}/eas-local-build
+          EAS_LOCAL_BUILD_SKIP_CLEANUP: "1"
 
       - name: Locate APK artifact
         id: artifact
         run: |
-          ARTIFACT_PATH=$(ls app-build/*.apk 2>/dev/null | head -n 1)
+          ARTIFACT_PATH=$(ls "$RUNNER_TEMP"/artifacts/*.apk "$RUNNER_TEMP"/artifacts/*.aab 2>/dev/null | head -n 1)
           if [ -z "$ARTIFACT_PATH" ]; then
-            echo "No APK artifact found in app-build" >&2
+            echo "No APK artifact found in $RUNNER_TEMP/artifacts" >&2
             exit 1
           fi
           echo "path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"

@@ -11,6 +11,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "icon": {
+        "light": "./src/assets/images/ios-icon-light.png",
+        "dark": "./src/assets/images/ios-icon-dark.png",
+        "tinted": "./src/assets/images/ios-icon-tinted.png"
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "fetch"
