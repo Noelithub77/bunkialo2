@@ -4,15 +4,11 @@ import { ArrowUpRight, QrCode } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import {
-  SiAndroid,
-  SiApple,
-  SiExpo,
-  SiGoogleplay,
-} from "react-icons/si";
+import { SiAndroid, SiApple, SiExpo, SiGoogleplay } from "react-icons/si";
 
 import { AnimatedLogo } from "@/components/landing/animated-logo";
 import { LandingSplash } from "@/components/landing/landing-splash";
+import { UpiQrModalContent } from "@/components/landing/upi-qr-modal-content";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,11 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { UpiQrModalContent } from "@/components/landing/upi-qr-modal-content";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -41,6 +33,8 @@ export interface LandingShellProps {
 
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.codialo.Bunkialo2";
+const EXPO_GO_IOS_APP_STORE_URL =
+  "https://apps.apple.com/us/app/expo-go/id982107779";
 const BUY_ME_COFFEE_UPI_URL =
   "upi://pay?pa=noelmcv7@oksbi&pn=Noel%20Georgi&tn=Support%20Bunkialo&cu=INR";
 const DEVELOPER_LINKEDIN_URL = "https://www.linkedin.com/in/noel-georgi/";
@@ -89,14 +83,14 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
   return (
     <>
       <LandingSplash show={showSplash} />
-      <main className="landing-page h-[100svh] overflow-hidden px-2 py-2 sm:px-8 sm:py-6">
+      <main className="landing-page min-h-[100svh] overflow-x-hidden overflow-y-auto px-2 py-2 sm:h-[100svh] sm:overflow-hidden sm:px-8 sm:py-6">
         <motion.div
-          className="landing-shell mx-auto grid h-full w-full max-w-6xl gap-3 overflow-hidden rounded-3xl p-3 sm:gap-6 sm:p-6 lg:grid-cols-[1.14fr_0.86fr] lg:gap-7 lg:p-8"
+          className="landing-shell mx-auto grid min-h-[calc(100svh-1rem)] w-full max-w-6xl gap-3 overflow-hidden rounded-3xl p-3 sm:h-full sm:min-h-0 sm:gap-6 sm:p-6 lg:grid-cols-[1.14fr_0.86fr] lg:gap-7 lg:p-8"
           initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: shouldReduceMotion ? 0.2 : 0.55 }}
         >
-          <section className="min-w-0 flex min-h-0 flex-col gap-3 sm:gap-5">
+          <section className="min-w-0 flex h-full min-h-0 flex-col gap-3 sm:gap-5">
             <motion.div
               className="flex flex-wrap items-center gap-3"
               initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -145,7 +139,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
               onValueChange={(value) =>
                 setActiveTab(normalizePlatformTab(value))
               }
-              className="w-full gap-3"
+              className="w-full gap-4"
             >
               <TabsList
                 variant="line"
@@ -169,7 +163,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="android" className="mt-0 space-y-3">
+              <TabsContent value="android" className="mt-0">
                 <motion.div
                   className="space-y-4"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -177,7 +171,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                   transition={{ duration: shouldReduceMotion ? 0.2 : 0.32 }}
                 >
                   <Card className="landing-card border-white/14 bg-white/[0.04] py-0">
-                    <CardHeader className="px-5 pt-5 pb-3">
+                    <CardHeader className="px-5 pt-5 pb-2.5">
                       <CardTitle className="font-display text-xl text-white">
                         Android Install
                       </CardTitle>
@@ -185,7 +179,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                         Please drop a review too!
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-2 px-5 pb-5 sm:space-y-3">
+                    <CardContent className="space-y-3 px-5 pb-5">
                       <motion.div
                         whileHover={
                           shouldReduceMotion ? undefined : { y: -1.5 }
@@ -208,7 +202,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="ios" className="mt-0 space-y-3">
+              <TabsContent value="ios" className="mt-0">
                 <motion.div
                   className="space-y-4"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -216,7 +210,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                   transition={{ duration: shouldReduceMotion ? 0.2 : 0.32 }}
                 >
                   <Card className="landing-card border-white/14 bg-white/[0.04] py-0">
-                    <CardHeader className="px-5 pt-5 pb-3">
+                    <CardHeader className="px-5 pt-5 pb-2.5">
                       <CardTitle className="font-display text-xl text-white">
                         iOS Install
                       </CardTitle>
@@ -226,6 +220,29 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 px-5 pb-5">
+                      <p className="text-sm text-white/75">
+                        Step 1: Install Expo Go from the App Store.
+                      </p>
+                      <motion.div
+                        whileHover={
+                          shouldReduceMotion ? undefined : { y: -1.5 }
+                        }
+                      >
+                        <Button asChild size="lg" className="w-full rounded-xl">
+                          <a
+                            href={EXPO_GO_IOS_APP_STORE_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <SiApple className="size-4 text-neutral-900" />
+                            Install Expo Go
+                            <ArrowUpRight className="size-4 opacity-75" />
+                          </a>
+                        </Button>
+                      </motion.div>
+                      <p className="text-sm text-white/75">
+                        Step 2: Open the deep URL in Expo Go.
+                      </p>
                       <motion.div
                         whileHover={
                           shouldReduceMotion ? undefined : { y: -1.5 }
@@ -246,7 +263,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
             </Tabs>
 
             <motion.div
-              className="mt-auto rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 backdrop-blur-sm"
+              className="mt-auto rounded-xl border border-white/8 bg-white/[0.015] px-3.5 py-2.5 backdrop-blur-sm sm:px-3.5 sm:py-2.5"
               initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -254,46 +271,46 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                 duration: 0.38,
               }}
             >
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                <div className="space-y-1.5 text-xs text-white/65">
+              <div className="flex flex-col items-center justify-center gap-2 text-center">
+                <div className="min-w-0 space-y-1 text-[12px] text-white/60 sm:text-[11px]">
                   <p className="leading-relaxed">
-                  Made by{" "}
-                  <a
-                    href={DEVELOPER_LINKEDIN_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-white/80 underline underline-offset-2 transition-colors hover:text-white"
-                  >
-                    Noel Georgi
-                  </a>
+                    Made by{" "}
+                    <a
+                      href={DEVELOPER_LINKEDIN_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="whitespace-nowrap text-white/80 underline underline-offset-2 transition-colors hover:text-white"
+                    >
+                      Noel Georgi
+                    </a>
                   </p>
                   <p className="leading-relaxed">
-                  Ideas by{" "}
-                  <a
-                    href={IDEAS_BY_LINKS[0].href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-white/80 underline underline-offset-2 transition-colors hover:text-white"
-                  >
-                    {IDEAS_BY_LINKS[0].name}
-                  </a>
-                  {" & "}
-                  <a
-                    href={IDEAS_BY_LINKS[1].href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-white/80 underline underline-offset-2 transition-colors hover:text-white"
-                  >
-                    {IDEAS_BY_LINKS[1].name}
-                  </a>
+                    Ideas by{" "}
+                    <a
+                      href={IDEAS_BY_LINKS[0].href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="whitespace-nowrap text-white/80 underline underline-offset-2 transition-colors hover:text-white"
+                    >
+                      {IDEAS_BY_LINKS[0].name}
+                    </a>
+                    {" & "}
+                    <a
+                      href={IDEAS_BY_LINKS[1].href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="whitespace-nowrap text-white/80 underline underline-offset-2 transition-colors hover:text-white"
+                    >
+                      {IDEAS_BY_LINKS[1].name}
+                    </a>
                   </p>
                 </div>
-                <div className="sm:justify-self-end">
+                <div className="shrink-0">
                   {isMobileClient ? (
                     <Button
                       asChild
                       size="sm"
-                      className="h-9 rounded-xl border-0 px-4 text-sm font-semibold text-neutral-950 shadow-[0_8px_24px_rgba(255,171,0,0.28)] transition-all hover:brightness-95"
+                      className="h-8 whitespace-nowrap rounded-lg border-0 px-4 text-[13px] font-semibold text-neutral-950 shadow-[0_6px_18px_rgba(255,171,0,0.22)] transition-all hover:brightness-95"
                       style={{ backgroundColor: "#FFAB00" }}
                     >
                       <a href={BUY_ME_COFFEE_UPI_URL}>Buy me a coffee</a>
@@ -303,7 +320,7 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                       <DialogTrigger asChild>
                         <Button
                           size="sm"
-                          className="h-9 rounded-xl border-0 px-4 text-sm font-semibold text-neutral-950 shadow-[0_8px_24px_rgba(255,171,0,0.28)] transition-all hover:brightness-95"
+                          className="h-8 whitespace-nowrap rounded-lg border-0 px-4 text-[13px] font-semibold text-neutral-950 shadow-[0_6px_18px_rgba(255,171,0,0.22)] transition-all hover:brightness-95"
                           style={{ backgroundColor: "#FFAB00" }}
                         >
                           Buy me a coffee

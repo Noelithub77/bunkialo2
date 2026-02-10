@@ -217,8 +217,15 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                   colors={getSlotGradient(courseColor, isPast, isNow)}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  className="px-3.5 py-2.5"
-                >
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0,
+                  }}
+                />
+                <View className="px-3.5 py-2.5">
                   <View className="flex-row items-center justify-between gap-2">
                     <Text
                       className="flex-1 text-[16px] font-semibold"
@@ -275,7 +282,7 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                       </View>
                     )}
                   </View>
-                </LinearGradient>
+                </View>
               </View>
             </View>
           </View>

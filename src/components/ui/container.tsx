@@ -1,15 +1,17 @@
-import { View, StyleSheet, ViewProps } from "react-native";
+import { View, type ViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface ContainerProps extends ViewProps {
   safeArea?: boolean;
+  className?: string;
 }
 
 export function Container({
   children,
   style,
+  className,
   safeArea = true,
   ...props
 }: ContainerProps) {
@@ -19,8 +21,8 @@ export function Container({
 
   return (
     <View
+      className={`flex-1 ${className ?? ""}`}
       style={[
-        styles.container,
         { backgroundColor: isDark ? Colors.black : Colors.white },
         safeArea && {
           paddingTop: insets.top,
@@ -34,9 +36,3 @@ export function Container({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

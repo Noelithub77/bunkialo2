@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Dimensions,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Text,
@@ -27,10 +27,8 @@ interface UpNextCarouselProps {
   slots: TimetableSlot[];
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.72;
 const CARD_SPACING = 6;
-const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+const DEFAULT_CAROUSEL_WIDTH = 360;
 
 export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   const colorScheme = useColorScheme();
@@ -43,6 +41,17 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
+  const [carouselWidth, setCarouselWidth] = useState(DEFAULT_CAROUSEL_WIDTH);
+
+  const cardWidth = useMemo(
+    () => Math.max(240, Math.round(carouselWidth * 0.72)),
+    [carouselWidth],
+  );
+  const sideSpacing = useMemo(
+    () => Math.max(0, (carouselWidth - cardWidth) / 2),
+    [carouselWidth, cardWidth],
+  );
+  const snapInterval = cardWidth + CARD_SPACING;
 
   // recompute time on focus
   const [, setFocusKey] = useState(0);
@@ -157,6 +166,16 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     [activeIndex, hasInitialScrolled, resetSnapTimer],
   );
 
+  const handleCarouselLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const nextWidth = event.nativeEvent.layout.width;
+      if (nextWidth > 0 && Math.abs(nextWidth - carouselWidth) > 1) {
+        setCarouselWidth(nextWidth);
+      }
+    },
+    [carouselWidth],
+  );
+
   if (nearbySlots.length === 0) {
     return (
       <View
@@ -229,10 +248,9 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
     }
 
     return (
-      <View className="py-0.5" style={{ width: CARD_WIDTH }}>
-        <LinearGradient
-          colors={gradientColors}
-          className="relative min-h-[146px] overflow-hidden rounded-2xl px-5 py-4"
+      <View className="py-0.5" style={{ width: cardWidth }}>
+        <View
+          className="relative min-h-[146px] overflow-hidden rounded-2xl"
           style={[
             !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
             {
@@ -242,93 +260,105 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
             },
             (isFinished || isFutureClass) && { opacity: cardOpacity },
           ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
         >
-          {/* status row */}
-          <View className="flex-row items-center gap-1">
-            <View
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: statusColor }}
-            />
-            <Text
-              className="text-[11px] font-semibold uppercase"
-              style={{ color: statusColor, letterSpacing: 0.3 }}
-            >
-              {statusText}
-            </Text>
-          </View>
-
-          {/* course name */}
-          <Text
-            className="mt-2 text-[22px] font-bold leading-[26px]"
-            style={{ color: theme.text }}
-            numberOfLines={2}
-          >
-            {item.courseName}
-          </Text>
-
-          {/* time */}
-          <View className="mt-2 flex-row items-center gap-1">
-            <Ionicons
-              name="time-outline"
-              size={14}
-              color={theme.textSecondary}
-            />
-            <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
-              {formatTimeDisplay(item.startTime)} - {formatTimeDisplay(item.endTime)}
-            </Text>
-          </View>
-
-          {/* session type and badges */}
-          <View className="mt-3 flex-row flex-wrap items-center gap-1">
-            <View
-              className="rounded-lg px-2 py-[3px]"
-              style={{
-                backgroundColor: isCurrentlyActive
-                  ? Colors.status.success + "CC"
-                  : courseColor + "CC",
-              }}
-            >
-              <Text className="text-[11px] font-semibold text-white">
-                {item.sessionType.charAt(0).toUpperCase() +
-                  item.sessionType.slice(1)}
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+            }}
+          />
+          <View className="px-5 py-4">
+            {/* status row */}
+            <View className="flex-row items-center gap-1">
+              <View
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: statusColor }}
+              />
+              <Text
+                className="text-[11px] font-semibold uppercase"
+                style={{ color: statusColor, letterSpacing: 0.3 }}
+              >
+                {statusText}
               </Text>
             </View>
-            {item.isManual && (
+
+            {/* course name */}
+            <Text
+              className="mt-2 text-[22px] font-bold leading-[26px]"
+              style={{ color: theme.text }}
+              numberOfLines={2}
+            >
+              {item.courseName}
+            </Text>
+
+            {/* time */}
+            <View className="mt-2 flex-row items-center gap-1">
+              <Ionicons
+                name="time-outline"
+                size={14}
+                color={theme.textSecondary}
+              />
+              <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
+                {formatTimeDisplay(item.startTime)} - {formatTimeDisplay(item.endTime)}
+              </Text>
+            </View>
+
+            {/* session type and badges */}
+            <View className="mt-3 flex-row flex-wrap items-center gap-1">
               <View
-                className="rounded-lg px-1 py-[3px]"
-                style={{ backgroundColor: Colors.status.info + "40" }}
+                className="rounded-lg px-2 py-[3px]"
+                style={{
+                  backgroundColor: isCurrentlyActive
+                    ? Colors.status.success + "CC"
+                    : courseColor + "CC",
+                }}
               >
-                <Text
-                  className="text-[10px] font-semibold"
-                  style={{ color: Colors.status.info }}
-                >
-                  Manual
+                <Text className="text-[11px] font-semibold text-white">
+                  {item.sessionType.charAt(0).toUpperCase() +
+                    item.sessionType.slice(1)}
                 </Text>
               </View>
-            )}
-            {item.isCustomCourse && (
-              <View
-                className="rounded-lg px-1 py-[3px]"
-                style={{ backgroundColor: Colors.status.success + "40" }}
-              >
-                <Text
-                  className="text-[10px] font-semibold"
-                  style={{ color: Colors.status.success }}
+              {item.isManual && (
+                <View
+                  className="rounded-lg px-1 py-[3px]"
+                  style={{ backgroundColor: Colors.status.info + "40" }}
                 >
-                  Custom
-                </Text>
-              </View>
-            )}
+                  <Text
+                    className="text-[10px] font-semibold"
+                    style={{ color: Colors.status.info }}
+                  >
+                    Manual
+                  </Text>
+                </View>
+              )}
+              {item.isCustomCourse && (
+                <View
+                  className="rounded-lg px-1 py-[3px]"
+                  style={{ backgroundColor: Colors.status.success + "40" }}
+                >
+                  <Text
+                    className="text-[10px] font-semibold"
+                    style={{ color: Colors.status.success }}
+                  >
+                    Custom
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
-        </LinearGradient>
+        </View>
       </View>
     );
   };
 
   return (
-    <View className="items-center">
+    <View className="w-full items-center" onLayout={handleCarouselLayout}>
       <FlatList
         ref={flatListRef}
         data={nearbySlots}
@@ -339,19 +369,19 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
         nestedScrollEnabled
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + CARD_SPACING}
+        snapToInterval={snapInterval}
         snapToAlignment="start"
         decelerationRate="fast"
         contentContainerStyle={{
-          paddingHorizontal: SIDE_SPACING,
+          paddingHorizontal: sideSpacing,
         }}
         ItemSeparatorComponent={() => <View style={{ width: CARD_SPACING }} />}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         initialScrollIndex={initialScrollIndex}
         getItemLayout={(_, index) => ({
-          length: CARD_WIDTH + CARD_SPACING,
-          offset: (CARD_WIDTH + CARD_SPACING) * index,
+          length: snapInterval,
+          offset: snapInterval * index,
           index,
         })}
         onScrollBeginDrag={() => {
