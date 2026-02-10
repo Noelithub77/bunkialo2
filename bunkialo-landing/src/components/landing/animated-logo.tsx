@@ -14,8 +14,9 @@ interface AnimatedLogoProps {
 function getCapAnimation(mode: AnimatedLogoMode) {
   if (mode === "splash") {
     return {
-      y: [-22, 8, -6, 0],
-      rotate: [-11, 4, -1, 0],
+      y: [-42, 18, -12, 4, 0],
+      rotate: [-17, 9, -5, 1.5, 0],
+      scale: [0.96, 1.08, 0.99, 1.02, 1],
     };
   }
 
@@ -35,9 +36,15 @@ function getCapAnimation(mode: AnimatedLogoMode) {
 function getCapTransition(mode: AnimatedLogoMode) {
   if (mode === "splash") {
     return {
-      duration: 1.05,
+      duration: 1,
       ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-      times: [0, 0.5, 0.8, 1] as [number, number, number, number],
+      times: [0, 0.44, 0.7, 0.88, 1] as [
+        number,
+        number,
+        number,
+        number,
+        number,
+      ],
     };
   }
 

@@ -32,7 +32,7 @@ export function LandingSplash({ show }: LandingSplashProps) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: shouldReduceMotion ? 0.25 : 0.5 }}
           >
-            <div className="relative size-28 sm:size-36">
+            <div className="relative h-[75vw] w-[75vw] max-h-[24rem] max-w-[24rem] sm:size-80">
               <div className="absolute inset-0 rounded-full bg-white/20 blur-2xl" />
               <AnimatedLogo className="relative z-10" mode="splash" />
             </div>
