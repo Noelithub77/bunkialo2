@@ -48,37 +48,16 @@ jobs:
         run: bun add -g eas-cli-local-build-plugin
 
       - name: Clean dependency state
-        run: |
-          rm -rf node_modules
-          rm -rf ~/.bun/install/cache
-          rm -rf ~/.gradle/caches ~/.gradle/wrapper
-          rm -rf "$RUNNER_TEMP/eas-local-build" "$RUNNER_TEMP/artifacts"
+        run: bash scripts/actions/clean-dependency-state.sh
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Configure global Gradle properties
-        run: |
-          mkdir -p "$HOME/.gradle"
-          cat > "$HOME/.gradle/gradle.properties" <<'EOF'
-          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
-          kotlin.daemon.jvmargs=-Xmx2g
-          org.gradle.workers.max=2
-          org.gradle.caching=true
-          org.gradle.parallel=true
-          org.gradle.configureondemand=true
-          org.gradle.daemon=false
-          EOF
+        run: bash scripts/actions/configure-gradle-properties.sh
 
       - name: Build Android (preview)
-        run: |
-          mkdir -p "$RUNNER_TEMP/artifacts"
-          bunx eas build --local \
-            --non-interactive \
-            --clear-cache \
-            --output="$RUNNER_TEMP/artifacts/app-preview.apk" \
-            --platform=android \
-            --profile=preview
+        run: bash scripts/actions/build-android-preview.sh
         env:
           EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ runner.temp }}/artifacts
           EAS_LOCAL_BUILD_WORKINGDIR: ${{ runner.temp }}/eas-local-build
@@ -86,13 +65,7 @@ jobs:
 
       - name: Locate APK artifact
         id: artifact
-        run: |
-          ARTIFACT_PATH=$(ls "$RUNNER_TEMP"/artifacts/*.apk "$RUNNER_TEMP"/artifacts/*.aab 2>/dev/null | head -n 1)
-          if [ -z "$ARTIFACT_PATH" ]; then
-            echo "No APK artifact found in $RUNNER_TEMP/artifacts" >&2
-            exit 1
-          fi
-          echo "path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+        run: bash scripts/actions/locate-build-artifact.sh
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

@@ -48,37 +48,16 @@ jobs:
         run: bun add -g eas-cli-local-build-plugin
 
       - name: Clean dependency state
-        run: |
-          rm -rf node_modules
-          rm -rf ~/.bun/install/cache
-          rm -rf ~/.gradle/caches ~/.gradle/wrapper
-          rm -rf "$RUNNER_TEMP/eas-local-build" "$RUNNER_TEMP/artifacts"
+        run: bash scripts/actions/clean-dependency-state.sh
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Configure global Gradle properties
-        run: |
-          mkdir -p "$HOME/.gradle"
-          cat > "$HOME/.gradle/gradle.properties" <<'EOF'
-          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
-          kotlin.daemon.jvmargs=-Xmx2g
-          org.gradle.workers.max=2
-          org.gradle.caching=true
-          org.gradle.parallel=true
-          org.gradle.configureondemand=true
-          org.gradle.daemon=false
-          EOF
+        run: bash scripts/actions/configure-gradle-properties.sh
 
       - name: Build Android (production)
-        run: |
-          mkdir -p "$RUNNER_TEMP/artifacts"
-          bunx eas build --local \
-            --non-interactive \
-            --clear-cache \
-            --output="$RUNNER_TEMP/artifacts/app-production.aab" \
-            --platform=android \
-            --profile=production
+        run: bash scripts/actions/build-android-production.sh
         env:
           EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ runner.temp }}/artifacts
           EAS_LOCAL_BUILD_WORKINGDIR: ${{ runner.temp }}/eas-local-build
@@ -86,44 +65,10 @@ jobs:
 
       - name: Locate build artifact
         id: artifact
-        run: |
-          ARTIFACT_PATH=$(ls "$RUNNER_TEMP"/artifacts/*.aab "$RUNNER_TEMP"/artifacts/*.apk 2>/dev/null | head -n 1)
-          if [ -z "$ARTIFACT_PATH" ]; then
-            echo "No build artifact found in $RUNNER_TEMP/artifacts" >&2
-            exit 1
-          fi
-          echo "path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+        run: bash scripts/actions/locate-build-artifact.sh
 
       - name: Increment app versions
-        run: |
-          node - <<'EOF'
-          const fs = require("fs");
-
-          const packageJsonPath = "package.json";
-          const appJsonPath = "app.json";
-
-          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-          const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
-
-          const currentVersion = packageJson.version;
-          if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
-            throw new Error(`Unsupported package version format: ${currentVersion}`);
-          }
-          const [major, minor, patch] = currentVersion.split(".").map(Number);
-          const syncedVersionCode = major * 10000 + minor * 100 + patch;
-
-          if (typeof appJson?.expo?.android?.versionCode !== "number") {
-            throw new Error("app.json expo.android.versionCode must be a number");
-          }
-
-          const currentVersionCode = appJson.expo.android.versionCode;
-          appJson.expo.android.versionCode = syncedVersionCode;
-
-          fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + "\n");
-
-          console.log(`package version: ${currentVersion}`);
-          console.log(`versionCode: ${currentVersionCode} -> ${syncedVersionCode}`);
-          EOF
+        run: node scripts/actions/increment-android-version-code.mjs
 
       - name: Commit incremented versions
         if: github.ref_type == 'branch'
