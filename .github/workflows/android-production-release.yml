@@ -94,6 +94,46 @@ jobs:
           fi
           echo "path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
 
+      - name: Increment app versions
+        run: |
+          node - <<'EOF'
+          const fs = require("fs");
+
+          const packageJsonPath = "package.json";
+          const appJsonPath = "app.json";
+
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+          const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
+
+          const currentVersion = packageJson.version;
+          if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
+            throw new Error(`Unsupported package version format: ${currentVersion}`);
+          }
+          const [major, minor, patch] = currentVersion.split(".").map(Number);
+          const syncedVersionCode = major * 10000 + minor * 100 + patch;
+
+          if (typeof appJson?.expo?.android?.versionCode !== "number") {
+            throw new Error("app.json expo.android.versionCode must be a number");
+          }
+
+          const currentVersionCode = appJson.expo.android.versionCode;
+          appJson.expo.android.versionCode = syncedVersionCode;
+
+          fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + "\n");
+
+          console.log(`package version: ${currentVersion}`);
+          console.log(`versionCode: ${currentVersionCode} -> ${syncedVersionCode}`);
+          EOF
+
+      - name: Commit incremented versions
+        if: github.ref_type == 'branch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.json
+          git diff --cached --quiet || git commit -m "incremented version code"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:

@@ -2,6 +2,30 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Sync app.json version from package.json",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/sync-app-version.mjs"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "never",
+        "panel": "new",
+        "close": true
+      }
+    },
+    {
+      "label": "Bump Version (OTA patch)",
+      "type": "shell",
+      "command": "bun",
+      "args": ["x", "npm", "version", "patch", "--no-git-tag-version"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "never",
+        "panel": "new",
+        "close": true
+      }
+    },
+    {
       "label": "OTA update ",
       "type": "shell",
       "command": "eas",
@@ -12,13 +36,19 @@
         "--message",
         "${input:updateMessage}"
       ],
+      "dependsOn": [
+        "Bump Version (OTA patch)",
+        "Sync app.json version from package.json"
+      ],
+      "dependsOrder": "sequence",
       "group": {
         "kind": "build"
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "new",
+        "close": true
       }
     },
     {
@@ -26,13 +56,16 @@
       "type": "shell",
       "command": "gh",
       "args": ["workflow", "run", "android-production-release.yml"],
+      "dependsOn": ["Sync app.json version from package.json"],
+      "dependsOrder": "sequence",
       "group": {
         "kind": "build"
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "new",
+        "close": true
       }
     },
     {
@@ -40,13 +73,34 @@
       "type": "shell",
       "command": "gh",
       "args": ["workflow", "run", "android-preview-release.yml"],
+      "dependsOn": ["Sync app.json version from package.json"],
+      "dependsOrder": "sequence",
       "group": {
         "kind": "build"
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "new",
+        "close": true
+      }
+    },
+    {
+      "label": "Bump Version (Build minor+patch)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "bun x npm version minor --no-git-tag-version; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; bun x npm version patch --no-git-tag-version"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "never",
+        "panel": "new",
+        "close": true
       }
     },
     {
@@ -61,13 +115,19 @@
         "production",
         "--auto-submit"
       ],
+      "dependsOn": [
+        "Bump Version (Build minor+patch)",
+        "Sync app.json version from package.json"
+      ],
+      "dependsOrder": "sequence",
       "group": {
         "kind": "build"
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "new",
+        "close": true
       }
     }
   ],
