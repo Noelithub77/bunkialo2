@@ -18,7 +18,7 @@ const ENABLED_CATEGORIES: LogCategory[] = [
   // "API",
   // "STORE",
   // "WIFIX",
-  "TIMETABLE",
+  // "TIMETABLE",
   // "COURSE_NAME",
 ];
 

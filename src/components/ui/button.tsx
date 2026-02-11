@@ -3,6 +3,7 @@ import {
   Text,
   ActivityIndicator,
   ViewStyle,
+  View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Gradients } from "@/constants/theme";
@@ -125,8 +126,16 @@ export function Button({
         colors={Gradients.dark.button as [string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="h-[52px] w-full items-center justify-center"
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+        }}
       >
+      </LinearGradient>
+      <View className="h-[52px] w-full items-center justify-center">
         {loading ? (
           <ActivityIndicator color={Colors.white} />
         ) : (
@@ -134,7 +143,7 @@ export function Button({
             {title}
           </Text>
         )}
-      </LinearGradient>
+      </View>
     </Pressable>
   );
 }

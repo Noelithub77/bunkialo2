@@ -1,11 +1,10 @@
 import {
   TextInput,
-  StyleSheet,
   View,
   Text,
   TextInputProps,
 } from "react-native";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface InputProps extends TextInputProps {
@@ -19,15 +18,15 @@ export function Input({ label, error, style, ...props }: InputProps) {
   const theme = isDark ? Colors.dark : Colors.light;
 
   return (
-    <View style={styles.container}>
+    <View className="gap-1">
       {label && (
-        <Text style={[styles.label, { color: theme.textSecondary }]}>
+        <Text className="ml-1 text-sm font-medium" style={{ color: theme.textSecondary }}>
           {label}
         </Text>
       )}
       <TextInput
+        className="h-[52px] rounded-xl border px-4 text-base"
         style={[
-          styles.input,
           {
             backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
             color: theme.text,
@@ -38,30 +37,7 @@ export function Input({ label, error, style, ...props }: InputProps) {
         placeholderTextColor={theme.textSecondary}
         {...props}
       />
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text className="ml-1 text-xs text-red-500">{error}</Text>}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginLeft: Spacing.xs,
-  },
-  input: {
-    height: 52,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    fontSize: 16,
-    borderWidth: 1,
-  },
-  error: {
-    fontSize: 12,
-    color: Colors.status.danger,
-    marginLeft: Spacing.xs,
-  },
-});

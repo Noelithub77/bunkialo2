@@ -10,7 +10,6 @@ import {
   Easing,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -468,9 +467,13 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   absoluteFill: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute" as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   safeArea: {
     paddingHorizontal: 24,
@@ -496,7 +499,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fieldInnerHighlight: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute" as const,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
     top: 1,
@@ -611,4 +614,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
   },
-});
+} as const;

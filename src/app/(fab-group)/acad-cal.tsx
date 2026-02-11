@@ -1,8 +1,8 @@
 import { Container } from "@/components/ui/container";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { lazy, Suspense } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 
 const AcademicCalendarScreen = lazy(() => import("@/screens/acad-cal-screen"));
 
@@ -12,9 +12,9 @@ const CalendarFallback = () => {
 
   return (
     <Container>
-      <View style={styles.loading}>
+      <View className="flex-1 items-center justify-center gap-4">
         <ActivityIndicator size="large" color={theme.text} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+        <Text className="text-sm font-medium" style={{ color: theme.textSecondary }}>
           Loading calendar...
         </Text>
       </View>
@@ -29,16 +29,3 @@ export default function AcademicCalendarRoute() {
     </Suspense>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.md,
-  },
-  loadingText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-});

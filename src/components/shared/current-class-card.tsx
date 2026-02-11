@@ -1,4 +1,4 @@
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
 import { formatTimeDisplay, getDayName } from "@/stores/timetable-store";
@@ -6,7 +6,7 @@ import type { TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 interface CurrentClassCardProps {
   currentClass: TimetableSlot | null;
@@ -77,13 +77,11 @@ export function CurrentClassCard({
   if (!displayClass) {
     return (
       <View
-        style={[
-          styles.emptyCard,
-          { backgroundColor: theme.backgroundSecondary },
-        ]}
+        className="items-center justify-center gap-2 rounded-2xl px-6 py-8"
+        style={{ backgroundColor: theme.backgroundSecondary }}
       >
         <Ionicons name="moon-outline" size={32} color={theme.textSecondary} />
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
           No classes scheduled
         </Text>
       </View>
@@ -98,37 +96,33 @@ export function CurrentClassCard({
   return (
     <LinearGradient
       colors={gradientColors}
-      style={styles.card}
+      className="gap-2 rounded-2xl p-4"
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       {/* status indicator */}
-      <View style={styles.statusRow}>
+      <View className="flex-row items-center gap-1">
         <View
-          style={[
-            styles.statusDot,
-            {
-              backgroundColor: isCurrentlyActive
-                ? Colors.status.success
-                : Colors.status.warning,
-            },
-          ]}
+          className="h-2 w-2 rounded-full"
+          style={{
+            backgroundColor: isCurrentlyActive
+              ? Colors.status.success
+              : Colors.status.warning,
+          }}
         />
         <Text
-          style={[
-            styles.statusText,
-            {
-              color: isCurrentlyActive
-                ? Colors.status.success
-                : Colors.status.warning,
-            },
-          ]}
+          className="text-xs font-semibold uppercase"
+          style={{
+            color: isCurrentlyActive
+              ? Colors.status.success
+              : Colors.status.warning,
+          }}
         >
           {isCurrentlyActive ? "Now" : "Next"}
         </Text>
         {!isCurrentlyActive &&
           displayClass.dayOfWeek !== new Date().getDay() && (
-            <Text style={[styles.dayLabel, { color: theme.textSecondary }]}>
+            <Text className="ml-1 text-xs" style={{ color: theme.textSecondary }}>
               {getDayName(displayClass.dayOfWeek)}
             </Text>
           )}
@@ -136,47 +130,47 @@ export function CurrentClassCard({
 
       {/* course name */}
       <Text
-        style={[styles.courseName, { color: theme.text }]}
+        className="text-xl font-bold"
+        style={{ color: theme.text }}
         numberOfLines={2}
       >
         {displayClass.courseName}
       </Text>
 
       {/* time info */}
-      <View style={styles.timeRow}>
-        <View style={styles.timeBlock}>
-          <Text style={[styles.timeValue, { color: theme.text }]}>
+      <View className="mt-2 flex-row items-center gap-4">
+        <View className="items-center">
+          <Text className="text-base font-semibold" style={{ color: theme.text }}>
             {formatTimeDisplay(displayClass.startTime)}
           </Text>
-          <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>
+          <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
             Start
           </Text>
         </View>
         <Ionicons name="arrow-forward" size={16} color={theme.textSecondary} />
-        <View style={styles.timeBlock}>
-          <Text style={[styles.timeValue, { color: theme.text }]}>
+        <View className="items-center">
+          <Text className="text-base font-semibold" style={{ color: theme.text }}>
             {formatTimeDisplay(displayClass.endTime)}
           </Text>
-          <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>
+          <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
             End
           </Text>
         </View>
-        <View style={[styles.countdown, { backgroundColor: courseColor }]}>
-          <Text style={styles.countdownText}>{timeRemaining}</Text>
+        <View
+          className="ml-auto rounded-full px-4 py-1"
+          style={{ backgroundColor: courseColor }}
+        >
+          <Text className="text-sm font-semibold text-white">{timeRemaining}</Text>
         </View>
       </View>
 
       {/* session type */}
-      <View style={styles.sessionTypeRow}>
+      <View className="mt-1">
         <View
-          style={[
-            styles.sessionTypeBadge,
-            { backgroundColor: theme.backgroundSecondary },
-          ]}
+          className="self-start rounded px-2 py-0.5"
+          style={{ backgroundColor: theme.backgroundSecondary }}
         >
-          <Text
-            style={[styles.sessionTypeText, { color: theme.textSecondary }]}
-          >
+          <Text className="text-[11px]" style={{ color: theme.textSecondary }}>
             {displayClass.sessionType.charAt(0).toUpperCase() +
               displayClass.sessionType.slice(1)}
           </Text>
@@ -185,83 +179,3 @@ export function CurrentClassCard({
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  emptyCard: {
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: 14,
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  dayLabel: {
-    fontSize: 12,
-    marginLeft: Spacing.xs,
-  },
-  courseName: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  timeBlock: {
-    alignItems: "center",
-  },
-  timeValue: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  timeLabel: {
-    fontSize: 10,
-  },
-  countdown: {
-    marginLeft: "auto",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.full,
-  },
-  countdownText: {
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  sessionTypeRow: {
-    marginTop: Spacing.xs,
-  },
-  sessionTypeBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-  },
-  sessionTypeText: {
-    fontSize: 11,
-  },
-});

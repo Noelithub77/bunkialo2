@@ -371,7 +371,13 @@ export default function WifixScreen() {
     <Container>
       <LinearGradient
         colors={["#0A0A0A", "#000000", "#0A0A0A"]}
-        className="absolute inset-0"
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+        }}
       />
       <ScrollView contentContainerClassName="px-6 pb-12 pt-6">
         <View className="mb-6 flex-row items-center justify-between gap-3">

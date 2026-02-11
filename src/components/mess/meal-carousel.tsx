@@ -13,7 +13,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -23,10 +23,8 @@ import {
 } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.65;
 const CARD_SPACING = 8;
-const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+const DEFAULT_CAROUSEL_WIDTH = 360;
 
 const MEAL_ICONS: Record<MealType, keyof typeof Ionicons.glyphMap> = {
   breakfast: "sunny-outline",
@@ -46,6 +44,11 @@ export function MealCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>(null);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
+  const [carouselWidth, setCarouselWidth] = useState(DEFAULT_CAROUSEL_WIDTH);
+
+  const cardWidth = Math.max(220, Math.round(carouselWidth * 0.65));
+  const sideSpacing = Math.max(0, (carouselWidth - cardWidth) / 2);
+  const snapInterval = cardWidth + CARD_SPACING;
 
   // recompute time on focus
   const [, setFocusKey] = useState(0);
@@ -118,6 +121,16 @@ export function MealCarousel() {
     [activeIndex, hasInitialScrolled, resetSnapTimer],
   );
 
+  const handleCarouselLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const nextWidth = event.nativeEvent.layout.width;
+      if (nextWidth > 0 && Math.abs(nextWidth - carouselWidth) > 1) {
+        setCarouselWidth(nextWidth);
+      }
+    },
+    [carouselWidth],
+  );
+
   if (meals.length === 0) {
     return (
       <View
@@ -184,7 +197,7 @@ export function MealCarousel() {
       <Pressable
         onPress={handlePress}
         className="py-2"
-        style={{ width: CARD_WIDTH }}
+        style={{ width: cardWidth }}
       >
         <View
           style={[
@@ -267,7 +280,7 @@ export function MealCarousel() {
   };
 
   return (
-    <View className="-mx-4">
+    <View className="-mx-4" onLayout={handleCarouselLayout}>
       <FlatList
         ref={flatListRef}
         data={meals}
@@ -278,16 +291,16 @@ export function MealCarousel() {
         nestedScrollEnabled
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + CARD_SPACING}
+        snapToInterval={snapInterval}
         decelerationRate="fast"
-        contentContainerStyle={{ paddingHorizontal: SIDE_SPACING }}
+        contentContainerStyle={{ paddingHorizontal: sideSpacing }}
         ItemSeparatorComponent={() => <View style={{ width: CARD_SPACING }} />}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         initialScrollIndex={initialIndex}
         getItemLayout={(_, index) => ({
-          length: CARD_WIDTH + CARD_SPACING,
-          offset: (CARD_WIDTH + CARD_SPACING) * index,
+          length: snapInterval,
+          offset: snapInterval * index,
           index,
         })}
         onScrollBeginDrag={() => {
