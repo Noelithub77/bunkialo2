@@ -1,4 +1,4 @@
-name: Build AAB
+name: Submit Android To Play Store
 
 on:
   workflow_dispatch:
@@ -10,12 +10,11 @@ concurrency:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 120
     permissions:
       contents: read
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      # EAS_USE_CACHE: "0"
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -107,21 +106,19 @@ jobs:
           name: android-production-aab
           path: ${{ runner.temp }}/artifacts/app-production.aab
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
-  publish-android:
+  submit-android:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: build-android
     permissions:
-      contents: write
+      contents: read
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -145,24 +142,7 @@ jobs:
           name: android-production-aab
           path: ${{ runner.temp }}/artifacts
 
-      - name: Resolve app version
-        id: versions
-        run: bash scripts/actions/resolve-app-versions.sh
-
       - name: Submit to Google Play (production)
         run: bash scripts/actions/submit-android-production.sh
         env:
           ANDROID_ARTIFACT_PATH: ${{ runner.temp }}/artifacts/app-production.aab
-
-      - name: Commit incremented versions
-        if: github.ref_type == 'branch'
-        continue-on-error: true
-        run: bash scripts/actions/commit-incremented-versions.sh
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.versions.outputs.package_version }}(${{ steps.versions.outputs.app_version }})
-          name: v${{ steps.versions.outputs.package_version }} (${{ steps.versions.outputs.app_version }})
-          generate_release_notes: true
-          files: ${{ runner.temp }}/artifacts/app-production.aab
