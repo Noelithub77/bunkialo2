@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ./"
+  "ignoreCommand": "if [ -f package.json ] && grep -q '\"name\": \"bunkialo-landing\"' package.json; then git diff --quiet HEAD^ HEAD -- ./; else git diff --quiet HEAD^ HEAD -- bunkialo-landing/; fi"
 }
