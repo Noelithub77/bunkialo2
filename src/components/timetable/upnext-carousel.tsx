@@ -17,6 +17,7 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Pressable,
   Text,
   View,
   type ViewToken,
@@ -25,12 +26,13 @@ import { FlatList } from "react-native-gesture-handler";
 
 interface UpNextCarouselProps {
   slots: TimetableSlot[];
+  onCoursePress?: (courseId: string) => void;
 }
 
 const CARD_SPACING = 6;
 const DEFAULT_CAROUSEL_WIDTH = 360;
 
-export function UpNextCarousel({ slots }: UpNextCarouselProps) {
+export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
@@ -249,110 +251,119 @@ export function UpNextCarousel({ slots }: UpNextCarouselProps) {
 
     return (
       <View className="py-0.5" style={{ width: cardWidth }}>
-        <View
-          className="relative min-h-[146px] overflow-hidden rounded-2xl"
-          style={[
-            !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-            {
-              borderColor:
-                borderColor ?? (isDark ? courseColor + "4A" : courseColor + "3A"),
-              borderWidth: 1,
-            },
-            (isFinished || isFutureClass) && { opacity: cardOpacity },
-          ]}
+        <Pressable
+          disabled={!onCoursePress}
+          onPress={() => onCoursePress?.(item.courseId)}
+          style={({ pressed }) =>
+            onCoursePress && pressed ? { opacity: 0.86 } : undefined
+          }
         >
-          <LinearGradient
-            colors={gradientColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-            }}
-          />
-          <View className="px-5 py-4">
-            {/* status row */}
-            <View className="flex-row items-center gap-1">
-              <View
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: statusColor }}
-              />
-              <Text
-                className="text-[11px] font-semibold uppercase"
-                style={{ color: statusColor, letterSpacing: 0.3 }}
-              >
-                {statusText}
-              </Text>
-            </View>
-
-            {/* course name */}
-            <Text
-              className="mt-2 text-[22px] font-bold leading-[26px]"
-              style={{ color: theme.text }}
-              numberOfLines={2}
-            >
-              {item.courseName}
-            </Text>
-
-            {/* time */}
-            <View className="mt-2 flex-row items-center gap-1">
-              <Ionicons
-                name="time-outline"
-                size={14}
-                color={theme.textSecondary}
-              />
-              <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
-                {formatTimeDisplay(item.startTime)} - {formatTimeDisplay(item.endTime)}
-              </Text>
-            </View>
-
-            {/* session type and badges */}
-            <View className="mt-3 flex-row flex-wrap items-center gap-1">
-              <View
-                className="rounded-lg px-2 py-[3px]"
-                style={{
-                  backgroundColor: isCurrentlyActive
-                    ? Colors.status.success + "CC"
-                    : courseColor + "CC",
-                }}
-              >
-                <Text className="text-[11px] font-semibold text-white">
-                  {item.sessionType.charAt(0).toUpperCase() +
-                    item.sessionType.slice(1)}
+          <View
+            className="relative min-h-[146px] overflow-hidden rounded-2xl"
+            style={[
+              !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
+              {
+                borderColor:
+                  borderColor ?? (isDark ? courseColor + "4A" : courseColor + "3A"),
+                borderWidth: 1,
+              },
+              (isFinished || isFutureClass) && { opacity: cardOpacity },
+            ]}
+          >
+            <LinearGradient
+              colors={gradientColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+              }}
+            />
+            <View className="px-5 py-4">
+              {/* status row */}
+              <View className="flex-row items-center gap-1">
+                <View
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: statusColor }}
+                />
+                <Text
+                  className="text-[11px] font-semibold uppercase"
+                  style={{ color: statusColor, letterSpacing: 0.3 }}
+                >
+                  {statusText}
+                  {onCoursePress ? " · Tap to edit" : ""}
                 </Text>
               </View>
-              {item.isManual && (
+
+              {/* course name */}
+              <Text
+                className="mt-2 text-[22px] font-bold leading-[26px]"
+                style={{ color: theme.text }}
+                numberOfLines={2}
+              >
+                {item.courseName}
+              </Text>
+
+              {/* time */}
+              <View className="mt-2 flex-row items-center gap-1">
+                <Ionicons
+                  name="time-outline"
+                  size={14}
+                  color={theme.textSecondary}
+                />
+                <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
+                  {formatTimeDisplay(item.startTime)} - {formatTimeDisplay(item.endTime)}
+                </Text>
+              </View>
+
+              {/* session type and badges */}
+              <View className="mt-3 flex-row flex-wrap items-center gap-1">
                 <View
-                  className="rounded-lg px-1 py-[3px]"
-                  style={{ backgroundColor: Colors.status.info + "40" }}
+                  className="rounded-lg px-2 py-[3px]"
+                  style={{
+                    backgroundColor: isCurrentlyActive
+                      ? Colors.status.success + "CC"
+                      : courseColor + "CC",
+                  }}
                 >
-                  <Text
-                    className="text-[10px] font-semibold"
-                    style={{ color: Colors.status.info }}
-                  >
-                    Manual
+                  <Text className="text-[11px] font-semibold text-white">
+                    {item.sessionType.charAt(0).toUpperCase() +
+                      item.sessionType.slice(1)}
                   </Text>
                 </View>
-              )}
-              {item.isCustomCourse && (
-                <View
-                  className="rounded-lg px-1 py-[3px]"
-                  style={{ backgroundColor: Colors.status.success + "40" }}
-                >
-                  <Text
-                    className="text-[10px] font-semibold"
-                    style={{ color: Colors.status.success }}
+                {item.isManual && (
+                  <View
+                    className="rounded-lg px-1 py-[3px]"
+                    style={{ backgroundColor: Colors.status.info + "40" }}
                   >
-                    Custom
-                  </Text>
-                </View>
-              )}
+                    <Text
+                      className="text-[10px] font-semibold"
+                      style={{ color: Colors.status.info }}
+                    >
+                      Manual
+                    </Text>
+                  </View>
+                )}
+                {item.isCustomCourse && (
+                  <View
+                    className="rounded-lg px-1 py-[3px]"
+                    style={{ backgroundColor: Colors.status.success + "40" }}
+                  >
+                    <Text
+                      className="text-[10px] font-semibold"
+                      style={{ color: Colors.status.success }}
+                    >
+                      Custom
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
-        </View>
+        </Pressable>
       </View>
     );
   };

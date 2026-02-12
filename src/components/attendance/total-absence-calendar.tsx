@@ -79,6 +79,7 @@ export function TotalAbsenceCalendar({
 
   const attendanceCourses = useAttendanceStore((state) => state.courses);
   const bunkCourses = useBunkStore((state) => state.courses);
+  const hiddenCourses = useBunkStore((state) => state.hiddenCourses);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // build absence map: date -> array of absence info
@@ -87,6 +88,8 @@ export function TotalAbsenceCalendar({
     const absMap = new Map<string, AbsenceInfo[]>();
 
     for (const course of attendanceCourses) {
+      if (hiddenCourses[course.courseId]) continue;
+
       const bunkCourse = bunkCourses.find(
         (c) => c.courseId === course.courseId,
       );
@@ -139,7 +142,7 @@ export function TotalAbsenceCalendar({
     }
 
     return { markedDates: marked, absenceMap: absMap };
-  }, [attendanceCourses, bunkCourses]);
+  }, [attendanceCourses, bunkCourses, hiddenCourses]);
 
   const selectedAbsences = selectedDate
     ? absenceMap.get(selectedDate) || []

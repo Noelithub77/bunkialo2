@@ -1,17 +1,19 @@
 import { Colors } from "@/constants/theme";
 import { findCreditsByCode } from "@/data/credits";
 import type {
-    BunkRecord,
-    BunkState,
-    CourseBunkData,
-    CourseConfig,
-    CustomCourseInput,
-    DutyLeaveInfo,
-    ManualSlot,
-    ManualSlotInput,
+  BunkRecord,
+  BunkState,
+  CourseBunkData,
+  CourseConfig,
+  CustomCourseInput,
+  DutyLeaveInfo,
+  HiddenCourseReason,
+  ManualSlot,
+  ManualSlotInput,
 } from "@/types";
 import { getRandomCourseColor } from "@/utils/course-color";
 import { extractCourseCode, extractCourseName } from "@/utils/course-name";
+import { evaluateCoursesAgainstCurrentSemester } from "@/utils/semester-course-filter";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
@@ -35,6 +37,17 @@ interface BunkActions {
   removeBunk: (courseId: string, bunkId: string) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
   addCustomCourse: (input: CustomCourseInput) => string;
+  hideCourse: (
+    courseId: string,
+    courseName: string,
+    reason: HiddenCourseReason,
+    semesterKey?: string,
+  ) => void;
+  restoreCourse: (
+    courseId: string,
+    options?: { keepVisibleForSemesterKey?: string },
+  ) => void;
+  deleteCourse: (courseId: string) => void;
   deleteCustomCourse: (courseId: string) => void;
   addManualSlot: (courseId: string, slot: ManualSlotInput) => string | null;
   setManualSlots: (courseId: string, slots: ManualSlotInput[]) => void;
@@ -139,6 +152,8 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
   persist(
     (set, get) => ({
       courses: [],
+      hiddenCourses: {},
+      autoDropOptOutBySemester: {},
       lastSyncTime: null,
       isLoading: false,
       error: null,
@@ -149,7 +164,28 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
       // sync absences from attendance store (LMS data)
       syncFromLms: () => {
         const attendanceCourses = useAttendanceStore.getState().courses;
-        const currentBunks = get().courses;
+        const {
+          courses: currentBunks,
+          hiddenCourses: currentHiddenCourses,
+          autoDropOptOutBySemester,
+        } = get();
+        const { semesterWindow, byCourseId } =
+          evaluateCoursesAgainstCurrentSemester(attendanceCourses);
+        const now = Date.now();
+        const attendanceCourseNameById = new Map(
+          attendanceCourses.map((course) => [course.courseId, course.courseName]),
+        );
+
+        const autoDroppedCourseIds = new Set<string>();
+        for (const course of attendanceCourses) {
+          const decision = byCourseId[course.courseId];
+          const optedOutForCurrentSemester =
+            autoDropOptOutBySemester[course.courseId] ===
+            semesterWindow.semesterKey;
+          if (decision?.shouldAutoDrop && !optedOutForCurrentSemester) {
+            autoDroppedCourseIds.add(course.courseId);
+          }
+        }
 
         const updatedCourses: CourseBunkData[] = attendanceCourses.map(
           (course) => {
@@ -272,8 +308,36 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
 
         // preserve custom courses (not from LMS)
         const customCourses = currentBunks.filter((c) => c.isCustomCourse);
+        const nextHiddenCourses = { ...currentHiddenCourses };
+
+        for (const [courseId, hiddenCourse] of Object.entries(nextHiddenCourses)) {
+          if (hiddenCourse.reason !== "auto-semester") continue;
+          if (
+            hiddenCourse.semesterKey !== semesterWindow.semesterKey ||
+            !autoDroppedCourseIds.has(courseId)
+          ) {
+            delete nextHiddenCourses[courseId];
+          }
+        }
+
+        for (const courseId of autoDroppedCourseIds) {
+          const existingHidden = nextHiddenCourses[courseId];
+          if (existingHidden?.reason === "manual") continue;
+          const courseName =
+            attendanceCourseNameById.get(courseId) ?? existingHidden?.courseName;
+          if (!courseName) continue;
+          nextHiddenCourses[courseId] = {
+            courseId,
+            courseName,
+            reason: "auto-semester",
+            hiddenAt: now,
+            semesterKey: semesterWindow.semesterKey,
+          };
+        }
+
         set({
           courses: [...updatedCourses, ...customCourses],
+          hiddenCourses: nextHiddenCourses,
           lastSyncTime: Date.now(),
         });
       },
@@ -335,6 +399,8 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
         const customCourses = currentBunks.filter((c) => c.isCustomCourse);
         set({
           courses: [...freshCourses, ...customCourses],
+          hiddenCourses: {},
+          autoDropOptOutBySemester: {},
           lastSyncTime: Date.now(),
         });
       },
@@ -342,6 +408,8 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
       clearBunks: () => {
         set({
           courses: [],
+          hiddenCourses: {},
+          autoDropOptOutBySemester: {},
           lastSyncTime: null,
           isLoading: false,
           error: null,
@@ -494,12 +562,76 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
         return courseId;
       },
 
-      deleteCustomCourse: (courseId) => {
+      hideCourse: (courseId, courseName, reason, semesterKey) => {
         set((state) => ({
-          courses: state.courses.filter(
-            (c) => !(c.courseId === courseId && c.isCustomCourse),
-          ),
+          hiddenCourses: {
+            ...state.hiddenCourses,
+            [courseId]: {
+              courseId,
+              courseName,
+              reason,
+              hiddenAt: Date.now(),
+              semesterKey: semesterKey ?? null,
+            },
+          },
         }));
+      },
+
+      restoreCourse: (courseId, options) => {
+        set((state) => {
+          const nextHiddenCourses = { ...state.hiddenCourses };
+          const nextOptOutBySemester = { ...state.autoDropOptOutBySemester };
+          delete nextHiddenCourses[courseId];
+
+          if (options?.keepVisibleForSemesterKey) {
+            nextOptOutBySemester[courseId] = options.keepVisibleForSemesterKey;
+          } else {
+            delete nextOptOutBySemester[courseId];
+          }
+
+          return {
+            hiddenCourses: nextHiddenCourses,
+            autoDropOptOutBySemester: nextOptOutBySemester,
+          };
+        });
+      },
+
+      deleteCourse: (courseId) => {
+        set((state) => {
+          const course = state.courses.find((c) => c.courseId === courseId);
+          if (!course) return state;
+
+          const nextHiddenCourses = { ...state.hiddenCourses };
+          const nextOptOutBySemester = { ...state.autoDropOptOutBySemester };
+
+          if (course.isCustomCourse) {
+            delete nextHiddenCourses[courseId];
+            delete nextOptOutBySemester[courseId];
+            return {
+              courses: state.courses.filter((c) => c.courseId !== courseId),
+              hiddenCourses: nextHiddenCourses,
+              autoDropOptOutBySemester: nextOptOutBySemester,
+            };
+          }
+
+          delete nextOptOutBySemester[courseId];
+          nextHiddenCourses[courseId] = {
+            courseId,
+            courseName: course.courseName,
+            reason: "manual",
+            hiddenAt: Date.now(),
+            semesterKey: null,
+          };
+
+          return {
+            hiddenCourses: nextHiddenCourses,
+            autoDropOptOutBySemester: nextOptOutBySemester,
+          };
+        });
+      },
+
+      deleteCustomCourse: (courseId) => {
+        get().deleteCourse(courseId);
       },
 
       addManualSlot: (courseId, slot) => {
@@ -569,6 +701,8 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         courses: state.courses,
+        hiddenCourses: state.hiddenCourses,
+        autoDropOptOutBySemester: state.autoDropOptOutBySemester,
         lastSyncTime: state.lastSyncTime,
       }),
       onRehydrateStorage: () => (state) => {

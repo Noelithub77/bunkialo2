@@ -20,7 +20,7 @@ export const AllBunksContent = () => {
   const theme = isDark ? Colors.dark : Colors.light;
 
   const { courses, isLoading, fetchAttendance } = useAttendanceStore();
-  const { courses: bunkCourses } = useBunkStore();
+  const { courses: bunkCourses, hiddenCourses } = useBunkStore();
   const { activeModal, openModal, closeModal } = useAttendanceUIStore();
 
   const {
@@ -36,9 +36,22 @@ export const AllBunksContent = () => {
     handleConfirmRemovePresent,
   } = useBunkActions();
 
+  const visibleAttendanceCourses = useMemo(
+    () => courses.filter((course) => !hiddenCourses[course.courseId]),
+    [courses, hiddenCourses],
+  );
+
+  const visibleBunkCourses = useMemo(
+    () =>
+      bunkCourses.filter(
+        (course) => course.isCustomCourse || !hiddenCourses[course.courseId],
+      ),
+    [bunkCourses, hiddenCourses],
+  );
+
   const allDutyLeaves = useMemo(
-    () => selectAllDutyLeaves(bunkCourses),
-    [bunkCourses],
+    () => selectAllDutyLeaves(visibleBunkCourses),
+    [visibleBunkCourses],
   );
 
   const handleRefresh = useCallback(() => {
@@ -150,8 +163,8 @@ export const AllBunksContent = () => {
 
       <UnknownStatusModal
         visible={isUnknownStatusVisible}
-        courses={courses}
-        bunkCourses={bunkCourses}
+        courses={visibleAttendanceCourses}
+        bunkCourses={visibleBunkCourses}
         onClose={closeModal}
         onRevert={handleRevertUnknown}
         onConfirmPresent={applyUnknownPresent}

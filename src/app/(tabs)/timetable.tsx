@@ -1,20 +1,29 @@
+import { CourseEditModal } from "@/components/attendance/course-edit-modal";
+import { CreateCourseModal } from "@/components/attendance/create-course-modal";
+import { SlotConflictModal } from "@/components/modals/slot-conflict-modal";
 import { DaySchedule } from "@/components/timetable/day-schedule";
 import { DaySelector } from "@/components/timetable/day-selector";
 import { TimetableExportModal } from "@/components/timetable/timetable-export-modal";
 import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
-import { SlotConflictModal } from "@/components/modals/slot-conflict-modal";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
+import { useBunkStore } from "@/stores/bunk-store";
 import { useTimetableStore } from "@/stores/timetable-store";
-import type { DayOfWeek, SlotConflict } from "@/types";
+import type {
+  CourseBunkData,
+  CourseConfig,
+  DayOfWeek,
+  ManualSlotInput,
+  SlotConflict,
+} from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   InteractionManager,
@@ -45,12 +54,30 @@ export default function TimetableScreen() {
     courses: attendanceCourses,
     fetchAttendance,
     isLoading: isAttendanceLoading,
+    hasHydrated: isAttendanceHydrated,
   } = useAttendanceStore();
+  const {
+    courses: bunkCourses,
+    hiddenCourses,
+    hasHydrated: isBunkHydrated,
+    syncFromLms,
+    updateCourseConfig,
+    setManualSlots,
+    addCustomCourse,
+    deleteCourse,
+  } = useBunkStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showSlotConflictModal, setShowSlotConflictModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showTimetableExport, setShowTimetableExport] = useState(false);
+  const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+  const [isCourseEditMode, setIsCourseEditMode] = useState(false);
+  const [showCourseEditModal, setShowCourseEditModal] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const hasGenerated = useRef(false);
+  const recomputeTaskRef = useRef<ReturnType<
+    typeof InteractionManager.runAfterInteractions
+  > | null>(null);
   const isFocused = useIsFocused();
   const unresolvedConflictCount = conflicts.filter((conflict: SlotConflict) => {
     if (conflict.type === "manual-auto") return true;
@@ -64,11 +91,24 @@ export default function TimetableScreen() {
   };
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(getDefaultDay);
 
+  const scheduleTimetableRecompute = useCallback(() => {
+    recomputeTaskRef.current?.cancel();
+    recomputeTaskRef.current = InteractionManager.runAfterInteractions(() => {
+      syncFromLms();
+      generateTimetable();
+    });
+  }, [generateTimetable, syncFromLms]);
+
   useFocusEffect(
     useCallback(() => {
       setSelectedDay(getDefaultDay());
-      return () => setShowFabMenu(false);
-    }, []),
+      scheduleTimetableRecompute();
+      return () => {
+        setShowFabMenu(false);
+        setIsCourseEditMode(false);
+        recomputeTaskRef.current?.cancel();
+      };
+    }, [scheduleTimetableRecompute]),
   );
 
   // generate timetable on first load
@@ -79,24 +119,36 @@ export default function TimetableScreen() {
       slots.length === 0
     ) {
       const task = InteractionManager.runAfterInteractions(() => {
-        generateTimetable();
+        scheduleTimetableRecompute();
         hasGenerated.current = true;
       });
       return () => task.cancel();
     }
     return undefined;
-  }, [attendanceCourses.length, generateTimetable, slots.length]);
+  }, [attendanceCourses.length, scheduleTimetableRecompute, slots.length]);
+
+  useEffect(() => {
+    if (!isAttendanceHydrated || !isBunkHydrated) return;
+    if (attendanceCourses.length === 0) return;
+    scheduleTimetableRecompute();
+    return undefined;
+  }, [
+    attendanceCourses,
+    isAttendanceHydrated,
+    isBunkHydrated,
+    scheduleTimetableRecompute,
+  ]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await fetchAttendance();
-      generateTimetable();
+      scheduleTimetableRecompute();
     } finally {
       setRefreshing(false);
     }
-  }, [fetchAttendance, generateTimetable]);
+  }, [fetchAttendance, scheduleTimetableRecompute]);
 
   const handleOpenConflicts = useCallback(() => {
     if (conflicts.length === 0) {
@@ -106,6 +158,102 @@ export default function TimetableScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowSlotConflictModal(true);
   }, [conflicts.length]);
+
+  const visibleEditableCourses = useMemo(
+    () =>
+      bunkCourses.filter(
+        (course) => course.isCustomCourse || !hiddenCourses[course.courseId],
+      ),
+    [bunkCourses, hiddenCourses],
+  );
+  const displaySlots = useMemo(
+    () =>
+      slots.filter(
+        (slot) => slot.isCustomCourse || !hiddenCourses[slot.courseId],
+      ),
+    [slots, hiddenCourses],
+  );
+
+  const selectedCourse = useMemo(
+    () =>
+      selectedCourseId
+        ? (visibleEditableCourses.find(
+            (course) => course.courseId === selectedCourseId,
+          ) ?? null)
+        : null,
+    [selectedCourseId, visibleEditableCourses],
+  );
+
+  useEffect(() => {
+    if (!showCourseEditModal) return;
+    if (selectedCourse) return;
+    setShowCourseEditModal(false);
+  }, [selectedCourse, showCourseEditModal]);
+
+  const openConflictModalIfNeeded = useCallback(() => {
+    const currentConflicts = useTimetableStore.getState().conflicts;
+    if (currentConflicts.length > 0) {
+      setShowSlotConflictModal(true);
+    }
+  }, []);
+
+  const handleCreateCourse = useCallback(
+    (
+      courseName: string,
+      alias: string,
+      credits: number,
+      color: string,
+      slotsInput: ManualSlotInput[],
+    ) => {
+      addCustomCourse({ courseName, alias, credits, color, slots: slotsInput });
+      scheduleTimetableRecompute();
+      setShowCreateCourseModal(false);
+      setShowFabMenu(false);
+      setTimeout(openConflictModalIfNeeded, 100);
+    },
+    [addCustomCourse, openConflictModalIfNeeded, scheduleTimetableRecompute],
+  );
+
+  const handleSaveCourse = useCallback(
+    (courseId: string, config: CourseConfig, slotsInput: ManualSlotInput[]) => {
+      updateCourseConfig(courseId, config);
+      setManualSlots(courseId, slotsInput);
+      scheduleTimetableRecompute();
+      setShowCourseEditModal(false);
+      setShowFabMenu(false);
+      setTimeout(openConflictModalIfNeeded, 100);
+    },
+    [
+      openConflictModalIfNeeded,
+      scheduleTimetableRecompute,
+      setManualSlots,
+      updateCourseConfig,
+    ],
+  );
+
+  const handleDeleteCourse = useCallback(
+    (course: CourseBunkData) => {
+      deleteCourse(course.courseId);
+      scheduleTimetableRecompute();
+      setSelectedCourseId(null);
+      setShowCourseEditModal(false);
+    },
+    [deleteCourse, scheduleTimetableRecompute],
+  );
+
+  const handleOpenCourseEditByTap = useCallback(
+    (courseId: string) => {
+      if (!isCourseEditMode) return;
+      const canEdit = visibleEditableCourses.some(
+        (course) => course.courseId === courseId,
+      );
+      if (!canEdit) return;
+      Haptics.selectionAsync();
+      setSelectedCourseId(courseId);
+      setShowCourseEditModal(true);
+    },
+    [isCourseEditMode, visibleEditableCourses],
+  );
 
   useEffect(() => {
     if (conflicts.length === 0) {
@@ -146,7 +294,10 @@ export default function TimetableScreen() {
         {/* header */}
         <View className="mb-4 flex-row items-start justify-between">
           <View className="flex-shrink gap-0.5">
-            <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
+            <Text
+              className="text-[28px] font-bold"
+              style={{ color: theme.text }}
+            >
               Timetable
             </Text>
             {lastGeneratedAt && (
@@ -199,7 +350,9 @@ export default function TimetableScreen() {
                   className="text-[10px] font-bold"
                   style={{
                     color:
-                      unresolvedConflictCount > 0 ? Colors.white : theme.textSecondary,
+                      unresolvedConflictCount > 0
+                        ? Colors.white
+                        : theme.textSecondary,
                   }}
                 >
                   {unresolvedConflictCount > 0
@@ -213,6 +366,20 @@ export default function TimetableScreen() {
           </Pressable>
         </View>
 
+        {isCourseEditMode && (
+          <View
+            className="mb-2 rounded-xl px-3 py-2"
+            style={{ backgroundColor: theme.backgroundSecondary }}
+          >
+            <Text
+              className="text-[11px]"
+              style={{ color: theme.textSecondary }}
+            >
+              Edit mode: tap a course card or schedule slot.
+            </Text>
+          </View>
+        )}
+
         {/* loading state */}
         {isLoading && slots.length === 0 && (
           <View className="items-center py-12 gap-4">
@@ -224,7 +391,7 @@ export default function TimetableScreen() {
         )}
 
         {/* empty state */}
-        {!isLoading && slots.length === 0 && (
+        {!isLoading && displaySlots.length === 0 && (
           <GradientCard>
             <View className="items-center py-6 gap-2">
               <Ionicons
@@ -232,10 +399,16 @@ export default function TimetableScreen() {
                 size={48}
                 color={theme.textSecondary}
               />
-              <Text className="text-lg font-semibold" style={{ color: theme.text }}>
+              <Text
+                className="text-lg font-semibold"
+                style={{ color: theme.text }}
+              >
                 No timetable yet
               </Text>
-              <Text className="text-sm text-center" style={{ color: theme.textSecondary }}>
+              <Text
+                className="text-sm text-center"
+                style={{ color: theme.textSecondary }}
+              >
                 Pull to refresh to fetch attendance data and generate your
                 timetable.
               </Text>
@@ -244,7 +417,7 @@ export default function TimetableScreen() {
         )}
 
         {/* main content */}
-        {slots.length > 0 && (
+        {displaySlots.length > 0 && (
           <>
             {/* up next carousel */}
             <View className="mt-3">
@@ -254,7 +427,12 @@ export default function TimetableScreen() {
               >
                 Up Next
               </Text>
-              <UpNextCarousel slots={slots} />
+              <UpNextCarousel
+                slots={displaySlots}
+                onCoursePress={
+                  isCourseEditMode ? handleOpenCourseEditByTap : undefined
+                }
+              />
             </View>
 
             {/* day schedule */}
@@ -271,7 +449,13 @@ export default function TimetableScreen() {
                 selectedDay={selectedDay}
                 onSelect={setSelectedDay}
               />
-              <DaySchedule slots={slots} selectedDay={selectedDay} />
+              <DaySchedule
+                slots={displaySlots}
+                selectedDay={selectedDay}
+                onCoursePress={
+                  isCourseEditMode ? handleOpenCourseEditByTap : undefined
+                }
+              />
             </View>
           </>
         )}
@@ -302,6 +486,30 @@ export default function TimetableScreen() {
                   setShowTimetableExport(true);
                 },
               },
+              {
+                icon: "plus",
+                label: "Add Course",
+                color: Colors.white,
+                style: { backgroundColor: Colors.status.success },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  setShowCreateCourseModal(true);
+                },
+              },
+              {
+                icon: "pencil",
+                label: isCourseEditMode ? "Exit Edit Mode" : "Edit Courses",
+                color: isCourseEditMode ? Colors.white : theme.text,
+                style: {
+                  backgroundColor: isCourseEditMode
+                    ? Colors.status.info
+                    : theme.backgroundSecondary,
+                },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  setIsCourseEditMode((prev) => !prev);
+                },
+              },
             ]}
             onStateChange={({ open }) => setShowFabMenu(open)}
           />
@@ -311,7 +519,21 @@ export default function TimetableScreen() {
       <TimetableExportModal
         visible={showTimetableExport}
         onClose={() => setShowTimetableExport(false)}
-        slots={slots}
+        slots={displaySlots}
+      />
+
+      <CreateCourseModal
+        visible={showCreateCourseModal}
+        onClose={() => setShowCreateCourseModal(false)}
+        onSave={handleCreateCourse}
+      />
+
+      <CourseEditModal
+        visible={showCourseEditModal && !!selectedCourse}
+        course={selectedCourse}
+        onClose={() => setShowCourseEditModal(false)}
+        onSave={handleSaveCourse}
+        onDelete={handleDeleteCourse}
       />
 
       <SlotConflictModal

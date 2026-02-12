@@ -211,7 +211,7 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
         set({ isLoading: true });
 
         const attendanceCourses = useAttendanceStore.getState().courses;
-        const bunkCourses = useBunkStore.getState().courses;
+        const { courses: bunkCourses, hiddenCourses } = useBunkStore.getState();
         const {
           autoConflictResolutions,
           timeOverlapResolutions,
@@ -226,6 +226,8 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
         const outlierConflicts: OutlierSlotConflict[] = [];
 
         for (const course of attendanceCourses) {
+          if (hiddenCourses[course.courseId]) continue;
+
           const bunkCourse = bunkCourses.find(
             (c) => c.courseId === course.courseId,
           );
@@ -443,6 +445,7 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
         const manualSlots: TimetableSlot[] = [];
 
         for (const course of bunkCourses) {
+          if (!course.isCustomCourse && hiddenCourses[course.courseId]) continue;
           if (!course.manualSlots || course.manualSlots.length === 0) continue;
 
           const displayName =

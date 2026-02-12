@@ -27,6 +27,16 @@ export interface CourseConfig {
   overrideLmsSlots: boolean;
 }
 
+export type HiddenCourseReason = "manual" | "auto-semester";
+
+export interface HiddenCourseMeta {
+  courseId: string;
+  courseName: string;
+  reason: HiddenCourseReason;
+  hiddenAt: number;
+  semesterKey: string | null;
+}
+
 export interface CourseBunkData {
   courseId: string;
   courseName: string;
@@ -39,6 +49,8 @@ export interface CourseBunkData {
 
 export interface BunkState {
   courses: CourseBunkData[];
+  hiddenCourses: Record<string, HiddenCourseMeta>;
+  autoDropOptOutBySemester: Record<string, string>;
   lastSyncTime: number | null;
   isLoading: boolean;
   error: string | null;

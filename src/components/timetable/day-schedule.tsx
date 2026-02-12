@@ -6,11 +6,12 @@ import type { DayOfWeek, TimetableSlot } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface DayScheduleProps {
   slots: TimetableSlot[];
   selectedDay: DayOfWeek;
+  onCoursePress?: (courseId: string) => void;
 }
 
 const timeToMinutes = (time: string): number => {
@@ -38,7 +39,11 @@ const getGapSpacing = (gapMinutes: number): number => {
   return 16;
 };
 
-export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
+export function DaySchedule({
+  slots,
+  selectedDay,
+  onCoursePress,
+}: DayScheduleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
@@ -191,9 +196,11 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
               </View>
 
               {/* slot card */}
-              <View
+              <Pressable
                 className="ml-0.5 flex-1 overflow-hidden rounded-2xl"
-                style={[
+                onPress={() => onCoursePress?.(slot.courseId)}
+                disabled={!onCoursePress}
+                style={({ pressed }) => [
                   {
                     borderLeftColor: isNow ? Colors.status.success : courseColor,
                     borderLeftWidth: 3,
@@ -211,6 +218,7 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                       shadowOpacity: 0.2,
                       shadowRadius: 9,
                     },
+                  onCoursePress && pressed && { opacity: 0.86 },
                 ]}
               >
                 <LinearGradient
@@ -253,6 +261,7 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                         style={{ color: theme.textSecondary }}
                       >
                         {sessionLabel}
+                        {onCoursePress ? " · Tap to edit" : ""}
                       </Text>
                     </View>
                     {slot.isManual && (
@@ -283,7 +292,7 @@ export function DaySchedule({ slots, selectedDay }: DayScheduleProps) {
                     )}
                   </View>
                 </View>
-              </View>
+              </Pressable>
             </View>
           </View>
         );

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ConfirmModal } from "@/components/modals/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -36,6 +37,7 @@ interface CourseEditModalProps {
     config: CourseConfig,
     slots: ManualSlotInput[],
   ) => void;
+  onDelete: (course: CourseBunkData) => void;
 }
 
 interface AutoSlotDisplay extends ManualSlotInput {
@@ -94,9 +96,12 @@ const MONTH_MAP: Record<string, number> = {
 };
 
 const formatTime = (time: string): string => {
-  const [hours] = time.split(":").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   const period = hours >= 12 ? "PM" : "AM";
   const displayHours = hours % 12 || 12;
+  if (!Number.isNaN(minutes) && minutes > 0) {
+    return `${displayHours}:${minutes.toString().padStart(2, "0")}${period}`;
+  }
   return `${displayHours}${period}`;
 };
 
@@ -144,6 +149,7 @@ export function CourseEditModal({
   course,
   onClose,
   onSave,
+  onDelete,
 }: CourseEditModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -156,6 +162,7 @@ export function CourseEditModal({
   const [overrideLmsSlots, setOverrideLmsSlots] = useState(false);
   const [slots, setSlots] = useState<ManualSlotInput[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeSection, setActiveSection] = useState<"details" | "slots">(
     "details",
   );
@@ -242,6 +249,7 @@ export function CourseEditModal({
       setSelectedSessionType("regular");
       setError("");
       setActiveSection("details");
+      setShowDeleteConfirm(false);
     }
   }, [course, visible]);
 
@@ -397,6 +405,13 @@ export function CourseEditModal({
       overrideLmsSlots: course.isCustomCourse ? true : overrideLmsSlots,
     };
     onSave(course.courseId, config, slots);
+    onClose();
+  };
+
+  const handleConfirmDelete = () => {
+    if (!course) return;
+    onDelete(course);
+    setShowDeleteConfirm(false);
     onClose();
   };
 
@@ -951,21 +966,44 @@ export function CourseEditModal({
             </Text>
           ) : null}
 
-          <View className="flex-row gap-2 py-2">
+          <View className="gap-2 py-2">
             <Button
-              title="Cancel"
-              variant="secondary"
-              onPress={onClose}
-              className="flex-1"
+              title={course.isCustomCourse ? "Delete Course" : "Drop Course"}
+              variant="danger"
+              onPress={() => setShowDeleteConfirm(true)}
+              className="w-full"
             />
-            <Button
-              title="Save"
-              onPress={handleSave}
-              className="flex-1"
-            />
+            <View className="flex-row gap-2">
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={onClose}
+                className="flex-1"
+              />
+              <Button
+                title="Save"
+                onPress={handleSave}
+                className="flex-1"
+              />
+            </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title={course.isCustomCourse ? "Delete Course" : "Drop Course"}
+        message={
+          course.isCustomCourse
+            ? "This will permanently delete this custom course and its slots."
+            : "This will hide this LMS course locally. You can restore it later from Changes."
+        }
+        confirmText={course.isCustomCourse ? "Delete" : "Drop"}
+        variant="destructive"
+        icon="trash-outline"
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </Modal>
   );
 }

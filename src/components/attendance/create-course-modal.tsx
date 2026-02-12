@@ -62,9 +62,12 @@ const SESSION_TYPES: { label: string; value: SessionType }[] = [
 const CREDIT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const formatTime = (time: string): string => {
-  const [hours] = time.split(":").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   const period = hours >= 12 ? "PM" : "AM";
   const displayHours = hours % 12 || 12;
+  if (!Number.isNaN(minutes) && minutes > 0) {
+    return `${displayHours}:${minutes.toString().padStart(2, "0")}${period}`;
+  }
   return `${displayHours}${period}`;
 };
 

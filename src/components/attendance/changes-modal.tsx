@@ -3,7 +3,14 @@ import { findCreditsByCode } from "@/data/credits";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { getDisplayName, useBunkStore } from "@/stores/bunk-store";
-import type { BunkRecord, CourseAttendance, CourseBunkData } from "@/types";
+import { useTimetableStore } from "@/stores/timetable-store";
+import type {
+  BunkRecord,
+  CourseAttendance,
+  CourseBunkData,
+  HiddenCourseMeta,
+} from "@/types";
+import { getCurrentSemesterWindow } from "@/utils/semester-course-filter";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
@@ -127,13 +134,21 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
   const { courses: attendanceCourses } = useAttendanceStore();
-  const { courses: bunkCourses } = useBunkStore();
+  const { courses: bunkCourses, hiddenCourses, restoreCourse } = useBunkStore();
+  const { generateTimetable } = useTimetableStore();
 
   const courseMap = useMemo(() => buildCourseMap(bunkCourses), [bunkCourses]);
 
   const customCourses = useMemo(
     () => bunkCourses.filter((course) => course.isCustomCourse),
     [bunkCourses],
+  );
+  const hiddenCourseList = useMemo(
+    () =>
+      Object.values(hiddenCourses).sort(
+        (a, b) => b.hiddenAt - a.hiddenAt,
+      ),
+    [hiddenCourses],
   );
 
   const overrideCourses = useMemo(
@@ -201,6 +216,7 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
   }, [attendanceCourses, courseMap]);
 
   const hasChanges =
+    hiddenCourseList.length > 0 ||
     customCourses.length > 0 ||
     overrideCourses.length > 0 ||
     manualSlotsCount > 0 ||
@@ -210,6 +226,15 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
     configChanges.length > 0;
 
   const totalCourses = attendanceCourses.length + customCourses.length;
+
+  const handleRestoreCourse = (hiddenCourse: HiddenCourseMeta) => {
+    const keepVisibleForSemesterKey =
+      hiddenCourse.reason === "auto-semester"
+        ? hiddenCourse.semesterKey ?? getCurrentSemesterWindow().semesterKey
+        : undefined;
+    restoreCourse(hiddenCourse.courseId, { keepVisibleForSemesterKey });
+    generateTimetable();
+  };
 
   const renderBunkGroup = (title: string, entries: CourseBunkEntry[]) => {
     if (entries.length === 0) return null;
@@ -402,6 +427,60 @@ export function ChangesModal({ visible, onClose }: ChangesModalProps) {
                       CUSTOM
                     </Text>
                   </View>
+                </View>
+              ))}
+            </Section>
+          )}
+
+          {hiddenCourseList.length > 0 && (
+            <Section title="Hidden Courses" count={hiddenCourseList.length}>
+              {hiddenCourseList.map((hiddenCourse) => (
+                <View
+                  key={hiddenCourse.courseId}
+                  className="flex-row items-center justify-between rounded-[8px] p-2"
+                  style={{ backgroundColor: theme.backgroundSecondary }}
+                >
+                  <View className="mr-2 flex-1">
+                    <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
+                      {hiddenCourse.courseName}
+                    </Text>
+                    <Text
+                      className="mt-0.5 text-[11px]"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      Hidden from app views
+                    </Text>
+                  </View>
+                  <View className="mr-2 rounded-[8px] px-2 py-0.5" style={{
+                    backgroundColor:
+                      hiddenCourse.reason === "manual"
+                        ? Colors.status.warning + "20"
+                        : Colors.status.info + "20",
+                  }}>
+                    <Text
+                      className="text-[10px] font-bold"
+                      style={{
+                        color:
+                          hiddenCourse.reason === "manual"
+                            ? Colors.status.warning
+                            : Colors.status.info,
+                      }}
+                    >
+                      {hiddenCourse.reason === "manual" ? "MANUAL" : "AUTO"}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => handleRestoreCourse(hiddenCourse)}
+                    className="rounded-[8px] px-2 py-1"
+                    style={{ backgroundColor: Colors.status.success + "20" }}
+                  >
+                    <Text
+                      className="text-[11px] font-semibold"
+                      style={{ color: Colors.status.success }}
+                    >
+                      Restore
+                    </Text>
+                  </Pressable>
                 </View>
               ))}
             </Section>

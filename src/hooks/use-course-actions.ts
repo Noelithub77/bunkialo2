@@ -10,6 +10,8 @@ export const useCourseActions = () => {
     updateCourseConfig,
     addBunk,
     addCustomCourse,
+    deleteCourse,
+    restoreCourse,
     deleteCustomCourse,
     setManualSlots,
   } = useBunkStore();
@@ -81,12 +83,30 @@ export const useCourseActions = () => {
   );
 
   // delete custom course
+  const handleDeleteCourse = useCallback(
+    (courseId: string) => {
+      deleteCourse(courseId);
+      generateTimetable();
+    },
+    [deleteCourse, generateTimetable],
+  );
+
   const handleDeleteCustomCourse = useCallback(
     (courseId: string) => {
       deleteCustomCourse(courseId);
       generateTimetable();
     },
     [deleteCustomCourse, generateTimetable],
+  );
+
+  const handleRestoreCourse = useCallback(
+    (courseId: string, keepVisibleForSemesterKey?: string) => {
+      restoreCourse(courseId, {
+        keepVisibleForSemesterKey,
+      });
+      generateTimetable();
+    },
+    [generateTimetable, restoreCourse],
   );
 
   const handleResolveConflict = useCallback(
@@ -130,7 +150,9 @@ export const useCourseActions = () => {
     handleSaveCourse,
     handleAddBunk,
     handleCreateCourse,
+    handleDeleteCourse,
     handleDeleteCustomCourse,
+    handleRestoreCourse,
     handleResolveConflict,
     handleResolveAllPreferred,
     handleRevertAutoConflict,

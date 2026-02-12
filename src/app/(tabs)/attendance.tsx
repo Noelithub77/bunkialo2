@@ -35,6 +35,7 @@ export default function AttendanceScreen() {
   const { isOffline, setOffline } = useAuthStore();
   const {
     courses: bunkCourses,
+    hiddenCourses,
     syncFromLms,
     hasHydrated: isBunkHydrated,
   } = useBunkStore();
@@ -54,14 +55,27 @@ export default function AttendanceScreen() {
 
   const { handleOpenCreateCourse, handleToggleEditMode } = useCourseActions();
 
+  const visibleAttendanceCourses = useMemo(
+    () => courses.filter((course) => !hiddenCourses[course.courseId]),
+    [courses, hiddenCourses],
+  );
+
+  const visibleBunkCourses = useMemo(
+    () =>
+      bunkCourses.filter(
+        (course) => course.isCustomCourse || !hiddenCourses[course.courseId],
+      ),
+    [bunkCourses, hiddenCourses],
+  );
+
   const allDutyLeaves = useMemo(
-    () => selectAllDutyLeaves(bunkCourses),
-    [bunkCourses],
+    () => selectAllDutyLeaves(visibleBunkCourses),
+    [visibleBunkCourses],
   );
 
   const unknownCount = useMemo(
-    () => computeUnknownCount(courses, bunkCourses),
-    [courses, bunkCourses],
+    () => computeUnknownCount(visibleAttendanceCourses, visibleBunkCourses),
+    [visibleAttendanceCourses, visibleBunkCourses],
   );
 
   // initial fetch on hydration
@@ -129,7 +143,10 @@ export default function AttendanceScreen() {
       <View className="mb-4 px-4 pt-4">
         <View className="flex-row flex-wrap items-center justify-between gap-y-2 mb-4">
           <View className="min-w-[40%] flex-shrink gap-0.5">
-            <Text className="text-[28px] font-bold" style={{ color: theme.text }}>
+            <Text
+              className="text-[28px] font-bold"
+              style={{ color: theme.text }}
+            >
               Attendance
             </Text>
             {lastSyncTime && (
@@ -206,10 +223,7 @@ export default function AttendanceScreen() {
               )}
             </Pressable>
 
-            <Pressable
-              onPress={() => router.push("/settings")}
-              className="p-2"
-            >
+            <Pressable onPress={() => router.push("/settings")} className="p-2">
               <Ionicons
                 name="settings-outline"
                 size={20}
@@ -227,7 +241,11 @@ export default function AttendanceScreen() {
           <Pressable
             onPress={() => handleTabChange("absences")}
             className="flex-1 flex-row items-center justify-center gap-1 rounded-[8px] py-2"
-            style={activeTab === "absences" ? { backgroundColor: theme.background } : undefined}
+            style={
+              activeTab === "absences"
+                ? { backgroundColor: theme.background }
+                : undefined
+            }
           >
             <Ionicons
               name="calendar"
@@ -239,7 +257,8 @@ export default function AttendanceScreen() {
             <Text
               className="text-[13px] font-medium"
               style={{
-                color: activeTab === "absences" ? theme.text : theme.textSecondary,
+                color:
+                  activeTab === "absences" ? theme.text : theme.textSecondary,
               }}
             >
               All Bunks
@@ -248,7 +267,11 @@ export default function AttendanceScreen() {
           <Pressable
             onPress={() => handleTabChange("courses")}
             className="flex-1 flex-row items-center justify-center gap-1 rounded-[8px] py-2"
-            style={activeTab === "courses" ? { backgroundColor: theme.background } : undefined}
+            style={
+              activeTab === "courses"
+                ? { backgroundColor: theme.background }
+                : undefined
+            }
           >
             <Ionicons
               name="list"
@@ -258,7 +281,8 @@ export default function AttendanceScreen() {
             <Text
               className="text-[13px] font-medium"
               style={{
-                color: activeTab === "courses" ? theme.text : theme.textSecondary,
+                color:
+                  activeTab === "courses" ? theme.text : theme.textSecondary,
               }}
             >
               Courses
@@ -276,16 +300,14 @@ export default function AttendanceScreen() {
           <FAB.Group
             open={showFabMenu}
             visible={true}
-            icon={showFabMenu ? "close" : isEditMode ? "check" : "plus"}
-            color={Colors.white}
+            icon={showFabMenu ? "close" : "menu"}
+            color={isDark ? Colors.gray[200] : Colors.gray[700]}
             style={{ position: "absolute", right: 0, bottom: 80 }}
-            backdropColor="rgba(0,0,0,0.5)"
+            backdropColor={isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.15)"}
             fabStyle={{
               backgroundColor: showFabMenu
-                ? theme.textSecondary
-                : isEditMode
-                  ? Colors.status.info
-                  : Colors.status.success,
+                ? Colors.gray[800]
+                : theme.backgroundSecondary,
             }}
             actions={[
               {

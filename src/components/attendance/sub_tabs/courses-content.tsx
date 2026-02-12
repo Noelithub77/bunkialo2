@@ -117,7 +117,7 @@ export const CoursesContent = () => {
 
   const { courses, isLoading, lastSyncTime, fetchAttendance } =
     useAttendanceStore();
-  const { courses: bunkCourses } = useBunkStore();
+  const { courses: bunkCourses, hiddenCourses } = useBunkStore();
   const { activeModal, isEditMode, openModal, closeModal } =
     useAttendanceUIStore();
 
@@ -139,26 +139,39 @@ export const CoursesContent = () => {
     handleSaveCourse,
     handleAddBunk,
     handleCreateCourse,
-    handleDeleteCustomCourse,
+    handleDeleteCourse,
     handleResolveConflict,
     handleResolveAllPreferred,
     conflicts,
     handleRevertAutoConflict,
   } = useCourseActions();
 
+  const visibleAttendanceCourses = useMemo(
+    () => courses.filter((course) => !hiddenCourses[course.courseId]),
+    [courses, hiddenCourses],
+  );
+
+  const visibleBunkCourses = useMemo(
+    () =>
+      bunkCourses.filter(
+        (course) => course.isCustomCourse || !hiddenCourses[course.courseId],
+      ),
+    [bunkCourses, hiddenCourses],
+  );
+
   const allDutyLeaves = useMemo(
-    () => selectAllDutyLeaves(bunkCourses),
-    [bunkCourses],
+    () => selectAllDutyLeaves(visibleBunkCourses),
+    [visibleBunkCourses],
   );
 
   // combine LMS courses with custom courses
   const allCourses = useMemo(() => {
-    const lmsCourseData = courses.map((course) => ({
+    const lmsCourseData = visibleAttendanceCourses.map((course) => ({
       type: "lms" as const,
       course,
-      bunkData: bunkCourses.find((c) => c.courseId === course.courseId),
+      bunkData: visibleBunkCourses.find((c) => c.courseId === course.courseId),
     }));
-    const customCourseData = bunkCourses
+    const customCourseData = visibleBunkCourses
       .filter((c) => c.isCustomCourse)
       .map((bunkData) => ({
         type: "custom" as const,
@@ -181,7 +194,7 @@ export const CoursesContent = () => {
 
       return aName.localeCompare(bName);
     });
-  }, [courses, bunkCourses]);
+  }, [visibleAttendanceCourses, visibleBunkCourses]);
 
   const handleRefresh = useCallback(() => {
     fetchAttendance();
@@ -252,7 +265,7 @@ export const CoursesContent = () => {
   };
 
   const renderFooter = () => {
-    if (!lastSyncTime || courses.length === 0) return null;
+    if (!lastSyncTime || visibleAttendanceCourses.length === 0) return null;
     return <View className="h-6" />;
   };
 
@@ -294,7 +307,7 @@ export const CoursesContent = () => {
               onShowUnknown={() => openModal({ type: "unknown-status" })}
               onDeleteCustomCourse={() => {
                 if (bunkData?.isCustomCourse) {
-                  handleDeleteCustomCourse(courseId);
+                  handleDeleteCourse(courseId);
                 }
               }}
             />
@@ -318,6 +331,7 @@ export const CoursesContent = () => {
         course={activeModal?.type === "course-edit" ? activeModal.course : null}
         onClose={closeModal}
         onSave={handleSaveCourse}
+        onDelete={(course) => handleDeleteCourse(course.courseId)}
       />
 
       <AddBunkModal
@@ -381,8 +395,8 @@ export const CoursesContent = () => {
 
       <UnknownStatusModal
         visible={isUnknownStatusVisible}
-        courses={courses}
-        bunkCourses={bunkCourses}
+        courses={visibleAttendanceCourses}
+        bunkCourses={visibleBunkCourses}
         onClose={closeModal}
         onRevert={handleRevertUnknown}
         onConfirmPresent={applyUnknownPresent}
