@@ -23,11 +23,9 @@ bun install
 
 ### Environment
 
-Copy `.env.example` into `.env` and fill values:
+Copy `.env.example` into `.env`.
 
-- `EXPO_TOKEN`
-- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
-- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+LMS test variables are optional and only needed if you run the test scripts:
 - `LMS_TEST_USERNAME`
 - `LMS_TEST_PASSWORD`
 
