@@ -31,11 +31,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
-          cache-dependency-path: |
-            **/*.gradle*
-            **/gradle-wrapper.properties
-            android/gradle.properties
+
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('bun.lock', 'package.json', 'app.json', 'eas.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Restore Bun package cache
         uses: actions/cache@v4
