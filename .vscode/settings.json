@@ -3,5 +3,8 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/android-production-release.yml"
+  ]
 }

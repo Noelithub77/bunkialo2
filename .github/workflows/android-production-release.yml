@@ -33,24 +33,26 @@ jobs:
           java-version: 17
 
       - name: Restore Gradle cache
+        id: cache-gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('bun.lock', 'package.json', 'app.json', 'eas.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-gradle-v1-${{ hashFiles('bun.lock', 'package.json', 'eas.json', 'scripts/actions/configure-gradle-properties.sh') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-${{ runner.arch }}-gradle-v1-
 
       - name: Restore Bun package cache
+        id: cache-bun
         uses: actions/cache@v4
         with:
           path: |
             ~/.bun/install/cache
             ~/.bun/install/global
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.3.8-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-${{ runner.arch }}-bun-1.3.8-
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -72,7 +74,17 @@ jobs:
       - name: Clean build outputs only
         run: rm -rf node_modules "${RUNNER_TEMP}/eas-local-build" "${RUNNER_TEMP}/artifacts"
 
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node-modules-bun-1.3.8-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-node-modules-bun-1.3.8-
+
       - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Configure global Gradle properties
