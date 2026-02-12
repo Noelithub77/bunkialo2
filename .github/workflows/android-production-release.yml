@@ -67,6 +67,9 @@ jobs:
         id: artifact
         run: bash scripts/actions/locate-build-artifact.sh
 
+      - name: Submit to Google Play (production)
+        run: eas submit --platform android --profile production --path "${{ steps.artifact.outputs.path }}" --non-interactive
+
       - name: Increment app versions
         run: node scripts/actions/increment-android-version-code.mjs
 
