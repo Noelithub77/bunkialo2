@@ -21,6 +21,21 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { InteractionManager, Pressable, Text, View } from "react-native";
 import { FAB, Portal } from "react-native-paper";
 
+/**
+ * Render the Attendance screen with tabs for "All Bunks" and "Courses", background
+ * synchronization and hydration logic, modal handling (duty-leave, unknown status,
+ * bunk-transfer, changes), and a context-aware FAB for export/import, editing, and
+ * course creation actions.
+ *
+ * The component:
+ * - Computes visible courses and derived counts (duty leaves, unknown statuses).
+ * - Performs an initial attendance fetch after hydration and synchronizes bunk data
+ *   from the LMS when both stores are hydrated.
+ * - Reacts to offline state changes and closes the FAB when the screen loses focus.
+ * - Exposes UI controls for refreshing, opening modals, switching tabs, and toggling edit mode.
+ *
+ * @returns A React element representing the Attendance screen.
+ */
 export default function AttendanceScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
