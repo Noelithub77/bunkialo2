@@ -23,6 +23,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider, Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -111,74 +112,76 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ToastProviderWithViewport>
-        <PaperProvider
-          settings={{
-            icon: (props) => <MaterialCommunityIcons {...props} />,
-          }}
-        >
-          <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="login" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="faculty/[id]" />
-              <Stack.Screen name="settings" />
-              <Stack.Screen
-                name="(fab-group)/gpa"
-                options={{
-                  presentation: "modal",
-                  animation: "slide_from_bottom",
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                }}
-              />
-              <Stack.Screen
-                name="(fab-group)/acad-cal"
-                options={{
-                  presentation: "modal",
-                  animation: "slide_from_bottom",
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                }}
-              />
-              <Stack.Screen
-                name="(fab-group)/wifix"
-                options={{
-                  presentation: "modal",
-                  animation: "slide_from_bottom",
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                }}
-              />
-            </Stack>
-            <StatusBar style={isDark ? "light" : "dark"} />
-          </ThemeProvider>
-          <Portal>
-            {isOffline && isLoggedIn && (
-              <View
-                className="absolute self-center flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 shadow-sm"
-                style={{
-                  top: insets.top + 10,
-                  backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
-                  borderColor: Colors.status.warning,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="cloud-off-outline"
-                  size={14}
-                  color={Colors.status.warning}
+      <KeyboardProvider>
+        <ToastProviderWithViewport>
+          <PaperProvider
+            settings={{
+              icon: (props) => <MaterialCommunityIcons {...props} />,
+            }}
+          >
+            <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="login" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="faculty/[id]" />
+                <Stack.Screen name="settings" />
+                <Stack.Screen
+                  name="(fab-group)/gpa"
+                  options={{
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                    gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
+                  }}
                 />
-                <Text
-                  className="text-[12px] font-semibold tracking-[0.2px]"
-                  style={{ color: isDark ? Colors.gray[100] : Colors.gray[800] }}
+                <Stack.Screen
+                  name="(fab-group)/acad-cal"
+                  options={{
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                    gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="(fab-group)/wifix"
+                  options={{
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                    gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
+                  }}
+                />
+              </Stack>
+              <StatusBar style={isDark ? "light" : "dark"} />
+            </ThemeProvider>
+            <Portal>
+              {isOffline && isLoggedIn && (
+                <View
+                  className="absolute self-center flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 shadow-sm"
+                  style={{
+                    top: insets.top + 10,
+                    backgroundColor: isDark ? Colors.gray[900] : Colors.gray[100],
+                    borderColor: Colors.status.warning,
+                  }}
                 >
-                  Offline - showing cached data
-                </Text>
-              </View>
-            )}
-          </Portal>
-        </PaperProvider>
-      </ToastProviderWithViewport>
+                  <MaterialCommunityIcons
+                    name="cloud-off-outline"
+                    size={14}
+                    color={Colors.status.warning}
+                  />
+                  <Text
+                    className="text-[12px] font-semibold tracking-[0.2px]"
+                    style={{ color: isDark ? Colors.gray[100] : Colors.gray[800] }}
+                  >
+                    Offline - showing cached data
+                  </Text>
+                </View>
+              )}
+            </Portal>
+          </PaperProvider>
+        </ToastProviderWithViewport>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

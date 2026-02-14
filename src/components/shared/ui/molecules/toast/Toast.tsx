@@ -1,18 +1,11 @@
-import { useToast } from "./context/ToastContext";
-import type {
-  Toast as ToastType,
-  ToastType as ToastVariant,
-} from "./Toast.types";
 import React, { useEffect, useRef } from "react";
 import {
   LayoutAnimation,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
-  UIManager,
-  View,
+  View
 } from "react-native";
 import Animated, {
   Easing,
@@ -22,12 +15,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-
-if (Platform.OS === "android") {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}
+import { useToast } from "./context/ToastContext";
+import type {
+  Toast as ToastType,
+  ToastType as ToastVariant,
+} from "./Toast.types";
 
 interface ToastProps {
   toast: ToastType;
