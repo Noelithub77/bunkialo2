@@ -6,6 +6,9 @@ export const Colors = {
   black: "#000000",
   white: "#FFFFFF",
 
+  // Global accent
+  accent: "#FFAB00",
+
   // Gray scale - premium tones
   gray: {
     50: "#FAFAFA",

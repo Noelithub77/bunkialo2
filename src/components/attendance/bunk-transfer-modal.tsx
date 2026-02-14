@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBunkStore } from "@/stores/bunk-store";
@@ -13,6 +12,7 @@ import {
   type BunkTransferScope,
 } from "@/utils/bunk-transfer";
 import { Ionicons } from "@expo/vector-icons";
+import { format } from "date-fns";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import {
@@ -22,13 +22,23 @@ import {
 } from "expo-file-system/legacy";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
 import { useMemo, useState } from "react";
-import { Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 interface BunkTransferModalProps {
   visible: boolean;
   onClose: () => void;
   scope: BunkTransferScope;
   courses: CourseBunkData[];
+  allowImport?: boolean;
 }
 
 export const BunkTransferModal = ({
@@ -36,19 +46,83 @@ export const BunkTransferModal = ({
   onClose,
   scope,
   courses,
+  allowImport = true,
 }: BunkTransferModalProps) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const accent = Colors.accent;
 
   const [inputText, setInputText] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<"export" | "import">(
+    allowImport ? "export" : "export",
+  );
 
-  const { markAsDutyLeave, removeDutyLeave } = useBunkStore();
+  const { addBunk, markAsDutyLeave, removeDutyLeave } = useBunkStore();
+
+  const MiniActionButton = (props: {
+    title: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    onPress: () => void;
+    disabled?: boolean;
+    className?: string;
+  }) => {
+    const bg = theme.backgroundSecondary;
+    const border = theme.border;
+
+    return (
+      <Pressable
+        onPress={props.onPress}
+        disabled={props.disabled}
+        className={`h-12 flex-row items-center justify-center gap-2 rounded-2xl border px-3 ${props.className ?? ""}`}
+        style={({ pressed }) => [
+          { backgroundColor: bg, borderColor: border },
+          pressed && !props.disabled ? { transform: [{ scale: 0.98 }] } : null,
+          props.disabled ? { opacity: 0.55 } : null,
+          // Minimal lift so it reads like a tappable control.
+          Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOpacity: isDark ? 0.18 : 0.07,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+            },
+            android: { elevation: isDark ? 1 : 1 },
+            default: {},
+          }),
+        ]}
+      >
+        <Ionicons name={props.icon} size={18} color={theme.textSecondary} />
+        <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
+          {props.title}
+        </Text>
+      </Pressable>
+    );
+  };
 
   const rows = useMemo(() => buildBunkTransferRows(courses, scope), [courses, scope]);
+  const rowCountLabel = useMemo(() => {
+    if (rows.length === 0) return "No rows";
+    if (rows.length === 1) return "1 row";
+    return `${rows.length} rows`;
+  }, [rows.length]);
 
-  const title = scope === "duty-leave" ? "Duty Leave Export / Import" : "All Bunks Export / Import";
+  const title =
+    scope === "duty-leave"
+      ? allowImport
+        ? "Duty Leave Export / Import"
+        : "Duty Leave Export"
+      : allowImport
+        ? "All Bunks Export / Import"
+        : "All Bunks Export";
+
+  const subtitle = useMemo(() => {
+    const scopeLabel = scope === "duty-leave" ? "Duty Leaves" : "All Bunks";
+    return allowImport
+      ? `${scopeLabel} - ${rowCountLabel}`
+      : `${scopeLabel} - ${rowCountLabel}`;
+  }, [allowImport, rowCountLabel, scope]);
 
   const writeAndShare = async (
     content: string,
@@ -71,6 +145,10 @@ export const BunkTransferModal = ({
   };
 
   const handleExportCsv = async () => {
+    if (rows.length === 0) {
+      Alert.alert("Nothing to export", "No matching bunks found for this export.");
+      return;
+    }
     setIsBusy(true);
     try {
       await writeAndShare(rowsToCsv(rows), `bunkialo-${scope}.csv`, "text/csv");
@@ -82,6 +160,10 @@ export const BunkTransferModal = ({
   };
 
   const handleExportExcel = async () => {
+    if (rows.length === 0) {
+      Alert.alert("Nothing to export", "No matching bunks found for this export.");
+      return;
+    }
     setIsBusy(true);
     try {
       await writeAndShare(
@@ -97,6 +179,10 @@ export const BunkTransferModal = ({
   };
 
   const handleCopy = async () => {
+    if (rows.length === 0) {
+      Alert.alert("Nothing to copy", "No matching bunks found for this export.");
+      return;
+    }
     try {
       await Clipboard.setStringAsync(rowsToCsv(rows));
       Alert.alert("Copied", "Export data copied to clipboard.");
@@ -125,6 +211,7 @@ export const BunkTransferModal = ({
 
     const courseNameMap = getCourseNameMap();
     let matchedCount = 0;
+    let createdCount = 0;
 
     for (const row of parsedRows) {
       const course = courseNameMap.get(row.courseName.toLowerCase());
@@ -137,7 +224,29 @@ export const BunkTransferModal = ({
         return bunkSlot === row.slot;
       });
 
-      if (!targetBunk) continue;
+      if (!targetBunk) {
+        // When importing "All Bunks", we need to be able to restore user-created bunks
+        // on a fresh device (where the bunk record doesn't exist yet).
+        if (scope === "all-bunks") {
+          const formattedDate = format(
+            new Date(`${row.date}T00:00:00`),
+            "dd MMM yyyy",
+          );
+          addBunk(course.courseId, {
+            date: formattedDate,
+            description: "Imported bunk",
+            timeSlot: row.slot,
+            note: "",
+            isDutyLeave: row.type === "DL",
+            dutyLeaveNote: row.type === "DL" ? "Imported from transfer" : "",
+            isMarkedPresent: false,
+            presenceNote: "",
+          });
+          createdCount += 1;
+          matchedCount += 1;
+        }
+        continue;
+      }
 
       if (scope === "duty-leave") {
         markAsDutyLeave(course.courseId, targetBunk.id, "Imported from transfer");
@@ -152,7 +261,11 @@ export const BunkTransferModal = ({
     Alert.alert(
       "Import completed",
       matchedCount > 0
-        ? `Applied ${matchedCount} row${matchedCount === 1 ? "" : "s"}.`
+        ? `Applied ${matchedCount} row${matchedCount === 1 ? "" : "s"}${
+            createdCount > 0
+              ? ` (created ${createdCount} bunk${createdCount === 1 ? "" : "s"})`
+              : ""
+          }.`
         : "No matching bunks found for the imported rows.",
     );
   };
@@ -191,64 +304,176 @@ export const BunkTransferModal = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable
         className="flex-1 justify-end"
-        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        style={{ backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.45)" }}
         onPress={onClose}
       >
         <Pressable
-          className="max-h-[88%] rounded-t-3xl px-4 pt-4 pb-6"
-          style={{ backgroundColor: theme.background }}
+          className="max-h-[90%] overflow-hidden rounded-t-[28px] border px-4 pt-3 pb-6"
+          style={{ backgroundColor: theme.background, borderColor: theme.border }}
           onPress={(event) => event.stopPropagation()}
         >
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-lg font-semibold" style={{ color: theme.text }}>
-              {title}
-            </Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={20} color={theme.textSecondary} />
+          <View className="items-center">
+            <View
+              className="mb-3 h-1.5 w-10 rounded-full"
+              style={{ backgroundColor: isDark ? Colors.gray[700] : Colors.gray[300] }}
+            />
+          </View>
+
+          <View className="mb-3 flex-row items-start justify-between">
+            <View className="flex-1 pr-3">
+              <View className="flex-row items-center gap-2">
+                <View
+                  className="h-9 w-9 items-center justify-center rounded-xl border"
+                  style={{ borderColor: theme.border, backgroundColor: theme.backgroundSecondary }}
+                >
+                  <Ionicons
+                    name={scope === "duty-leave" ? "briefcase-outline" : "calendar-outline"}
+                    size={18}
+                    color={accent}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[16px] font-semibold" style={{ color: theme.text }}>
+                    {title}
+                  </Text>
+                  <Text className="text-[12px]" style={{ color: theme.textSecondary }}>
+                    {subtitle}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              className="h-10 w-10 items-center justify-center rounded-xl border"
+              style={{ borderColor: theme.border, backgroundColor: theme.backgroundSecondary }}
+            >
+              <Ionicons name="close" size={18} color={theme.textSecondary} />
             </Pressable>
           </View>
 
-          <ScrollView contentContainerClassName="gap-3 pb-4" showsVerticalScrollIndicator={false}>
-            <View className="rounded-xl p-3" style={{ backgroundColor: theme.backgroundSecondary }}>
-              <Text className="text-sm font-semibold" style={{ color: theme.text }}>
-                Export format
-              </Text>
-              <Text className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
-                Course Name, Date (YYYY-MM-DD), Day, Slot, Type
-              </Text>
+          <ScrollView
+            contentContainerClassName="gap-3 pb-5"
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View
+              className="flex-row rounded-2xl border p-1"
+              style={{ borderColor: theme.border, backgroundColor: theme.backgroundSecondary }}
+            >
+              <Pressable
+                onPress={() => setActiveSubTab("export")}
+                className="flex-1 items-center justify-center rounded-xl py-2.5"
+                style={
+                  activeSubTab === "export"
+                    ? { backgroundColor: theme.background, borderColor: theme.border }
+                    : undefined
+                }
+              >
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{
+                    color: activeSubTab === "export" ? theme.text : theme.textSecondary,
+                  }}
+                >
+                  Export
+                </Text>
+              </Pressable>
+
+              {allowImport && (
+                <Pressable
+                  onPress={() => setActiveSubTab("import")}
+                  className="flex-1 items-center justify-center rounded-xl py-2.5"
+                  style={
+                    activeSubTab === "import"
+                      ? { backgroundColor: theme.background, borderColor: theme.border }
+                      : undefined
+                  }
+                >
+                  <Text
+                    className="text-[13px] font-semibold"
+                    style={{
+                      color: activeSubTab === "import" ? theme.text : theme.textSecondary,
+                    }}
+                  >
+                    Import
+                  </Text>
+                </Pressable>
+              )}
             </View>
 
-            <View className="flex-row flex-wrap gap-2">
-              <Button title="Export CSV" onPress={handleExportCsv} disabled={isBusy || rows.length === 0} className="flex-1" />
-              <Button title="Export Excel" onPress={handleExportExcel} disabled={isBusy || rows.length === 0} className="flex-1" />
-            </View>
-
-            <Button title="Copy Export to Clipboard" onPress={handleCopy} disabled={isBusy || rows.length === 0} variant="secondary" />
-
-            <View className="mt-2">
-              <Text className="mb-2 text-sm font-semibold" style={{ color: theme.text }}>
-                Import
-              </Text>
+            {activeSubTab === "export" && (
               <View className="flex-row flex-wrap gap-2">
-                <Button title="Import from File" onPress={handleImportFile} disabled={isBusy} className="flex-1" />
-                <Button title="Import from Clipboard" onPress={handleImportClipboard} disabled={isBusy} variant="secondary" className="flex-1" />
+                <MiniActionButton
+                  title="Export CSV"
+                  icon="document-text-outline"
+                  onPress={handleExportCsv}
+                  disabled={isBusy}
+                  className="min-w-[48%] flex-1"
+                />
+                <MiniActionButton
+                  title="Export Excel"
+                  icon="grid-outline"
+                  onPress={handleExportExcel}
+                  disabled={isBusy}
+                  className="min-w-[48%] flex-1"
+                />
+                <MiniActionButton
+                  title="Copy to Clipboard"
+                  icon="copy-outline"
+                  onPress={handleCopy}
+                  disabled={isBusy}
+                  className="min-w-[48%] flex-1"
+                />
               </View>
-              <TextInput
-                placeholder="Paste CSV / Excel XML data here"
-                placeholderTextColor={theme.textSecondary}
-                multiline
-                value={inputText}
-                onChangeText={setInputText}
-                className="mt-3 min-h-[120px] rounded-xl border p-3 text-sm"
-                style={{ borderColor: theme.border, color: theme.text, textAlignVertical: "top" }}
-              />
-              <Button
-                title="Import Pasted Data"
-                onPress={() => handleApplyImport(inputText)}
-                disabled={isBusy || inputText.trim().length === 0}
-                className="mt-2"
-              />
-            </View>
+            )}
+
+            {allowImport && activeSubTab === "import" && (
+              <View className="gap-2">
+                <View className="flex-row flex-wrap gap-2">
+                  <MiniActionButton
+                    title="Import File"
+                    icon="cloud-upload-outline"
+                    onPress={handleImportFile}
+                    disabled={isBusy}
+                    className="min-w-[48%] flex-1"
+                  />
+                  <MiniActionButton
+                    title="Clipboard"
+                    icon="clipboard-outline"
+                    onPress={handleImportClipboard}
+                    disabled={isBusy}
+                    className="min-w-[48%] flex-1"
+                  />
+                </View>
+
+                <TextInput
+                  placeholder="Paste export here"
+                  placeholderTextColor={theme.textSecondary}
+                  multiline
+                  value={inputText}
+                  onChangeText={setInputText}
+                  className="min-h-[132px] rounded-2xl border px-3 py-3 text-[13px]"
+                  style={{
+                    borderColor: theme.border,
+                    color: theme.text,
+                    backgroundColor: theme.backgroundSecondary,
+                    textAlignVertical: "top",
+                  }}
+                />
+
+                <MiniActionButton
+                  title="Import Pasted Data"
+                  icon="checkmark-circle-outline"
+                  onPress={() => handleApplyImport(inputText)}
+                  disabled={isBusy || inputText.trim().length === 0}
+                  className="w-full"
+                />
+              </View>
+            )}
+
+            {/* legacy layout removed */}
           </ScrollView>
         </Pressable>
       </Pressable>

@@ -141,6 +141,8 @@ export default function AttendanceScreen() {
   };
 
   const isBunkTransferVisible = activeModal?.type === "bunk-transfer";
+  const bunkTransferAllowImport =
+    activeModal?.type === "bunk-transfer" ? activeModal.allowImport !== false : true;
 
   return (
     <Container>
@@ -308,6 +310,7 @@ export default function AttendanceScreen() {
             : "duty-leave"
         }
         courses={visibleBunkCourses}
+        allowImport={bunkTransferAllowImport}
       />
 
       {/* FAB - Attendance actions on all subtabs */}
@@ -320,54 +323,59 @@ export default function AttendanceScreen() {
             color={isDark ? Colors.gray[200] : Colors.gray[700]}
             style={{ position: "absolute", right: 0, bottom: 80 }}
             backdropColor={isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.15)"}
-            fabStyle={{
-              backgroundColor: showFabMenu
-                ? Colors.gray[800]
-                : theme.backgroundSecondary,
-            }}
-            actions={[
-              {
-                icon: "briefcase-arrow-right-outline",
-                label: "Export/Import DL",
-                color: theme.text,
-                style: { backgroundColor: theme.backgroundSecondary },
-                onPress: () =>
-                  openModal({ type: "bunk-transfer", scope: "duty-leave" }),
-              },
-              {
-                icon: "calendar-export-outline",
-                label: "Export/Import All Bunks",
-                color: theme.text,
-                style: { backgroundColor: theme.backgroundSecondary },
-                onPress: () =>
-                  openModal({ type: "bunk-transfer", scope: "all-bunks" }),
-              },
-              {
-                icon: "history",
-                label: "Changes",
-                color: theme.text,
-                style: { backgroundColor: theme.backgroundSecondary },
-                onPress: () => openModal({ type: "changes" }),
-              },
-              {
-                icon: "pencil",
-                label: isEditMode ? "Done Editing" : "Edit Courses",
-                color: isEditMode ? Colors.white : theme.text,
-                style: {
-                  backgroundColor: isEditMode
-                    ? Colors.status.info
-                    : theme.backgroundSecondary,
-                },
-                onPress: handleToggleEditMode,
-              },
-              {
-                icon: "plus",
-                label: "Add Course",
-                color: Colors.white,
-                style: { backgroundColor: Colors.status.success },
-                onPress: handleOpenCreateCourse,
-              },
-            ]}
+             fabStyle={{
+               backgroundColor: showFabMenu
+                 ? Colors.gray[800]
+                 : theme.backgroundSecondary,
+             }}
+            actions={
+              activeTab === "absences"
+                ? [
+                    {
+                      icon: "briefcase-arrow-left-right-outline",
+                      label: "Export/Import DL",
+                      color: theme.text,
+                      style: { backgroundColor: theme.backgroundSecondary },
+                      onPress: () =>
+                        openModal({ type: "bunk-transfer", scope: "duty-leave" }),
+                    },
+                    {
+                      icon: "calendar-sync-outline",
+                      label: "Export/Import All Bunks",
+                      color: theme.text,
+                      style: { backgroundColor: theme.backgroundSecondary },
+                      onPress: () =>
+                        openModal({ type: "bunk-transfer", scope: "all-bunks" }),
+                    },
+                  ]
+                : [
+                    {
+                      icon: "history",
+                      label: "Changes",
+                      color: theme.text,
+                      style: { backgroundColor: theme.backgroundSecondary },
+                      onPress: () => openModal({ type: "changes" }),
+                    },
+                    {
+                      icon: "pencil",
+                      label: isEditMode ? "Done Editing" : "Edit Courses",
+                      color: isEditMode ? Colors.white : theme.text,
+                      style: {
+                        backgroundColor: isEditMode
+                          ? Colors.status.info
+                          : theme.backgroundSecondary,
+                      },
+                      onPress: handleToggleEditMode,
+                    },
+                    {
+                      icon: "plus",
+                      label: "Add Course",
+                      color: Colors.white,
+                      style: { backgroundColor: Colors.status.success },
+                      onPress: handleOpenCreateCourse,
+                    },
+                  ]
+            }
             onStateChange={({ open }) => setShowFabMenu(open)}
             onPress={() => {
               if (showFabMenu)

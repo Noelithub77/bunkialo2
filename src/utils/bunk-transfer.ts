@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import type { CourseBunkData } from "@/types";
-import { filterPastBunks, getDisplayName } from "@/stores/bunk-store";
+import { getDisplayName } from "@/stores/bunk-store";
 
 export type BunkTransferScope = "duty-leave" | "all-bunks";
 
@@ -61,7 +61,8 @@ export const buildBunkTransferRows = (
 
   for (const course of courses) {
     const displayName = getDisplayName(course);
-    for (const bunk of filterPastBunks(course.bunks)) {
+    // Export should include user-set items even if the session hasn't completed yet.
+    for (const bunk of course.bunks) {
       if (scope === "duty-leave" && !bunk.isDutyLeave) continue;
 
       const isoDate = parseDateOnlyFromBunk(bunk.date);
