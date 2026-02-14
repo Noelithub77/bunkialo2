@@ -6,11 +6,12 @@ Bunkialo is an Expo React Native app for IIIT Kottayam students that aggregates 
 
 This project is licensed under **GPL-3.0**.
 
-Simple meaning: if you fork and distribute a modified version, you must also provide source code for that modified version under GPL-compatible terms. Distributed derivatives cannot be closed source.
+meaning: if you fork and distribute a modified version, you must also provide source code for that modified version under GPL-compatible terms. Distributed derivatives cannot be closed source.
 
 ## Quick Start
 
 ### Prerequisites
+
 - Bun
 - Node.js 20+
 - Expo CLI / EAS CLI
@@ -26,6 +27,7 @@ bun install
 Copy `.env.example` into `.env`.
 
 LMS test variables are optional and only needed if you run the test scripts:
+
 - `LMS_TEST_USERNAME`
 - `LMS_TEST_PASSWORD`
 

@@ -1,7 +1,7 @@
 {
   "name": "bunkialo",
   "main": "expo-router/entry",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -33,7 +33,9 @@
     "expo-blur": "~15.0.8",
     "expo-build-properties": "^1.0.10",
     "expo-calendar": "~15.0.8",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
+    "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.10",
     "expo-haptics": "~15.0.8",

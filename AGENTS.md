@@ -361,8 +361,13 @@ debug.scraper("Dashboard refresh triggered", data);
 
 | Error                     | Fix                                            |
 | ------------------------- | ---------------------------------------------- |
-| "Alert.prompt not found"  | Use `Alert.alert` (cross-platform)             |
+| "Alert.prompt not found"  | Prefer app `Toast` for notices; use `Alert.alert` only for confirmations |
 | "Index signature missing" | Remove unnecessary type assertions in API args |
+
+## UI Feedback Rule
+
+- Prefer the app toast system for non-blocking feedback (copied, saved, error, etc.): wrap the app with `ToastProviderWithViewport` and use `Toast.show(...)` or `useToast()` from `@/components`.
+- Avoid `Alert.alert` for simple notifications; reserve it for destructive confirmations or when you need multiple action buttons.
 
 ## Testing
 

@@ -338,7 +338,7 @@ export default function TimetableScreen() {
             />
             {conflicts.length > 0 && (
               <View
-                className="absolute -right-1 -top-1 min-w-[16px] rounded-full px-1 items-center"
+                className="absolute -right-1 -top-1 h-[16px] min-w-[16px] flex-row items-center justify-center rounded-full px-1.5"
                 style={{
                   backgroundColor:
                     unresolvedConflictCount > 0
@@ -347,7 +347,8 @@ export default function TimetableScreen() {
                 }}
               >
                 <Text
-                  className="text-[10px] font-bold"
+                  className="text-[10px] font-bold leading-[12px]"
+                  numberOfLines={1}
                   style={{
                     color:
                       unresolvedConflictCount > 0

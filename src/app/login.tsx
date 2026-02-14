@@ -16,7 +16,6 @@ import {
 } from "react-native";
 import {
   KeyboardAwareScrollView,
-  KeyboardProvider,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -173,38 +172,35 @@ export default function LoginScreen() {
       />
       <View className="absolute inset-0 bg-black/28" />
 
-      <KeyboardProvider>
-        <SafeAreaView
+      <SafeAreaView
+        className="flex-1"
+        edges={["top", "bottom"]}
+        style={[
+          styles.safeArea,
+          isCompactHeight && styles.safeAreaCompact,
+          isLandscape && styles.safeAreaLandscape,
+        ]}
+      >
+        <KeyboardAwareScrollView
           className="flex-1"
-          edges={["top", "bottom"]}
-          style={[
-            styles.safeArea,
-            isCompactHeight && styles.safeAreaCompact,
-            isLandscape && styles.safeAreaLandscape,
+          contentContainerStyle={[
+            styles.scrollContent,
+            isCompactHeight && styles.scrollContentCompact,
+            isLandscape && styles.scrollContentLandscape,
           ]}
+          bottomOffset={24}
+          extraKeyboardSpace={32}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          showsVerticalScrollIndicator={false}
         >
-          <KeyboardAwareScrollView
-            className="flex-1"
-            contentContainerStyle={[
-              styles.scrollContent,
-              isCompactHeight && styles.scrollContentCompact,
-              isLandscape && styles.scrollContentLandscape,
+          <View
+            style={[
+              styles.contentShell,
+              isCompactHeight && styles.contentShellCompact,
+              isLandscape && styles.contentShellLandscape,
             ]}
-            bottomOffset={24}
-            extraKeyboardSpace={32}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={
-              Platform.OS === "ios" ? "interactive" : "on-drag"
-            }
-            showsVerticalScrollIndicator={false}
           >
-            <View
-              style={[
-                styles.contentShell,
-                isCompactHeight && styles.contentShellCompact,
-                isLandscape && styles.contentShellLandscape,
-              ]}
-            >
               <Animated.View
                 className="gap-4"
                 style={[
@@ -459,10 +455,9 @@ export default function LoginScreen() {
                   </View>
                 </View>
               </Animated.View>
-            </View>
-          </KeyboardAwareScrollView>
-        </SafeAreaView>
-      </KeyboardProvider>
+          </View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
     </View>
   );
 }
