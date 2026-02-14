@@ -12,6 +12,7 @@ export type ModalState =
   | { type: "create-course" }
   | { type: "changes" }
   | { type: "duty-leave-list" }
+  | { type: "bunk-transfer"; scope: "duty-leave" | "all-bunks" }
   | { type: "unknown-status" }
   | { type: "slot-conflict" }
   | { type: "confirm-remove-dl"; courseId: string; bunkId: string }

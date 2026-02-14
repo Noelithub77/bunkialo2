@@ -1,4 +1,5 @@
 import { AllBunksContent } from "@/components/attendance/sub_tabs/all-bunks-content";
+import { BunkTransferModal } from "@/components/attendance/bunk-transfer-modal";
 import { CoursesContent } from "@/components/attendance/sub_tabs/courses-content";
 import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
@@ -49,6 +50,8 @@ export default function AttendanceScreen() {
     showFabMenu,
     setShowFabMenu,
     openModal,
+    activeModal,
+    closeModal,
   } = useAttendanceUIStore();
   const hasAutoRefreshed = useRef(false);
   const attendanceStaleMs = 30 * 60 * 1000;
@@ -136,6 +139,8 @@ export default function AttendanceScreen() {
     Haptics.selectionAsync();
     setActiveTab(tab);
   };
+
+  const isBunkTransferVisible = activeModal?.type === "bunk-transfer";
 
   return (
     <Container>
@@ -294,8 +299,19 @@ export default function AttendanceScreen() {
       {/* Tab Content */}
       {activeTab === "absences" ? <AllBunksContent /> : <CoursesContent />}
 
-      {/* FAB - Only on Courses tab */}
-      {isFocused && activeTab === "courses" && (
+      <BunkTransferModal
+        visible={isBunkTransferVisible}
+        onClose={closeModal}
+        scope={
+          activeModal?.type === "bunk-transfer"
+            ? activeModal.scope
+            : "duty-leave"
+        }
+        courses={visibleBunkCourses}
+      />
+
+      {/* FAB - Attendance actions on all subtabs */}
+      {isFocused && (
         <Portal>
           <FAB.Group
             open={showFabMenu}
@@ -310,6 +326,22 @@ export default function AttendanceScreen() {
                 : theme.backgroundSecondary,
             }}
             actions={[
+              {
+                icon: "briefcase-arrow-right-outline",
+                label: "Export/Import DL",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () =>
+                  openModal({ type: "bunk-transfer", scope: "duty-leave" }),
+              },
+              {
+                icon: "calendar-export-outline",
+                label: "Export/Import All Bunks",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () =>
+                  openModal({ type: "bunk-transfer", scope: "all-bunks" }),
+              },
               {
                 icon: "history",
                 label: "Changes",
