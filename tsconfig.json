@@ -5,6 +5,7 @@
     "baseUrl": ".",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"]
     }
