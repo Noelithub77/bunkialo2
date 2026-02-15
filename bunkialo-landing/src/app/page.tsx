@@ -1,22 +1,36 @@
-import { headers } from "next/headers";
-import { userAgent } from "next/server";
 import {
   LandingShell,
   type PlatformTab,
 } from "@/components/landing/landing-shell";
+import { readFileSync } from "fs";
+import { headers } from "next/headers";
+import { userAgent } from "next/server";
+import path from "path";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
   "https://bunkialo.noel.is-a.dev";
 
-const EXPO_QR_URL =
-  "https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&channel=production&runtimeVersion=0.1.0";
+function loadExpoRuntimeVersion(): string {
+  const configPath = path.resolve(process.cwd(), "..", "app.config.ts");
+  const content = readFileSync(configPath, "utf8");
+  const match = content.match(/runtimeVersion:\s*"([^"]+)"/);
+
+  if (!match) {
+    throw new Error("runtimeVersion not found in app.config.ts");
+  }
+
+  return match[1];
+}
+
+const expoRuntimeVersion = loadExpoRuntimeVersion();
+
+const EXPO_QR_URL = `https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&channel=production&runtimeVersion=${expoRuntimeVersion}`;
 
 const EXPO_URL_ENDPOINT = `${EXPO_QR_URL}&format=url`;
 
-const EXPO_URL_FALLBACK =
-  "exp://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63?runtime-version=0.1.0&channel-name=production";
+const EXPO_URL_FALLBACK = `exp://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63?runtime-version=${expoRuntimeVersion}&channel-name=production`;
 
 function resolvePlatformTab(requestHeaders: Headers): PlatformTab {
   const parsedAgent = userAgent({ headers: requestHeaders });
