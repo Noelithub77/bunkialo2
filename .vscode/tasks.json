@@ -2,18 +2,6 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Sync app.json version from package.json",
-      "type": "shell",
-      "command": "node",
-      "args": ["scripts/sync-app-version.mjs"],
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "never",
-        "panel": "new",
-        "close": true
-      }
-    },
-    {
       "label": "Bump Version (OTA patch)",
       "type": "shell",
       "command": "bun",
@@ -36,10 +24,7 @@
         "--message",
         "${input:updateMessage}"
       ],
-      "dependsOn": [
-        "Bump Version (OTA patch)",
-        "Sync app.json version from package.json"
-      ],
+      "dependsOn": ["Bump Version (OTA patch)"],
       "dependsOrder": "sequence",
       "group": {
         "kind": "build"
@@ -56,7 +41,6 @@
       "type": "shell",
       "command": "gh",
       "args": ["workflow", "run", "android-production-release.yml"],
-      "dependsOn": ["Sync app.json version from package.json"],
       "dependsOrder": "sequence",
       "group": {
         "kind": "build"
@@ -73,7 +57,6 @@
       "type": "shell",
       "command": "gh",
       "args": ["workflow", "run", "android-preview-release.yml"],
-      "dependsOn": ["Sync app.json version from package.json"],
       "dependsOrder": "sequence",
       "group": {
         "kind": "build"
@@ -115,10 +98,7 @@
         "production",
         "--auto-submit"
       ],
-      "dependsOn": [
-        "Bump Version (Build minor+patch)",
-        "Sync app.json version from package.json"
-      ],
+      "dependsOn": ["Bump Version (Build minor+patch)"],
       "dependsOrder": "sequence",
       "group": {
         "kind": "build"

@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     shortcut: "/logo.svg",
     apple: "/logo.svg",
   },
+  verification: {
+    google: "F8EjEKdTKrOUlEi3lWHqBQCcEP-moqmm9LiTl69ZC68",
+  },
 };
 
 export default function RootLayout({
@@ -36,6 +39,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta
+          name="google-site-verification"
+          content="F8EjEKdTKrOUlEi3lWHqBQCcEP-moqmm9LiTl69ZC68"
+        />
+      </head>
       <body
         className={`${manrope.variable} ${sora.variable} ${ibmPlexMono.variable} antialiased`}
       >
