@@ -1,4 +1,3 @@
- 
 import type { ExpoConfig } from "expo/config";
 
 type PackageJson = { version?: string };
@@ -80,7 +79,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
         projectId: "7cbe49d9-9827-4df3-b86e-849443804d63",
       },
     },
-    runtimeVersion: "0.1.0",
+    runtimeVersion: "1.2.0",
     updates: {
       url: "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
     },

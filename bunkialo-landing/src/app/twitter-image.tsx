@@ -16,7 +16,11 @@ export default async function TwitterImage() {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
     "https://bunkialo.noel.is-a.dev";
 
-  const logoUrl = `${siteUrl}/og-logo.png`;
+  // Satori often fails to load <img src="..."> URLs. Fetch and pass ArrayBuffer instead.
+  const logoPng = await fetch(new URL("/og-logo.png", siteUrl)).then((res) => {
+    if (!res.ok) throw new Error(`Failed to fetch logo: ${res.status}`);
+    return res.arrayBuffer();
+  });
 
   return new ImageResponse(
     (
@@ -49,7 +53,8 @@ export default async function TwitterImage() {
               }}
             >
               <img
-                src={logoUrl}
+                // @ts-expect-error Satori supports ArrayBuffer src.
+                src={logoPng}
                 width={56}
                 height={56}
                 alt="Bunkialo"
@@ -126,7 +131,8 @@ export default async function TwitterImage() {
             }}
           >
             <img
-              src={logoUrl}
+              // @ts-expect-error Satori supports ArrayBuffer src.
+              src={logoPng}
               width={138}
               height={138}
               alt="Bunkialo"
