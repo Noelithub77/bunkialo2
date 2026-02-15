@@ -2,123 +2,54 @@ name: Submit Android To Play Store
 
 on:
   workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Workflow run id that produced the AAB artifact (from android-production-release.yml)"
+        required: true
+        type: string
+      artifact_name:
+        description: "Artifact name to download from that run"
+        required: false
+        default: "android-production-aab"
+        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.run_id }}
   cancel-in-progress: false
 
 jobs:
-  build-android:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    permissions:
-      contents: read
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.8
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Restore Gradle cache
-        id: cache-gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-${{ runner.arch }}-gradle-v1-${{ hashFiles('bun.lock', 'package.json', 'eas.json', 'scripts/actions/configure-gradle-properties.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-gradle-v1-
-
-      - name: Restore Bun package cache
-        id: cache-bun
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            ~/.bun/install/global
-          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.3.8-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-bun-1.3.8-
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
-        env:
-          EXPO_USE_BUN: "1"
-        with:
-          token: ${{ secrets.EXPO_TOKEN }}
-          expo-version: latest
-          eas-version: latest
-          packager: bun
-          eas-cache: true
-
-      - name: Setup EAS local builds
-        run: bun add -g eas-cli-local-build-plugin
-
-      - name: Clean build outputs only
-        run: rm -rf node_modules "${RUNNER_TEMP}/eas-local-build" "${RUNNER_TEMP}/artifacts"
-
-      - name: Restore node_modules cache
-        id: cache-node-modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ runner.arch }}-node-modules-bun-1.3.8-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-node-modules-bun-1.3.8-
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Configure global Gradle properties
-        run: bash scripts/actions/configure-gradle-properties.sh
-
-      - name: Build Android (production)
-        run: bash scripts/actions/build-android-production.sh
-        env:
-          EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ runner.temp }}/artifacts
-          EAS_LOCAL_BUILD_WORKINGDIR: ${{ runner.temp }}/eas-local-build
-          EAS_LOCAL_BUILD_SKIP_CLEANUP: "1"
-
-      - name: Upload production AAB artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-production-aab
-          path: ${{ runner.temp }}/artifacts/app-production.aab
-          if-no-files-found: error
-          retention-days: 1
-
   submit-android:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: build-android
     permissions:
+      actions: read
       contents: read
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
+      - name: Resolve run metadata (sha)
+        id: runmeta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = Number(process.env.RUN_ID);
+            if (!runId || Number.isNaN(runId)) {
+              throw new Error(`Invalid RUN_ID: ${process.env.RUN_ID}`);
+            }
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId,
+            });
+            core.setOutput('head_sha', run.head_sha);
+            core.setOutput('head_branch', run.head_branch);
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.runmeta.outputs.head_sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -155,9 +86,10 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Download production AAB artifact
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v3
         with:
-          name: android-production-aab
+          run_id: ${{ inputs.run_id }}
+          name: ${{ inputs.artifact_name }}
           path: ${{ runner.temp }}/artifacts
 
       - name: Submit to Google Play (production)
