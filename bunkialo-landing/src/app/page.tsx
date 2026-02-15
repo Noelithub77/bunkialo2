@@ -5,6 +5,11 @@ import {
   type PlatformTab,
 } from "@/components/landing/landing-shell";
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
+  "https://bunkialo.noel.is-a.dev";
+
 const EXPO_QR_URL =
   "https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&channel=production&runtimeVersion=0.1.0";
 
@@ -57,10 +62,47 @@ export default async function Home() {
   const expUrl = await getProductionExpUrl();
 
   return (
-    <LandingShell
-      expUrl={expUrl}
-      initialTab={resolvePlatformTab(requestHeaders)}
-      qrUrl={EXPO_QR_URL}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD for SEO.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebSite",
+                "@id": `${siteUrl}/#website`,
+                url: siteUrl,
+                name: "Bunkialo",
+                description:
+                  "Bunkialo for IIIT Kottayam students. Track attendance, deadlines, timetable, and academic essentials in one app.",
+              },
+              {
+                "@type": "SoftwareApplication",
+                name: "Bunkialo",
+                applicationCategory: "EducationalApplication",
+                operatingSystem: "Android, iOS",
+                offers: {
+                  "@type": "Offer",
+                  price: "0",
+                  priceCurrency: "INR",
+                },
+              },
+              {
+                "@type": "Organization",
+                name: "Bunkialo",
+                url: siteUrl,
+              },
+            ],
+          }),
+        }}
+      />
+      <LandingShell
+        expUrl={expUrl}
+        initialTab={resolvePlatformTab(requestHeaders)}
+        qrUrl={EXPO_QR_URL}
+      />
+    </>
   );
 }
