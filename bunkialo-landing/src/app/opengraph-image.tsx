@@ -16,7 +16,7 @@ export default async function OpenGraphImage() {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
     "https://bunkialo.noel.is-a.dev";
 
-  const logoUrl = `${siteUrl}/logo.svg`;
+  const logoUrl = `${siteUrl}/og-logo.png`;
 
   return new ImageResponse(
     (
