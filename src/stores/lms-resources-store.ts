@@ -59,14 +59,14 @@ const ensureExpandedDefaults = (
   for (const section of tree.sections) {
     const sectionKey = `section:${section.id}`;
     if (expanded[sectionKey] === undefined) {
-      expanded[sectionKey] = !section.initiallyCollapsed;
+      expanded[sectionKey] = false;
     }
 
     for (const item of section.items) {
       if (item.moduleType !== "folder" || item.children.length === 0) continue;
       const itemKey = `item:${item.id}`;
       if (expanded[itemKey] === undefined) {
-        expanded[itemKey] = !(item.initiallyCollapsed ?? false);
+        expanded[itemKey] = false;
       }
     }
   }
