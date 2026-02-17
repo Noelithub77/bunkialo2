@@ -1,0 +1,66 @@
+name: OTA Update (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_message:
+        description: Update message for the OTA release
+        required: true
+        default: changes
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ota-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.8
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        env:
+          EXPO_USE_BUN: "1"
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: latest
+          eas-version: latest
+          packager: bun
+          eas-cache: true
+
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node-modules-bun-1.3.8-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-node-modules-bun-1.3.8-
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Bump version (OTA patch)
+        run: bun x npm version patch --no-git-tag-version
+
+      - name: Publish OTA update to production branch
+        run: eas update --branch production --message "${{ inputs.update_message }}"
