@@ -353,7 +353,8 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
                 preferred.slotKey,
                 alternative.slotKey,
               );
-              const resolvedSlotKey = autoConflictResolutions[conflictId];
+              const resolvedSlotKey =
+                autoConflictResolutions[conflictId] ?? preferred.slotKey;
 
               if (resolvedSlotKey === alternative.slotKey) {
                 chosenSlotKeys.delete(preferred.slotKey);
@@ -405,9 +406,7 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
                 resolvedChoice:
                   resolvedSlotKey === alternative.slotKey
                     ? "alternative"
-                    : resolvedSlotKey === preferred.slotKey
-                      ? "preferred"
-                      : null,
+                    : "preferred",
               });
             }
           }
@@ -544,15 +543,14 @@ export const useTimetableStore = create<TimetableState & TimetableActions>()(
             }
 
             const conflictId = buildPairConflictId(slotA, slotB);
-            const resolvedSlotKey = timeOverlapResolutions[conflictId];
             const preferredKey = slotResolutionKey(preferredSlot);
             const alternativeKey = slotResolutionKey(alternativeSlot);
+            const resolvedSlotKey =
+              timeOverlapResolutions[conflictId] ?? preferredKey;
             const resolvedChoice =
               resolvedSlotKey === alternativeKey
                 ? "alternative"
-                : resolvedSlotKey === preferredKey
-                  ? "preferred"
-                  : null;
+                : "preferred";
 
             if (resolvedChoice === "preferred") {
               removedSlotKeys.add(alternativeKey);
