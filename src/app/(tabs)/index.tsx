@@ -302,6 +302,18 @@ export default function DashboardScreen() {
             );
           },
         },
+        {
+          icon: "food",
+          label: "Feaston",
+          color: theme.text,
+          style: { backgroundColor: theme.backgroundSecondary },
+          labelStyle: actionLabelStyle,
+          containerStyle: actionContainerStyle,
+          onPress: () => {
+            setShowFabMenu(false);
+            Linking.openURL("https://feaston.iiitkottayam.ac.in/dashboard");
+          },
+        },
       ]
       : [
         {
@@ -314,6 +326,18 @@ export default function DashboardScreen() {
           onPress: () => {
             setShowFabMenu(false);
             Linking.openURL("https://outpass.iiitkottayam.ac.in/app");
+          },
+        },
+        {
+          icon: "food",
+          label: "Feaston",
+          color: theme.text,
+          style: { backgroundColor: theme.backgroundSecondary },
+          labelStyle: actionLabelStyle,
+          containerStyle: actionContainerStyle,
+          onPress: () => {
+            setShowFabMenu(false);
+            Linking.openURL("https://feaston.iiitkottayam.ac.in/dashboard");
           },
         },
       ]),
