@@ -1,3 +1,4 @@
+import { DownloadQueueModal } from "@/components/download/download-queue-modal";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
@@ -5,6 +6,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { downloadLmsResourceWithSession } from "@/services/lms-download";
 import { useAuthStore } from "@/stores/auth-store";
 import { useBunkStore } from "@/stores/bunk-store";
+import {
+  selectQueueStats,
+  useDownloadQueueStore,
+} from "@/stores/download-queue-store";
 import {
   LMS_RESOURCES_STALE_MS,
   useLmsResourcesStore,
@@ -144,6 +149,28 @@ export default function CourseResourcesScreen() {
   );
 
   const totalSections = visibleSections.length;
+  const [showDownloadQueue, setShowDownloadQueue] = useState(false);
+  const enqueueAllFromCourse = useDownloadQueueStore(
+    (state) => state.enqueueAllFromCourse,
+  );
+  const queueItems = useDownloadQueueStore((state) => state.items);
+  const queueStats = selectQueueStats(
+    queueItems.filter((i) => i.courseId === courseId),
+  );
+
+  const handleDownloadAll = () => {
+    if (!tree) return;
+    const count = enqueueAllFromCourse(tree);
+    if (count > 0) {
+      Toast.show(`Queued ${count} file${count === 1 ? "" : "s"} for download`, {
+        type: "success",
+      });
+      setShowDownloadQueue(true);
+    } else {
+      Toast.show("All files already in queue", { type: "info" });
+    }
+  };
+
   const [downloadProgressByUrl, setDownloadProgressByUrl] = useState<
     Record<string, LmsDownloadProgress>
   >({});
@@ -569,19 +596,70 @@ export default function CourseResourcesScreen() {
               <Ionicons name="arrow-back" size={21} color={theme.text} />
             </Pressable>
 
-            <View
-              className="rounded-full border px-3 py-1.5"
-              style={{
-                backgroundColor: isDark ? Colors.gray[900] : Colors.white,
-                borderColor: theme.border,
-              }}
-            >
-              <Text
-                className="text-[10px]"
-                style={{ color: theme.textSecondary }}
+            <View className="flex-row items-center gap-2">
+              {tree && (
+                <Pressable
+                  onPress={handleDownloadAll}
+                  className="h-10 flex-row items-center gap-1.5 rounded-full border px-3"
+                  style={{
+                    backgroundColor: isDark ? Colors.gray[900] : Colors.white,
+                    borderColor: theme.border,
+                  }}
+                >
+                  <Ionicons
+                    name="download-outline"
+                    size={15}
+                    color={theme.text}
+                  />
+                  <Text
+                    className="text-[11px] font-semibold"
+                    style={{ color: theme.text }}
+                  >
+                    All
+                  </Text>
+                </Pressable>
+              )}
+
+              {queueStats.total > 0 && (
+                <Pressable
+                  onPress={() => setShowDownloadQueue(true)}
+                  className="h-10 flex-row items-center gap-1.5 rounded-full border px-3"
+                  style={{
+                    backgroundColor: isDark ? Colors.gray[900] : Colors.white,
+                    borderColor: theme.border,
+                  }}
+                >
+                  <Ionicons
+                    name="cloud-download-outline"
+                    size={15}
+                    color={queueStats.downloading > 0 ? Colors.status.info : theme.text}
+                  />
+                  <Text
+                    className="text-[11px] font-semibold"
+                    style={{
+                      color: queueStats.downloading > 0 ? Colors.status.info : theme.text,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
+                    {queueStats.completed}/{queueStats.total}
+                  </Text>
+                </Pressable>
+              )}
+
+              <View
+                className="rounded-full border px-3 py-1.5"
+                style={{
+                  backgroundColor: isDark ? Colors.gray[900] : Colors.white,
+                  borderColor: theme.border,
+                }}
+              >
+                <Text
+                  className="text-[10px]"
+                  style={{ color: theme.textSecondary }}
               >
                 {formatSyncTime(entry?.lastSyncTime ?? null)}
               </Text>
+              </View>
             </View>
           </View>
 
@@ -859,6 +937,11 @@ export default function CourseResourcesScreen() {
           </View>
         )}
       </ScrollView>
+
+      <DownloadQueueModal
+        visible={showDownloadQueue}
+        onClose={() => setShowDownloadQueue(false)}
+      />
     </Container>
   );
 }

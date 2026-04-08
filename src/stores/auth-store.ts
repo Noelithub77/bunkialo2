@@ -16,6 +16,7 @@ import { useDashboardStore } from "@/stores/dashboard-store";
 import { useFacultyStore } from "@/stores/faculty-store";
 import { useLmsResourcesStore } from "@/stores/lms-resources-store";
 import { useAssignmentStore } from "@/stores/assignment-store";
+import { useForumStore } from "@/stores/forum-store";
 import { useTimetableStore } from "@/stores/timetable-store";
 import type { AuthState } from "@/types";
 import { scheduleIdleTask } from "@/utils/scheduling";
@@ -115,6 +116,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       useFacultyStore.getState().clearRecentSearches();
       useLmsResourcesStore.getState().clearCourseResources();
       useAssignmentStore.getState().clearAssignmentCache();
+      useForumStore.getState().clearForum();
       useAttendanceUIStore.getState().resetUI();
 
       await authService.logout();
