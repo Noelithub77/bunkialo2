@@ -20,3 +20,5 @@ export * from "./resources";
 export * from "./timetable";
 export * from "./wifix";
 export * from "./popup";
+export * from "./forum";
+export * from "./download-queue";

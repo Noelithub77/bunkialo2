@@ -1,5 +1,6 @@
 import { startBackgroundRefresh } from "@/background/dashboard-background";
 import { EventCard } from "@/components/dashboard/event-card";
+import { ForumSection } from "@/components/dashboard/forum-section";
 import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { UpNextSection } from "@/components/dashboard/up-next-section";
 import { NoticePopup } from "@/components/dashboard/popup/notice-popup";
@@ -12,6 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
+import { useForumStore } from "@/stores/forum-store";
 import { useLmsResourcesStore } from "@/stores/lms-resources-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { usePopupStore } from "@/stores/popup-store";
@@ -80,9 +82,13 @@ export default function DashboardScreen() {
   );
   const markAllAsSeen = usePopupStore((state) => state.markAllAsSeen);
   const isFocused = useIsFocused();
+  const fetchForumDiscussions = useForumStore(
+    (state) => state.fetchForumDiscussions,
+  );
   const hasAutoRefreshed = useRef(false);
   const hasCompletedInitialRefresh = useRef(false);
   const hasDeferredResourcePrefetch = useRef(false);
+  const hasDeferredForumFetch = useRef(false);
   const isAttendanceRefreshQueued = useRef(false);
 
   const queueInvisibleAttendanceRefresh = useCallback(() => {
@@ -182,6 +188,20 @@ export default function DashboardScreen() {
     prefetchEnrolledCourseResources,
     resourcesHydrated,
   ]);
+
+  // Deferred forum discussions fetch
+  useEffect(() => {
+    if (!hasHydrated || isOffline) return;
+    if (hasDeferredForumFetch.current) return;
+    if (!hasCompletedInitialRefresh.current) return;
+    hasDeferredForumFetch.current = true;
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      void fetchForumDiscussions({ silent: true });
+    });
+
+    return () => task.cancel();
+  }, [fetchForumDiscussions, hasHydrated, isOffline]);
 
   useEffect(() => {
     if (isOffline && lastSyncTime) {
@@ -456,6 +476,9 @@ export default function DashboardScreen() {
 
         {/* Up Next Section */}
         <UpNextSection />
+
+        {/* Forum Activity */}
+        <ForumSection />
 
         {/* Loading */}
         {(isHydratingFromCache || (isLoading && isEmpty)) && (
