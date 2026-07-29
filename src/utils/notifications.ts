@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
@@ -64,7 +64,10 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 };
 
 export const initializeNotifications = async (): Promise<void> => {
-  await ensureNotificationChannels([{ id: "default", name: "Default" }]);
+  await ensureNotificationChannels([
+    { id: "default", name: "Default" },
+    { id: "attendance", name: "Attendance updates" },
+  ]);
 
   const hasAsked = await AsyncStorage.getItem(NOTIFICATION_PERMISSIONS_ASKED);
   if (hasAsked) {

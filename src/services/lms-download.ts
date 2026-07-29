@@ -1,5 +1,5 @@
 import { getCurrentBaseUrl } from "@/services/api";
-import { checkSession, tryAutoLogin } from "@/services/auth";
+import { checkSession, tryAutoLogin } from "@/services/auth/lms-auth";
 import { cookieStore } from "@/services/cookie-store";
 import type {
   LmsDownloadFailure,

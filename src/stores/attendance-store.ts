@@ -1,4 +1,4 @@
-import * as scraper from "@/services/scraper";
+import { syncAttendance } from "@/services/attendance/attendance-sync";
 import type { AttendanceState, CourseAttendance, CourseStats } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -41,7 +41,11 @@ export const useAttendanceStore = create<
           set({ isLoading: true, error: null });
         }
         try {
-          const courses = await scraper.fetchAllAttendance();
+          const result = await syncAttendance(
+            useAttendanceStore.getState().courses,
+            (courses) => set({ courses, lastSyncTime: Date.now() }),
+          );
+          const courses = result.complete;
           if (background) {
             set({
               courses,
@@ -81,7 +85,7 @@ export const useAttendanceStore = create<
       },
     }),
     {
-      name: "attendance-storage",
+      name: "attendance-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         courses: state.courses,

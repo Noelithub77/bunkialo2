@@ -15,6 +15,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { POPUP_NOTICES } from "@/data/popups";
 import { usePopupStore } from "@/stores/popup-store";
+import { usePortalNotificationStore } from "@/stores/portal-notification-store";
+import { ATTENDANCE_PORTAL_URL } from "@/services/auth/attendance-auth";
 
 interface NoticesModalProps {
   visible: boolean;
@@ -26,6 +28,11 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
   const theme = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const markAsUnseen = usePopupStore((state) => state.markAsUnseen);
+  const portalItems = usePortalNotificationStore((state) => state.items);
+  const markPortalRead = usePortalNotificationStore((state) => state.markRead);
+  const markAllPortalRead = usePortalNotificationStore(
+    (state) => state.markAllRead,
+  );
   const [runningNoticeId, setRunningNoticeId] = React.useState<string | null>(
     null,
   );
@@ -99,15 +106,30 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
                 Notices
               </Text>
             </View>
-            <Pressable
-              onPress={onClose}
-              className="items-center justify-center rounded-full p-2 active:opacity-50"
-              style={{
-                backgroundColor: isDark ? Colors.gray[800] : Colors.gray[100],
-              }}
-            >
-              <Ionicons name="close" size={20} color={theme.textSecondary} />
-            </Pressable>
+            <View className="flex-row items-center gap-2">
+              {portalItems.some((item) => !item.readAt) && (
+                <Pressable
+                  onPress={() => void markAllPortalRead()}
+                  className="rounded-full px-3 py-2 active:opacity-50"
+                >
+                  <Text
+                    className="text-xs font-semibold"
+                    style={{ color: Colors.accent }}
+                  >
+                    Read all
+                  </Text>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={onClose}
+                className="items-center justify-center rounded-full p-2 active:opacity-50"
+                style={{
+                  backgroundColor: isDark ? Colors.gray[800] : Colors.gray[100],
+                }}
+              >
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
+              </Pressable>
+            </View>
           </View>
 
           {/* Content */}
@@ -115,7 +137,7 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
             showsVerticalScrollIndicator={false}
             contentContainerClassName="p-5 gap-4"
           >
-            {notices.length === 0 ? (
+            {notices.length === 0 && portalItems.length === 0 ? (
               <View className="items-center py-10">
                 <Ionicons
                   name="notifications-off-outline"
@@ -130,7 +152,56 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
                 </Text>
               </View>
             ) : (
-              notices.map((notice) => (
+              <>
+                {portalItems.map((notice) => (
+                  <Pressable
+                    key={`portal-${notice.id}`}
+                    onPress={() => {
+                      void markPortalRead(notice.id);
+                      if (notice.link) {
+                        const url = notice.link.startsWith("http")
+                          ? notice.link
+                          : `${ATTENDANCE_PORTAL_URL}${notice.link.startsWith("/") ? "" : "/"}${notice.link}`;
+                        void Linking.openURL(url);
+                      }
+                    }}
+                    className="rounded-2xl border p-4"
+                    style={{
+                      backgroundColor: theme.backgroundSecondary,
+                      borderColor: notice.readAt
+                        ? theme.border
+                        : `${Colors.accent}80`,
+                    }}
+                  >
+                    <View className="mb-2 flex-row items-center justify-between gap-3">
+                      <Text
+                        className="shrink text-base font-bold"
+                        style={{ color: theme.text }}
+                      >
+                        {notice.title}
+                      </Text>
+                      <Text
+                        className="text-[10px] font-semibold uppercase"
+                        style={{ color: Colors.accent }}
+                      >
+                        Attendance
+                      </Text>
+                    </View>
+                    <Text
+                      className="text-[14px] leading-relaxed"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      {notice.body}
+                    </Text>
+                    <Text
+                      className="mt-2 text-xs"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      {formatTime(notice.createdAt)}
+                    </Text>
+                  </Pressable>
+                ))}
+                {notices.map((notice) => (
                 <View
                   key={notice.id}
                   className="rounded-2xl border p-4 shadow-sm"
@@ -209,7 +280,7 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
                   {notice.ctaAction === "open-url" && notice.ctaUrl ? (
                     <Pressable
                       onPress={() => {
-                        void Linking.openURL(notice.ctaUrl);
+                        if (notice.ctaUrl) void Linking.openURL(notice.ctaUrl);
                       }}
                       className="mt-3 items-center rounded-xl px-3 py-2.5"
                       style={{ backgroundColor: Colors.accent }}
@@ -223,7 +294,8 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
                     </Pressable>
                   ) : null}
                 </View>
-              ))
+                ))}
+              </>
             )}
           </ScrollView>
         </View>

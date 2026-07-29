@@ -8,6 +8,7 @@ export interface Course {
   id: string;
   name: string;
   url: string;
+  shortName?: string;
 }
 
 export interface ApiResponse<T = unknown> {

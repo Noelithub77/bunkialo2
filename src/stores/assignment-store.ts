@@ -332,7 +332,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
       },
     }),
     {
-      name: "assignment-storage",
+      name: "assignment-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         detailsByAssignmentId: state.detailsByAssignmentId,

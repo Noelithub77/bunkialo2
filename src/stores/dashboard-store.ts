@@ -6,7 +6,7 @@ import type {
   DashboardState,
   TimelineEvent,
 } from "@/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -168,7 +168,7 @@ export const useDashboardStore = create<DashboardStore>()(
         }),
     }),
     {
-      name: "dashboard-storage",
+      name: "dashboard-storage-sqlite-v1",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         events: state.events,

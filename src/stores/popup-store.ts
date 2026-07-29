@@ -152,7 +152,7 @@ export const usePopupStore = create<PopupState>()(
       },
     }),
     {
-      name: "bunkialo-popup-storage",
+      name: "bunkialo-popup-storage-sqlite-v1",
       storage: createJSONStorage(() => ({
         getItem: async (name) => {
           const value = await zustandStorage.getItem(name);

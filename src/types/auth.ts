@@ -27,3 +27,40 @@ export interface LoginFormData {
   username: string;
   password: string;
 }
+
+export type AuthProvider = "lms" | "attendancePortal";
+
+export type AuthLoginRequest =
+  | { provider: "lms"; mode: "password"; username: string; password: string }
+  | {
+      provider: "attendancePortal";
+      mode: "password";
+      email: string;
+      password: string;
+    }
+  | {
+      provider: "attendancePortal";
+      mode: "totp" | "emailOtp" | "backupCode";
+      intermediate: string;
+      code: string;
+    };
+
+export type AuthLoginResult =
+  | { status: "success"; provider: AuthProvider }
+  | {
+      status: "challenge";
+      provider: "attendancePortal";
+      challenge: "totp" | "emailOtp";
+      intermediate: string;
+    }
+  | {
+      status: "failure";
+      provider: AuthProvider;
+      reason: "credentials" | "network" | "server" | "invalidResponse";
+      message: string;
+    };
+
+export interface AttendanceCredentials {
+  email: string;
+  password: string;
+}

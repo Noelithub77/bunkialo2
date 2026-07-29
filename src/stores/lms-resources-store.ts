@@ -1,5 +1,5 @@
 import { fetchCourseResources as fetchCourseResourcesFromLms } from "@/services/resources-scraper";
-import { fetchCourses } from "@/services/scraper";
+import { fetchCourses } from "@/services/lms-courses";
 import type { LmsCourseResourcesTree, LmsResourcesState } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -278,7 +278,7 @@ export const useLmsResourcesStore = create<LmsResourcesStoreState>()(
       },
     }),
     {
-      name: "lms-resources-storage",
+      name: "lms-resources-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         cacheByCourseId: state.cacheByCourseId,

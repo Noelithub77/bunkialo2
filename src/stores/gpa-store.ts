@@ -107,7 +107,7 @@ export const useGpaStore = create<GpaStoreState & GpaActions>()(
         }),
     }),
     {
-      name: "gpa-storage",
+      name: "gpa-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         courseGrades: state.courseGrades,

@@ -3,8 +3,6 @@ import { Toast } from "@/components/shared/ui/molecules/toast";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { CalendarTheme, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { getBaseUrl } from "@/services/baseurl";
-import { useAuthStore } from "@/stores/auth-store";
 import { filterPastBunks, selectCourseStats } from "@/stores/bunk-store";
 import type {
   AttendanceRecord,
@@ -123,6 +121,8 @@ const getStatusColor = (status: AttendanceStatus): string => {
       return Colors.status.warning;
     case "Excused":
       return Colors.status.info;
+    case "Duty Leave":
+      return Colors.status.info;
     case "Unknown":
       return Colors.status.unknown;
   }
@@ -224,7 +224,6 @@ export function UnifiedCourseCard({
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
   const calTheme = isDark ? CalendarTheme.dark : CalendarTheme.light;
-  const { username } = useAuthStore();
 
   const isCustomCourse = bunkData?.isCustomCourse ?? false;
   const courseAlias =
@@ -330,8 +329,8 @@ export function UnifiedCourseCard({
 
   // bunks display
   const heuristicBunksLeft = stats?.heuristicBunksLeft ?? 0;
-  const hasCurrentBuffer = stats?.bufferTo80Now !== null;
-  const currentBuffer = stats?.bufferTo80Now;
+  const currentBuffer = stats?.bufferTo80Now ?? null;
+  const hasCurrentBuffer = currentBuffer !== null;
   const showingFullSemMetric = !hasCurrentBuffer || showFullSemMetric;
   const currentMetricDisplay =
     hasCurrentBuffer && currentBuffer !== null
@@ -399,22 +398,19 @@ export function UnifiedCourseCard({
     setShowFullSemMetric((prev) => !prev);
   };
 
-  const handleOpenLms = () => {
-    if (course?.attendanceModuleId) {
-      const url = `${getBaseUrl(username)}/mod/attendance/view.php?id=${course.attendanceModuleId}`;
-      Linking.openURL(url);
-    }
+  const handleOpenAttendancePortal = () => {
+    void Linking.openURL("https://attendance.iiitkottayam.ac.in/student");
   };
 
   const handleOpenResources = () => {
-    if (!course?.courseId) {
+    if (!course?.lmsCourseId) {
       Toast.show("No LMS course id found for resources", { type: "error" });
       return;
     }
 
     router.push({
       pathname: "/course/[courseid]",
-      params: { courseid: course.courseId },
+      params: { courseid: course.lmsCourseId },
     });
   };
 
@@ -546,7 +542,7 @@ export function UnifiedCourseCard({
             </View>
 
             <View className="flex-row items-start gap-2">
-              {!isCustomCourse && course?.courseId && (
+              {!isCustomCourse && course?.lmsCourseId && (
                 <Pressable
                   onPress={(e) => {
                     e.stopPropagation();
@@ -562,11 +558,11 @@ export function UnifiedCourseCard({
                 </Pressable>
               )}
 
-              {!isCustomCourse && course?.attendanceModuleId && (
+              {!isCustomCourse && course?.attendanceCourseId && (
                 <Pressable
                   onPress={(e) => {
                     e.stopPropagation();
-                    handleOpenLms();
+                    handleOpenAttendancePortal();
                   }}
                   className="p-2"
                 >

@@ -23,6 +23,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider, Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
+import { AppSyncController } from "@/components/sync/app-sync-controller";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -182,6 +184,8 @@ export default function RootLayout() {
                 </View>
               )}
             </Portal>
+            <AttendanceSetupSheet enabled={isLoggedIn} />
+            <AppSyncController />
           </PaperProvider>
         </ToastProviderWithViewport>
       </KeyboardProvider>

@@ -13,6 +13,8 @@ import {
 } from "@/utils/notifications";
 import * as BackgroundTask from "expo-background-task";
 import * as TaskManager from "expo-task-manager";
+import { useAttendanceStore } from "@/stores/attendance-store";
+import { syncPortalNotifications } from "@/services/attendance/portal-notification-sync";
 
 const notifyDevSyncResult = async (params: {
   success: boolean;
@@ -104,6 +106,12 @@ const runDashboardBackgroundSync =
     });
 
     if (result.ok) {
+      await Promise.allSettled([
+        useAttendanceStore
+          .getState()
+          .fetchAttendance({ background: true, silent: true }),
+        syncPortalNotifications(),
+      ]);
       updateBackgroundActivity({
         isRegistered: true,
         lastCompletedAt: Date.now(),

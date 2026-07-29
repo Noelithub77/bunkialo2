@@ -16,6 +16,8 @@ import { useLmsResourcesStore } from "@/stores/lms-resources-store";
 import { usePopupStore } from "@/stores/popup-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { initializeNotifications } from "@/utils/notifications";
+import { syncPortalNotifications } from "@/services/attendance/portal-notification-sync";
+import { usePortalNotificationStore } from "@/stores/portal-notification-store";
 import { scheduleIdleTask } from "@/utils/scheduling";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -78,6 +80,9 @@ export default function DashboardScreen() {
       state.hasHydrated &&
       POPUP_NOTICES.some((popup) => !state.seenPopupIds.includes(popup.id)),
   );
+  const hasUnreadPortalNotices = usePortalNotificationStore((state) =>
+    state.items.some((item) => !item.readAt),
+  );
   const markAllAsSeen = usePopupStore((state) => state.markAllAsSeen);
   const isFocused = useIsFocused();
   const hasAutoRefreshed = useRef(false);
@@ -92,7 +97,10 @@ export default function DashboardScreen() {
     const interactionTask = InteractionManager.runAfterInteractions(() => {
       const cancelIdleTask = scheduleIdleTask(
         () => {
-          void fetchAttendance({ background: true }).finally(() => {
+          void Promise.allSettled([
+            fetchAttendance({ background: true }),
+            syncPortalNotifications(),
+          ]).finally(() => {
             isAttendanceRefreshQueued.current = false;
           });
         },
@@ -442,7 +450,7 @@ export default function DashboardScreen() {
                 size={20}
                 color={theme.textSecondary}
               />
-              {hasUnseenPopups && (
+              {(hasUnseenPopups || hasUnreadPortalNotices) && (
                 <View
                   className="absolute right-2 top-2 h-2 w-2 rounded-full"
                   style={{ backgroundColor: Colors.status.danger }}

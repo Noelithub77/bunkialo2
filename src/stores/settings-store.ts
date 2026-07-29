@@ -1,5 +1,5 @@
 import type { DashboardSettings, ThemePreference } from "@/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -72,7 +72,7 @@ export const useSettingsStore = create<SettingsState>()(
         }),
     }),
     {
-      name: "settings-storage",
+      name: "settings-storage-sqlite-v1",
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

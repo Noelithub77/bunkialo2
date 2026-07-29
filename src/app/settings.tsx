@@ -5,16 +5,11 @@ import {
   DashboardSettingsSection,
   GeneralSettingsSection,
   SettingsFooter,
-  WifixSettingsSection,
-  SettingRow,
-  BackgroundSyncStatusCard,
 } from "@/components/settings";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
 import { SelectionModal } from "@/components/modals/selection-modal";
-import { LogsSection } from "@/components/shared/logs-section";
 import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
-import { Switch } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -29,9 +24,13 @@ import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import * as Updates from "expo-updates";
-import { useState, useRef } from "react";
-import { Animated, LayoutAnimation, Pressable, ScrollView, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import type { ThemePreference } from "@/types";
+import { AccountSettingsSection } from "@/components/settings/account-settings-section";
+import { CourseLinkSettingsSection } from "@/components/settings/course-link-settings-section";
+import { DeveloperSettingsSection } from "@/components/settings/developer-settings-section";
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
@@ -56,8 +55,6 @@ export default function SettingsScreen() {
     setDevDashboardSyncEnabled,
     themePreference,
     setThemePreference,
-    devModeEnabled,
-    setDevModeEnabled,
   } = useSettingsStore();
   const {
     backgroundIntervalMinutes,
@@ -139,13 +136,6 @@ export default function SettingsScreen() {
     setShowThemeModal(true);
   };
 
-  const [isDevExpanded, setIsDevExpanded] = useState(false);
-
-  const toggleDevMode = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsDevExpanded(!isDevExpanded);
-  };
-
   const themeLabelMap: Record<ThemePreference, string> = {
     system: "System",
     light: "Light",
@@ -219,7 +209,8 @@ export default function SettingsScreen() {
     } catch {
       setInfoModalContent({
         title: "Update Failed",
-        message: "Could not download the update. Try again on a stable network.",
+        message:
+          "Could not download the update. Try again on a stable network.",
       });
       setShowInfoModal(true);
     } finally {
@@ -274,7 +265,11 @@ export default function SettingsScreen() {
 
   return (
     <Container>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
+      >
         <View className="flex-row items-center justify-between px-2 py-4">
           <Pressable onPress={() => router.back()} className="p-2">
             <Ionicons name="arrow-back" size={24} color={theme.text} />
@@ -293,10 +288,16 @@ export default function SettingsScreen() {
             >
               <Ionicons name="person" size={28} color={theme.textSecondary} />
             </View>
-            <Text className="text-xl font-semibold" style={{ color: theme.text }}>
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: theme.text }}
+            >
               {username}
             </Text>
           </View>
+
+          <AccountSettingsSection lmsUsername={username} theme={theme} />
+          <CourseLinkSettingsSection theme={theme} />
 
           <DashboardSettingsSection
             backgroundActivity={backgroundActivity}
@@ -331,89 +332,23 @@ export default function SettingsScreen() {
             themeLabel={themeLabelMap[themePreference]}
           />
 
-          <Pressable
-            onPress={toggleDevMode}
-            className="mt-6 mb-2 ml-1 flex-row items-center gap-1"
-          >
-            <Ionicons 
-              name={isDevExpanded ? "chevron-down" : "chevron-forward"} 
-              size={14} 
-              color={theme.textSecondary} 
-            />
-            <Text
-              className="text-xs font-semibold uppercase"
-              style={{ color: theme.textSecondary }}
-            >
-              Developer
-            </Text>
-          </Pressable>
-          
-          {isDevExpanded && (
-            <>
-              <View
-                className="overflow-hidden rounded-xl border mb-3"
-                style={{ borderColor: theme.border }}
-              >
-                <SettingRow
-                  icon="pulse-outline"
-                  label="Sync Activity Alerts"
-                  theme={theme}
-                  rightElement={
-                    <Switch
-                      value={backgroundSyncActivityEnabled}
-                      onValueChange={toggleBackgroundSyncActivity}
-                      trackColor={{
-                        false: theme.border,
-                        true: Colors.status.info,
-                      }}
-                      thumbColor={Colors.white}
-                    />
-                  }
-                />
-                <View
-                  className="h-px"
-                  style={{ marginLeft: 48, backgroundColor: theme.border }}
-                />
-                <SettingRow
-                  icon="bug-outline"
-                  label="Verbose Dev Alerts"
-                  theme={theme}
-                  rightElement={
-                    <Switch
-                      value={devDashboardSyncEnabled}
-                      onValueChange={setDevDashboardSyncEnabled}
-                      trackColor={{
-                        false: theme.border,
-                        true: Colors.status.info,
-                      }}
-                      thumbColor={Colors.white}
-                    />
-                  }
-                />
-              </View>
-
-              <BackgroundSyncStatusCard activity={backgroundActivity} theme={theme} />
-
-              <WifixSettingsSection
-                autoReconnectEnabled={autoReconnectEnabled}
-                backgroundIntervalMinutes={backgroundIntervalMinutes}
-                onPressBackgroundInterval={handleSetWifixInterval}
-                onToggleAutoReconnect={(enabled) => {
-                  setAutoReconnectEnabled(enabled);
-                  syncWifixBackgroundTask();
-                }}
-                theme={theme}
-              />
-              
-              <Text
-                className="mt-6 mb-2 ml-1 text-xs font-semibold uppercase"
-                style={{ color: theme.textSecondary }}
-              >
-                Logs
-              </Text>
-              <LogsSection logs={logs} onClear={clearLogs} />
-            </>
-          )}
+          <DeveloperSettingsSection
+            activity={backgroundActivity}
+            autoReconnectEnabled={autoReconnectEnabled}
+            backgroundIntervalMinutes={backgroundIntervalMinutes}
+            backgroundSyncActivityEnabled={backgroundSyncActivityEnabled}
+            devDashboardSyncEnabled={devDashboardSyncEnabled}
+            logs={logs}
+            theme={theme}
+            onClearLogs={clearLogs}
+            onPressWifixInterval={handleSetWifixInterval}
+            onToggleAutoReconnect={(enabled) => {
+              setAutoReconnectEnabled(enabled);
+              void syncWifixBackgroundTask();
+            }}
+            onToggleBackgroundActivity={toggleBackgroundSyncActivity}
+            onToggleVerboseAlerts={setDevDashboardSyncEnabled}
+          />
 
           <SettingsFooter
             appVersion={appVersion}
@@ -422,7 +357,7 @@ export default function SettingsScreen() {
             theme={theme}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <ConfirmModal
         visible={showLogoutModal}
@@ -488,11 +423,7 @@ export default function SettingsScreen() {
         ]}
         onClose={() => setShowThemeModal(false)}
         onSelect={(value) => {
-          if (
-            value === "system" ||
-            value === "light" ||
-            value === "dark"
-          ) {
+          if (value === "system" || value === "light" || value === "dark") {
             setThemePreference(value);
           }
         }}

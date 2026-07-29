@@ -1,4 +1,4 @@
-import { getCredentials } from "@/services/auth";
+import { getCredentials } from "@/services/auth/lms-auth";
 import {
   checkConnectivity,
   loginToCaptivePortal,

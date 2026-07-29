@@ -7,16 +7,11 @@ import { useCourseActions } from "@/hooks/use-course-actions";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
 import {
-  filterPastBunks,
   getDisplayName,
   selectAllDutyLeaves,
   useBunkStore,
 } from "@/stores/bunk-store";
-import type { CourseAttendance, CourseBunkData } from "@/types";
-import {
-  filterCompletedAttendanceRecords,
-  getRecordKeyVariants,
-} from "@/utils/attendance-helpers";
+import type { CourseAttendance } from "@/types";
 import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
@@ -37,41 +32,10 @@ import { UnknownStatusModal } from "../unknown-status-modal";
 
 const getEffectiveCoursePercentage = (
   course: CourseAttendance | null,
-  bunkData: CourseBunkData | undefined,
 ): number => {
   if (!course) return Number.POSITIVE_INFINITY;
 
-  const pastRecords = filterCompletedAttendanceRecords(course.records);
-  const totalSessions = pastRecords.length;
-  if (totalSessions === 0) return 0;
-
-  const bunkKeys = new Set<string>();
-  if (bunkData) {
-    for (const bunk of bunkData.bunks) {
-      for (const key of getRecordKeyVariants(bunk)) {
-        bunkKeys.add(key);
-      }
-    }
-  }
-
-  const displayRecords = pastRecords.filter(
-    (record) =>
-      record.status !== "Unknown" ||
-      !getRecordKeyVariants(record).some((key) => bunkKeys.has(key)),
-  );
-  const confirmedPresentCount = pastRecords.filter(
-    (record) => record.status === "Present",
-  ).length;
-  const unknownCount = displayRecords.filter(
-    (record) => record.status === "Unknown",
-  ).length;
-  const correctedPresentCount = bunkData
-    ? filterPastBunks(bunkData.bunks).filter((bunk) => bunk.isMarkedPresent)
-        .length
-    : 0;
-  const attended = confirmedPresentCount + unknownCount + correctedPresentCount;
-
-  return Math.round((attended / totalSessions) * 100);
+  return course.percentage;
 };
 
 export const CoursesContent = () => {
@@ -131,21 +95,19 @@ export const CoursesContent = () => {
   // combine LMS courses with custom courses
   const allCourses = useMemo(() => {
     const lmsCourseData = visibleAttendanceCourses.map((course) => ({
-      type: "lms" as const,
       course,
       bunkData: visibleBunkCourses.find((c) => c.courseId === course.courseId),
     }));
     const customCourseData = visibleBunkCourses
       .filter((c) => c.isCustomCourse)
       .map((bunkData) => ({
-        type: "custom" as const,
         course: null,
         bunkData,
       }));
 
     return [...lmsCourseData, ...customCourseData].sort((a, b) => {
-      const aPercentage = getEffectiveCoursePercentage(a.course, a.bunkData);
-      const bPercentage = getEffectiveCoursePercentage(b.course, b.bunkData);
+      const aPercentage = getEffectiveCoursePercentage(a.course);
+      const bPercentage = getEffectiveCoursePercentage(b.course);
 
       if (aPercentage !== bPercentage) {
         return aPercentage - bPercentage;

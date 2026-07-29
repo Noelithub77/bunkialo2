@@ -5,6 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { downloadLmsResourceWithSession } from "@/services/lms-download";
 import { useAuthStore } from "@/stores/auth-store";
 import { useBunkStore } from "@/stores/bunk-store";
+import { useCourseLinkStore } from "@/stores/course-link-store";
 import {
   LMS_RESOURCES_STALE_MS,
   useLmsResourcesStore,
@@ -109,9 +110,16 @@ export default function CourseResourcesScreen() {
 
   const tree = entry?.tree;
   const bunkCourses = useBunkStore((state) => state.courses);
+  const linkedCourseKey = useCourseLinkStore((state) =>
+    state.identities.find((identity) => identity.lmsCourseId === courseId)?.key,
+  );
   const configuredCourse = useMemo(
-    () => bunkCourses.find((course) => course.courseId === courseId),
-    [bunkCourses, courseId],
+    () =>
+      bunkCourses.find(
+        (course) =>
+          course.courseId === linkedCourseKey || course.courseId === courseId,
+      ),
+    [bunkCourses, courseId, linkedCourseKey],
   );
   const courseColor =
     configuredCourse?.config?.color ?? resolveCourseColorFallback(courseId);

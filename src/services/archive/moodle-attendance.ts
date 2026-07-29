@@ -8,6 +8,8 @@ import type {
   MoodleCourseApiResponse,
   MoodleCourseTimelineData,
 } from "@/types";
+
+// Archived source: IIIT Kottayam moved attendance away from Moodle.
 import { debug } from "@/utils/debug";
 import {
   getAttr,
@@ -15,8 +17,8 @@ import {
   parseHtml,
   querySelectorAll,
 } from "@/utils/html-parser";
-import { api, BASE_URL } from "./api";
-import { getSesskey } from "./sesskey";
+import { api, BASE_URL } from "../api";
+import { getSesskey } from "../sesskey";
 
 // Fetch courses using Moodle's AJAX API (only "in progress" courses)
 export const fetchCourses = async (): Promise<Course[]> => {

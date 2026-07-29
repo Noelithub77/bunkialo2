@@ -16,7 +16,7 @@ import {
   getDebugInfo,
   setReauthEnabled,
   updateBaseUrl,
-} from "./api";
+} from "../api";
 
 const CREDENTIALS_KEY = "lms_credentials";
 let authEpoch = 0;
@@ -108,7 +108,7 @@ const extractLoginToken = (html: string): string | null => {
   const token = getAttr(tokenInput, "value");
 
   if (token) {
-    debug.auth(`Login token extracted: ${token.substring(0, 20)}...`);
+    debug.auth("Login token extracted");
     return token;
   }
 
@@ -121,9 +121,7 @@ const extractLoginToken = (html: string): string | null => {
   for (const pattern of patterns) {
     const match = html.match(pattern);
     if (match?.[1]) {
-      debug.auth(
-        `Login token extracted (regex): ${match[1].substring(0, 20)}...`,
-      );
+      debug.auth("Login token extracted with fallback parser");
       return match[1];
     }
   }
@@ -210,11 +208,9 @@ export const login = async (
   formData.append("username", username);
   formData.append("password", password);
 
-  debug.auth("Form data:", {
-    anchor: "",
-    logintoken: loginToken ? loginToken.substring(0, 10) + "..." : "MISSING",
+  debug.auth("Login form prepared", {
+    hasLoginToken: Boolean(loginToken),
     username,
-    password: "***",
   });
 
   const loginResponse = await api.post<string>(

@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { AcademicEvent, AcademicEventOverride } from "@/types";
@@ -94,7 +94,7 @@ export const useAcademicCalendarStore = create<AcademicCalendarState>()(
       },
     }),
     {
-      name: "academic-calendar-storage",
+      name: "academic-calendar-storage-sqlite-v1",
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

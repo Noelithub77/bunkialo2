@@ -11,7 +11,7 @@ import {
   scheduleDateNotification,
   sendImmediateNotification,
 } from "@/utils/notifications";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import {
   dedupeTimelineEvents,
   getTimelineEventSignature,

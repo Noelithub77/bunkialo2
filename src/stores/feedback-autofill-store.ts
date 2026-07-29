@@ -106,7 +106,7 @@ export const useFeedbackAutofillStore = create<FeedbackAutofillState>()(
       clearCourseDefaults: () => set({ courseDefaults: {} }),
     }),
     {
-      name: "bunkialo-feedback-autofill-storage",
+      name: "bunkialo-feedback-autofill-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         courseDefaults: state.courseDefaults,
