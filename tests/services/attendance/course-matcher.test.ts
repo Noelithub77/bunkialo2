@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { matchCourses } from "./course-matcher";
+import { matchCourses } from "@/services/attendance/course-matcher";
 import type { Course, PortalCourseSummary } from "@/types";
 
 const portalCourse: PortalCourseSummary = {

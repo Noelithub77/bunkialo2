@@ -5,7 +5,7 @@ import {
   portalNotificationsSchema,
   portalTermsSchema,
   portalUserSchema,
-} from "./attendance-schemas";
+} from "@/services/attendance/attendance-schemas";
 
 describe("attendance portal schemas", () => {
   test("accepts a profile without a display name", () => {
