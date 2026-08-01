@@ -10,7 +10,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "node --experimental-test-module-mocks --import ./src/scripts/test-setup.mjs --test \"src/**/*.test.mjs\""
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

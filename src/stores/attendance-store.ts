@@ -21,7 +21,7 @@ export const useAttendanceStore = create<
   AttendanceStoreState & AttendanceActions
 >()(
   persist(
-    (set) => ({
+    (set, get) => ({
       courses: [],
       isLoading: false,
       lastSyncTime: null,
@@ -42,6 +42,19 @@ export const useAttendanceStore = create<
         }
         try {
           const courses = await scraper.fetchAllAttendance();
+
+          // ponytail: an empty scrape means the attendance module is gone or the
+          // session died, not that the student dropped every course. Overwriting
+          // here wipes the cache and cascades into bunk-store and timetable-store.
+          // Ceiling: a student who genuinely unenrols from everything keeps stale
+          // data until logout, which clears it anyway.
+          if (courses.length === 0 && get().courses.length > 0) {
+            set((state) => ({
+              isLoading: background || silent ? state.isLoading : false,
+            }));
+            return;
+          }
+
           if (background) {
             set({
               courses,
