@@ -15,24 +15,35 @@ concurrency:
   group: ${{ workflow.filename }}-${{ github.ref }}
 
 jobs:
-  publish_preview:
-    name: Publish PR preview update
+  publish_dev_preview:
+    name: Publish development-build preview
     type: update
     environment: development
     params:
-      branch: pr-${{ github.event.pull_request.number }}
+      branch: pr-${{ github.event.pull_request.number }}-dev
       message: "PR #${{ github.event.pull_request.number }} preview"
+
+  publish_expo_go_preview:
+    name: Publish Expo Go preview
+    type: update
+    environment: development
+    env:
+      EXPO_GO_PREVIEW: "1"
+    params:
+      platform: ios
+      branch: pr-${{ github.event.pull_request.number }}-expo-go
+      message: "PR #${{ github.event.pull_request.number }} Expo Go preview"
 
   comment:
     name: Comment preview on PR
-    needs: [publish_preview]
+    needs: [publish_dev_preview, publish_expo_go_preview]
     type: github-comment
     params:
       payload: |
         ## PR preview update
 
-        **Expo Go:** [Open this update](https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&groupId=${{ needs.publish_preview.outputs.first_update_group_id }}&slug=exp&format=url)
+        **Expo Go:** [Open this update](https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&groupId=${{ needs.publish_expo_go_preview.outputs.first_update_group_id }}&slug=exp&format=url)
 
-        ![Expo Go QR code](https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&groupId=${{ needs.publish_preview.outputs.first_update_group_id }}&slug=exp&format=svg)
+        ![Expo Go QR code](https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&groupId=${{ needs.publish_expo_go_preview.outputs.first_update_group_id }}&slug=exp&format=svg)
 
-        The same update is also available from the EAS dashboard for the development build.
+        **Development build:** [Open this update](https://expo.dev/preview/update?group=${{ needs.publish_dev_preview.outputs.first_update_group_id }})
