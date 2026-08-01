@@ -10,9 +10,11 @@ type LogCategory =
   | "STORE"
   | "COURSE_NAME"
   | "WIFIX"
-  | "TIMETABLE";
+  | "TIMETABLE"
+  | "PORTAL";
 
 const ENABLED_CATEGORIES: LogCategory[] = [
+  "PORTAL",
   // "AUTH",
   // "COOKIE",
   // "API",
@@ -31,6 +33,7 @@ const CATEGORY_COLORS: Record<LogCategory, string> = {
   COURSE_NAME: "\x1b[32m", // green
   WIFIX: "\x1b[31m", // red
   TIMETABLE: "\x1b[96m", // bright cyan
+  PORTAL: "\x1b[92m", // bright green
 };
 
 const COLOR_RESET = "\x1b[0m";
@@ -95,4 +98,6 @@ export const debug = {
   wifix: (message: string, data?: unknown) => debug.log("WIFIX", message, data),
   timetable: (message: string, data?: unknown) =>
     debug.log("TIMETABLE", message, data),
+  portal: (message: string, data?: unknown) =>
+    debug.log("PORTAL", message, data),
 };

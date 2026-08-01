@@ -92,7 +92,7 @@ export const disconnectPortal = async (): Promise<void> => {
   pendingCredentials = null;
   await SecureStore.deleteItemAsync(REFRESH_KEY);
   await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
-  debug.scraper("Portal disconnected");
+  debug.portal("Portal disconnected");
 };
 
 /** Never logs the token or the password. */
@@ -113,7 +113,7 @@ const persistSession = async (
       KEYCHAIN_OPTIONS,
     );
   }
-  debug.scraper("Portal session established");
+  debug.portal("Portal session established");
 };
 
 export const login = async (
@@ -192,14 +192,14 @@ const performRefresh = async (): Promise<boolean> => {
       await persistSession(data);
       return true;
     }
-    debug.scraper("Portal refresh rejected, falling back to stored login");
+    debug.portal("Portal refresh rejected, falling back to stored login");
   }
 
   if (await tryAutoLogin()) return true;
 
   // Both paths failed: the password is stale or revoked. Clearing it means the
   // next launch prompts instead of retrying a rejected password forever.
-  debug.scraper("Portal re-authentication failed, clearing credentials");
+  debug.portal("Portal re-authentication failed, clearing credentials");
   await disconnectPortal();
   return false;
 };
@@ -231,9 +231,14 @@ const authedGet = async <T>(path: string): Promise<T> => {
   }
 
   if (!response.ok) {
+    debug.portal("Request failed", { path, status: response.status });
     throw new PortalError(response.status, `Portal request failed: ${path}`);
   }
-  return (await response.json()) as T;
+
+  const json = await response.json();
+  // Key names only: the payload itself carries the student's attendance.
+  debug.portal("Response", { path, keys: Object.keys(json ?? {}) });
+  return json as T;
 };
 
 export const fetchCourseSessions = async (
@@ -260,12 +265,28 @@ export const fetchPortalAttendance = async (
   );
   const courses = summary.courses ?? [];
 
-  return Promise.all(
+  debug.portal("Attendance summary", {
+    courseCount: courses.length,
+    courseKeys: courses[0] ? Object.keys(courses[0]) : [],
+    moodleCodes: moodleCourses.map((c) => c.courseCode),
+  });
+
+  const adapted = await Promise.all(
     courses.map(async (course) => {
       const sessions = await fetchCourseSessions(course.courseId);
-      return toCourseAttendance(course, sessions, moodleCourses);
+      const result = toCourseAttendance(course, sessions, moodleCourses);
+      debug.portal("Adapted course", {
+        code: course.courseCode,
+        resolvedId: result.courseId,
+        joinedToMoodle: !result.courseId.startsWith("portal:"),
+        sessions: sessions.length,
+        records: result.records.length,
+      });
+      return result;
     }),
   );
+
+  return adapted;
 };
 
 /** Test seam: clears module-level auth state between cases. */

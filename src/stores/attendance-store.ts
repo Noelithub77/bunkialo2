@@ -1,5 +1,6 @@
 import * as portal from "@/services/attendance-portal";
 import * as scraper from "@/services/scraper";
+import { debug } from "@/utils/debug";
 import type { AttendanceState, CourseAttendance, CourseStats } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -98,6 +99,10 @@ export const useAttendanceStore = create<
             isLoading: silent ? state.isLoading : false,
           }));
         } catch (error) {
+          // Without this a portal failure is indistinguishable from "no data".
+          debug.portal("Attendance fetch failed", {
+            message: error instanceof Error ? error.message : String(error),
+          });
           if (background) {
             return;
           }
