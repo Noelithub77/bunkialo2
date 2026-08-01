@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { CookieJar } from "tough-cookie";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
@@ -8,15 +7,36 @@ const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 const MAX_REDIRECTS = 10;
 
-const getRepoRoot = () => {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  return path.resolve(__dirname, "..", "..", "..");
-};
+export interface LmsSessionOptions {
+  baseUrl?: string;
+  username?: string;
+  password?: string;
+  userAgent?: string;
+}
 
-export const loadEnvFromRoot = () => {
-  const root = getRepoRoot();
-  const envPath = path.join(root, ".env");
+export interface LmsSession {
+  baseUrl: string;
+  username: string;
+  fetchWithCookies: (
+    url: string,
+    options?: RequestInit,
+  ) => Promise<Response>;
+  fetchWithSession: (
+    url: string,
+    options?: RequestInit,
+  ) => Promise<Response>;
+  toAbsoluteUrl: (href: string) => string | null;
+  login: () => Promise<boolean>;
+  ensureSession: () => Promise<boolean>;
+  checkSession: () => Promise<boolean>;
+  getSesskey: () => Promise<string | null>;
+  getCookieCount: () => Promise<number>;
+}
+
+const getRepoRoot = (): string => path.resolve(__dirname, "..", "..");
+
+export const loadEnvFromRoot = (): void => {
+  const envPath = path.join(getRepoRoot(), ".env");
   if (!fs.existsSync(envPath)) return;
 
   const raw = fs.readFileSync(envPath, "utf8");
@@ -33,14 +53,12 @@ export const loadEnvFromRoot = () => {
     ) {
       value = value.slice(1, -1);
     }
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
+    if (!process.env[key]) process.env[key] = value;
   }
 };
 
-export const isLoginHtml = (html) => {
-  const condensed = String(html).replace(/\s+/g, " ");
+export const isLoginHtml = (html: string): boolean => {
+  const condensed = html.replace(/\s+/g, " ");
   return (
     condensed.includes('name="logintoken"') ||
     condensed.includes('id="login"') ||
@@ -48,8 +66,8 @@ export const isLoginHtml = (html) => {
   );
 };
 
-const isLoginSuccessful = (html) => {
-  const condensed = String(html).replace(/\s+/g, " ");
+const isLoginSuccessful = (html: string): boolean => {
+  const condensed = html.replace(/\s+/g, " ");
   const hasUserMenu =
     condensed.includes("usermenu") ||
     condensed.includes("userloggedinas") ||
@@ -66,17 +84,18 @@ const isLoginSuccessful = (html) => {
   );
 };
 
-const extractLoginToken = (html) => {
+const extractLoginToken = (html: string): string | null => {
   const tokenMatch =
     html.match(/name=["']logintoken["'][^>]*value=["']([^"']+)["']/i) ||
     html.match(/value=["']([^"']+)["'][^>]*name=["']logintoken["']/i);
   return tokenMatch?.[1] ?? null;
 };
 
-const collectSetCookieHeaders = (response) => {
-  if (typeof response.headers.getSetCookie === "function") {
-    return response.headers.getSetCookie();
-  }
+const collectSetCookieHeaders = (response: Response): string[] => {
+  const headers = response.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+  if (typeof headers.getSetCookie === "function") return headers.getSetCookie();
   const single = response.headers.get("set-cookie");
   return single ? [single] : [];
 };
@@ -86,7 +105,7 @@ export const createLmsSession = ({
   username = process.env.LMS_TEST_USERNAME,
   password = process.env.LMS_TEST_PASSWORD,
   userAgent = DEFAULT_USER_AGENT,
-} = {}) => {
+}: LmsSessionOptions = {}): LmsSession => {
   if (!username || !password) {
     throw new Error(
       "Missing LMS_TEST_USERNAME/LMS_TEST_PASSWORD. Set env vars or .env values.",
@@ -95,7 +114,7 @@ export const createLmsSession = ({
 
   const jar = new CookieJar();
 
-  const toAbsoluteUrl = (href) => {
+  const toAbsoluteUrl = (href: string): string | null => {
     if (!href) return null;
     if (href.startsWith("http://") || href.startsWith("https://")) return href;
     if (href.startsWith("//")) return `https:${href}`;
@@ -103,145 +122,111 @@ export const createLmsSession = ({
     return `${baseUrl}/${href.replace(/^\.?\//, "")}`;
   };
 
-  const storeResponseCookies = async (response, url) => {
-    const setCookieHeaders = collectSetCookieHeaders(response);
-    for (const cookie of setCookieHeaders) {
+  const storeResponseCookies = async (
+    response: Response,
+    url: string,
+  ): Promise<void> => {
+    for (const cookie of collectSetCookieHeaders(response)) {
       await jar.setCookie(cookie, url);
     }
   };
 
-  const fetchWithCookies = async (url, options = {}, redirectCount = 0) => {
+  const fetchWithCookies = async (
+    url: string,
+    options: RequestInit = {},
+    redirectCount = 0,
+  ): Promise<Response> => {
     const absoluteUrl = toAbsoluteUrl(url);
-    if (!absoluteUrl) {
-      throw new Error("Invalid URL");
-    }
+    if (!absoluteUrl) throw new Error("Invalid URL");
 
     const cookieHeader = await jar.getCookieString(absoluteUrl);
-    const headers = {
-      "User-Agent": userAgent,
-      Accept:
+    const headers = new Headers(options.headers);
+    headers.set("User-Agent", userAgent);
+    if (!headers.has("Accept")) {
+      headers.set(
+        "Accept",
         "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      ...options.headers,
-    };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
+      );
     }
+    if (cookieHeader) headers.set("Cookie", cookieHeader);
 
     const response = await fetch(absoluteUrl, {
       ...options,
       headers,
       redirect: "manual",
     });
-
     await storeResponseCookies(response, absoluteUrl);
 
-    if (
-      response.status >= 300 &&
-      response.status < 400 &&
-      redirectCount < MAX_REDIRECTS
-    ) {
-      const location = response.headers.get("location");
-      if (!location) {
-        return response;
+    if (response.status >= 300 && response.status < 400) {
+      if (redirectCount >= MAX_REDIRECTS) {
+        throw new Error("Too many redirects while fetching LMS URL");
       }
+      const location = response.headers.get("location");
+      if (!location) return response;
       const redirectUrl = new URL(location, absoluteUrl).toString();
-      const isPreserveMethodRedirect =
-        response.status === 307 || response.status === 308;
+      const preserveMethod = response.status === 307 || response.status === 308;
       return fetchWithCookies(
         redirectUrl,
-        isPreserveMethodRedirect
-          ? options
-          : { method: "GET", headers: options.headers },
+        preserveMethod ? options : { method: "GET", headers: options.headers },
         redirectCount + 1,
       );
     }
 
-    if (
-      redirectCount >= MAX_REDIRECTS &&
-      response.status >= 300 &&
-      response.status < 400
-    ) {
-      throw new Error("Too many redirects while fetching LMS URL");
-    }
-
     return response;
   };
 
-  const responseLooksLikeLoginPage = async (response) => {
+  const responseLooksLikeLoginPage = async (
+    response: Response,
+  ): Promise<boolean> => {
     const contentType = (response.headers.get("content-type") || "").toLowerCase();
-    if (
-      !contentType.includes("text/html") &&
-      !contentType.includes("application/xhtml")
-    ) {
+    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
       return false;
     }
-    const html = await response.clone().text();
-    return isLoginHtml(html);
+    return isLoginHtml(await response.clone().text());
   };
 
-  const login = async () => {
-    const loginPageRes = await fetchWithCookies("/login/index.php");
-    const loginPageHtml = await loginPageRes.text();
-    const loginToken = extractLoginToken(loginPageHtml);
-
-    if (!loginToken) {
-      return false;
-    }
+  const login = async (): Promise<boolean> => {
+    const loginPageResponse = await fetchWithCookies("/login/index.php");
+    const loginToken = extractLoginToken(await loginPageResponse.text());
+    if (!loginToken) return false;
 
     const formData = new URLSearchParams({
       anchor: "",
-      logintoken: String(loginToken),
+      logintoken: loginToken,
       username,
       password,
     });
-
-    const loginRes = await fetchWithCookies("/login/index.php", {
+    const loginResponse = await fetchWithCookies("/login/index.php", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData.toString(),
     });
-
-    const loginHtml = await loginRes.text();
-    return isLoginSuccessful(loginHtml);
+    return isLoginSuccessful(await loginResponse.text());
   };
 
-  const fetchWithSession = async (url, options = {}) => {
+  const fetchWithSession = async (
+    url: string,
+    options: RequestInit = {},
+  ): Promise<Response> => {
     let response = await fetchWithCookies(url, options);
-    const isLoginPage = await responseLooksLikeLoginPage(response);
-    if (!isLoginPage) return response;
-
-    const reloginOk = await login();
-    if (!reloginOk) return response;
-
+    if (!(await responseLooksLikeLoginPage(response))) return response;
+    if (!(await login())) return response;
     response = await fetchWithCookies(url, options);
     return response;
   };
 
-  const ensureSession = async () => {
-    const hasSession = await checkSession();
-    if (hasSession) return true;
-    return login();
-  };
-
-  const checkSession = async () => {
+  const checkSession = async (): Promise<boolean> => {
     const response = await fetchWithCookies("/my/");
-    const html = await response.text();
-    return isLoginSuccessful(html);
+    return isLoginSuccessful(await response.text());
   };
 
-  const getSesskey = async () => {
-    const sessionReady = await ensureSession();
-    if (!sessionReady) return null;
+  const ensureSession = async (): Promise<boolean> =>
+    (await checkSession()) || (await login());
 
-    const response = await fetchWithSession("/my/");
-    const html = await response.text();
-    const match = html.match(/"sesskey":"([^"]+)"/);
-    return match?.[1] ?? null;
-  };
-
-  const getCookieCount = async () => {
-    const cookies = await jar.getCookies(baseUrl);
-    return cookies.length;
+  const getSesskey = async (): Promise<string | null> => {
+    if (!(await ensureSession())) return null;
+    const html = await (await fetchWithSession("/my/")).text();
+    return html.match(/"sesskey":"([^"]+)"/)?.[1] ?? null;
   };
 
   return {
@@ -254,6 +239,6 @@ export const createLmsSession = ({
     ensureSession,
     checkSession,
     getSesskey,
-    getCookieCount,
+    getCookieCount: async () => (await jar.getCookies(baseUrl)).length,
   };
 };

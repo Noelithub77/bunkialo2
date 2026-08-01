@@ -2,7 +2,9 @@ import {
   createLmsSession,
   isLoginHtml,
   loadEnvFromRoot,
-} from "./utils/lms-session.mjs";
+} from "../../helpers/lms-session";
+import type { Cheerio } from "cheerio";
+import type { Element } from "domhandler";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
 const DEFAULT_ASSIGNMENT_ID = 4155;
@@ -18,15 +20,61 @@ const targetAssignmentId = Number.isFinite(assignmentId)
   : DEFAULT_ASSIGNMENT_ID;
 const shouldFinalizeSubmit = process.argv.includes("--submit");
 
-const cheerio = await import("cheerio");
+import * as cheerio from "cheerio";
 const session = createLmsSession({
   baseUrl: process.env.LMS_BASE_URL || DEFAULT_BASE_URL,
 });
 
-const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
+interface FileManagerRepository {
+  type?: string;
+  id?: string | number;
+}
 
-const pickUploadFormat = (acceptedTypes) => {
-  const normalized = (acceptedTypes || []).map((item) =>
+interface FileManagerConfig {
+  itemid?: string | number;
+  client_id?: string;
+  maxbytes?: string | number;
+  accepted_types?: unknown;
+  context?: { id?: string | number };
+  filepicker?: {
+    accepted_types?: unknown;
+    repositories?: Record<string, FileManagerRepository>;
+  };
+}
+
+interface EditContext {
+  hiddenFields: Record<string, string>;
+  formAction: string;
+  draftItemId: string | null;
+  sesskey: string | null;
+  clientId: string | null;
+  contextId: string | null;
+  uploadRepositoryId: string | null;
+  acceptedTypes: string[];
+  maxBytes: number;
+  onlineTextFieldName: string | null;
+}
+
+interface UploadFormat {
+  extension: string;
+  mime: string;
+  content: string;
+}
+
+interface UploadedDraft {
+  itemId: string;
+  fileName: string;
+}
+
+interface SubmitResult {
+  ok: boolean;
+  statusText: string | null;
+}
+
+const normalizeText = (value: unknown): string => String(value || "").replace(/\s+/g, " ").trim();
+
+const pickUploadFormat = (acceptedTypes: string[]): UploadFormat => {
+  const normalized = acceptedTypes.map((item: string) =>
     normalizeText(String(item).toLowerCase()),
   );
 
@@ -36,7 +84,7 @@ const pickUploadFormat = (acceptedTypes) => {
     normalized.find((ext) => ext.startsWith(".")) ||
     ".txt";
 
-  const mimeByExtension = {
+  const mimeByExtension: Record<string, string> = {
     ".pdf": "application/pdf",
     ".docx":
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -79,7 +127,7 @@ startxref
   };
 };
 
-const extractJsonObjectAfterMarker = (input, marker) => {
+const extractJsonObjectAfterMarker = (input: string, marker: string): string | null => {
   const markerIndex = input.indexOf(marker);
   if (markerIndex === -1) return null;
   const start = input.indexOf("{", markerIndex + marker.length);
@@ -123,10 +171,10 @@ const extractJsonObjectAfterMarker = (input, marker) => {
   return null;
 };
 
-const parseEditContext = (html) => {
+const parseEditContext = (html: string): EditContext => {
   const $ = cheerio.load(html);
   const forms = $("form[action*='/mod/assign/view.php'][method='post']");
-  let form = null;
+  let form: Cheerio<Element> | null = null;
 
   forms.each((_idx, element) => {
     if (form) return;
@@ -143,7 +191,7 @@ const parseEditContext = (html) => {
     throw new Error("Could not find assignment edit form");
   }
 
-  const hiddenFields = {};
+  const hiddenFields: Record<string, string> = {};
   form.find("input[type='hidden'][name]").each((_idx, input) => {
     const name = $(input).attr("name");
     if (!name) return;
@@ -152,10 +200,10 @@ const parseEditContext = (html) => {
 
   const marker = "M.form_filemanager.init(Y, ";
   const rawConfig = extractJsonObjectAfterMarker(html, marker);
-  let fileManagerConfig = null;
+  let fileManagerConfig: FileManagerConfig | null = null;
   if (rawConfig) {
     try {
-      fileManagerConfig = JSON.parse(rawConfig);
+      fileManagerConfig = JSON.parse(rawConfig) as FileManagerConfig;
     } catch {
       fileManagerConfig = null;
     }
@@ -174,6 +222,9 @@ const parseEditContext = (html) => {
     form.find("textarea[name$='[text]']").first().attr("name") ||
     null;
 
+  const rawAcceptedTypes = fileManagerConfig?.filepicker?.accepted_types ?? fileManagerConfig?.accepted_types;
+  const safeConfig = fileManagerConfig ?? {};
+
   return {
     hiddenFields,
     formAction: form.attr("action") || "/mod/assign/view.php",
@@ -183,24 +234,23 @@ const parseEditContext = (html) => {
     sesskey: hiddenFields.sesskey || null,
     clientId: fileManagerConfig?.client_id || null,
     contextId:
-      fileManagerConfig?.context?.id !== undefined
-        ? String(fileManagerConfig.context.id)
+      safeConfig.context?.id !== undefined
+        ? String(safeConfig.context.id)
         : null,
     uploadRepositoryId,
-    acceptedTypes:
-      fileManagerConfig?.filepicker?.accepted_types ||
-      fileManagerConfig?.accepted_types ||
-      [],
+    acceptedTypes: Array.isArray(rawAcceptedTypes)
+      ? rawAcceptedTypes.map((item: unknown) => String(item))
+      : [],
     maxBytes:
-      Number.isFinite(Number(fileManagerConfig?.maxbytes)) &&
-      Number(fileManagerConfig.maxbytes) > 0
-        ? Number(fileManagerConfig.maxbytes)
+      Number.isFinite(Number(safeConfig.maxbytes)) &&
+      Number(safeConfig.maxbytes) > 0
+        ? Number(safeConfig.maxbytes)
         : -1,
     onlineTextFieldName,
   };
 };
 
-const uploadDraftFile = async (context) => {
+const uploadDraftFile = async (context: EditContext): Promise<UploadedDraft> => {
   if (!context.draftItemId || !context.uploadRepositoryId || !context.sesskey) {
     throw new Error("Missing file manager metadata for upload");
   }
@@ -237,9 +287,12 @@ const uploadDraftFile = async (context) => {
     },
   );
   const text = await response.text();
-  let payload = null;
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed === "object" && parsed !== null) {
+      payload = parsed as Record<string, unknown>;
+    }
   } catch {
     payload = null;
   }
@@ -250,11 +303,14 @@ const uploadDraftFile = async (context) => {
 
   return {
     itemId: String(payload.itemid || context.draftItemId),
-    fileName: payload.file || payload.title || fileName,
+    fileName: String(payload.file || payload.title || fileName),
   };
 };
 
-const maybeSubmit = async (context, uploadedDraft) => {
+const maybeSubmit = async (
+  context: EditContext,
+  uploadedDraft: UploadedDraft,
+): Promise<SubmitResult> => {
   const formFields = new URLSearchParams();
   for (const [name, value] of Object.entries(context.hiddenFields)) {
     formFields.set(name, String(value));

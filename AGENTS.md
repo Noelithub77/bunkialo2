@@ -389,21 +389,19 @@ debug.scraper("Dashboard refresh triggered", data);
 ## Testing
 
 ```bash
-# Test scraper
-node src/scripts/test-scraper.mjs
-# Test dashboard
-node src/scripts/test-dashboard.mjs
-# Test LMS resources scraper
-node src/scripts/test-resources-scraper.mjs
-# Test LMS authenticated downloads
-node src/scripts/test-lms-download.mjs
-# Test timetable
-node src/scripts/test-timetable-logic.mjs
+# Unit tests for real app modules
+bun test
+# Live LMS/portal integration checks
+bun run test:lms-scraper
+bun run test:dashboard
+bun run test:resources
+bun run test:downloads
+bun run test:attendance-live
 ```
 
 ## Script Session Utility
 
-- Reuse `src/scripts/utils/lms-session.mjs` in LMS test scripts.
+- Reuse `tests/helpers/lms-session.ts` in LMS test scripts.
 - Do not duplicate cookie jar/login/redirect code in each script.
 - Prefer `fetchWithSession()` (auto re-login + retry on login-page responses) for protected LMS endpoints.
 - Use `loadEnvFromRoot()` to read `.env` in scripts.

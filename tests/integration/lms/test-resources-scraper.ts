@@ -1,20 +1,48 @@
-import { createLmsSession, loadEnvFromRoot } from "./utils/lms-session.mjs";
-const cheerio = await import("cheerio");
+import { createLmsSession, loadEnvFromRoot } from "../../helpers/lms-session";
+import type { LmsSession } from "../../helpers/lms-session";
+import * as cheerio from "cheerio";
+import type { CheerioAPI } from "cheerio";
+import type { Element } from "domhandler";
 
 loadEnvFromRoot();
-let session;
-let BASE_URL;
+interface ResourceItem {
+  id: string;
+  moduleType: string;
+  title: string;
+  url: string | null;
+  childrenCount: number;
+}
 
-function normalizeText(value) {
+interface ResourceSection {
+  id: string;
+  title: string;
+  items: ResourceItem[];
+}
+
+interface ResourceTree {
+  courseId: string;
+  courseTitle: string;
+  sections: ResourceSection[];
+}
+
+interface FolderFile {
+  name: string;
+  url: string;
+}
+
+let session: LmsSession;
+let BASE_URL = "";
+
+function normalizeText(value: string | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim();
 }
 
-function deriveModuleType(className) {
+function deriveModuleType(className: string): string {
   const match = (className || "").match(/modtype_([a-z0-9_]+)/i);
   return match?.[1]?.toLowerCase() || "unknown";
 }
 
-function parseSectionTitle($, section) {
+function parseSectionTitle($: CheerioAPI, section: Element): string {
   return normalizeText(
     $(section)
       .find("h3.sectionname, .course-section-header h3, .sectionname, h3")
@@ -23,7 +51,7 @@ function parseSectionTitle($, section) {
   );
 }
 
-function parseItemTitle($, activity) {
+function parseItemTitle($: CheerioAPI, activity: Element): string {
   const instName = $(activity).find(".instancename").first();
   const typeLabel = normalizeText(instName.find(".accesshide").text());
   let title = normalizeText(instName.text());
@@ -40,9 +68,9 @@ function parseItemTitle($, activity) {
   return linkText || "Untitled item";
 }
 
-function parseCourseTree(html, courseId) {
+function parseCourseTree(html: string, courseId: string): ResourceTree {
   const $ = cheerio.load(html);
-  const sections = [];
+  const sections: ResourceSection[] = [];
 
   let sectionNodes = $("li.section.course-section.main");
   if (sectionNodes.length === 0) {
@@ -54,7 +82,7 @@ function parseCourseTree(html, courseId) {
     const sectionTitle =
       parseSectionTitle($, section) || `Section ${sectionIndex + 1}`;
 
-    const items = [];
+    const items: ResourceItem[] = [];
     $(section)
       .find("li.activity")
       .each((itemIndex, activity) => {
@@ -92,17 +120,17 @@ function parseCourseTree(html, courseId) {
   return { courseId, courseTitle, sections };
 }
 
-async function parseFolderFiles(folderUrl) {
+async function parseFolderFiles(folderUrl: string): Promise<FolderFile[]> {
   const response = await session.fetchWithSession(folderUrl);
   const html = await response.text();
   const $ = cheerio.load(html);
 
-  const files = [];
-  const seen = new Set();
+  const files: FolderFile[] = [];
+  const seen = new Set<string>();
 
   $("main .foldertree a[href], .foldertree a[href]").each((index, link) => {
     const href = $(link).attr("href");
-    const url = session.toAbsoluteUrl(href);
+    const url = href ? session.toAbsoluteUrl(href) : null;
     if (!url || seen.has(url)) return;
     seen.add(url);
 
@@ -113,8 +141,8 @@ async function parseFolderFiles(folderUrl) {
   return files;
 }
 
-function validateTree(tree) {
-  const errors = [];
+function validateTree(tree: ResourceTree): string[] {
+  const errors: string[] = [];
 
   for (const section of tree.sections) {
     if (!section.id) {
@@ -134,7 +162,7 @@ function validateTree(tree) {
   return errors;
 }
 
-async function analyzeCourse(courseId) {
+async function analyzeCourse(courseId: number): Promise<void> {
   console.log(`\n[2] COURSE ${courseId}`);
 
   const courseRes = await session.fetchWithSession(
@@ -144,7 +172,7 @@ async function analyzeCourse(courseId) {
 
   const tree = parseCourseTree(html, String(courseId));
 
-  const moduleCounts = {};
+  const moduleCounts: Record<string, number> = {};
   let folderCount = 0;
   let folderFileCount = 0;
 

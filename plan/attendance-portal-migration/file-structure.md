@@ -65,9 +65,15 @@ src/
     course-link.ts
     notification.ts
 
-  scripts/
-    test-attendance-portal.mjs
+tests/
+  unit/
+    services/attendance/
     utils/
-      attendance-session.mjs
-      lms-session.mjs
+  integration/
+    attendance-portal/test-attendance-portal.ts
+    lms/
+  e2e/lms/
+  helpers/
+    attendance-session.ts
+    lms-session.ts
 ```

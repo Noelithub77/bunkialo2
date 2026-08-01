@@ -5,11 +5,12 @@ import {
   createLmsSession,
   isLoginHtml,
   loadEnvFromRoot,
-} from "./utils/lms-session.mjs";
+} from "../../helpers/lms-session";
+import type { LmsSession } from "../../helpers/lms-session";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
 const COURSE_IDS = [119, 123];
@@ -18,13 +19,36 @@ const MAX_FOLDER_FILE_TESTS_PER_COURSE = 6;
 
 loadEnvFromRoot();
 
-const cheerio = await import("cheerio");
-let session;
-let BASE_URL;
+import * as cheerio from "cheerio";
+interface DownloadTarget {
+  title: string;
+  url: string;
+}
 
-const normalizeText = (value) => (value || "").replace(/\s+/g, " ").trim();
+interface DownloadResult extends DownloadTarget {
+  kind: "resource" | "folder-file";
+  status: number;
+  contentType: string;
+  loginPage: boolean;
+  ok: boolean;
+}
 
-const getContentType = (headers) => {
+interface CourseTargets {
+  resources: DownloadTarget[];
+  folderFiles: DownloadTarget[];
+}
+
+interface FolderFile {
+  name: string;
+  url: string;
+}
+
+let session: LmsSession;
+let BASE_URL = "";
+
+const normalizeText = (value: string | undefined): string => (value || "").replace(/\s+/g, " ").trim();
+
+const getContentType = (headers: Headers): string => {
   const value = headers.get("content-type") || "";
   return String(value).toLowerCase();
 };
@@ -39,16 +63,16 @@ async function login() {
   }
 }
 
-async function parseFolderFiles(folderUrl) {
+async function parseFolderFiles(folderUrl: string): Promise<FolderFile[]> {
   const response = await session.fetchWithSession(folderUrl);
   const html = await response.text();
   const $ = cheerio.load(html);
-  const files = [];
-  const seen = new Set();
+  const files: FolderFile[] = [];
+  const seen = new Set<string>();
 
   $("main .foldertree a[href], .foldertree a[href]").each((_idx, link) => {
     const href = $(link).attr("href");
-    const url = session.toAbsoluteUrl(href);
+    const url = href ? session.toAbsoluteUrl(href) : null;
     if (!url || seen.has(url)) return;
     seen.add(url);
     files.push({
@@ -60,15 +84,15 @@ async function parseFolderFiles(folderUrl) {
   return files;
 }
 
-async function discoverCourseDownloadTargets(courseId) {
+async function discoverCourseDownloadTargets(courseId: number): Promise<CourseTargets> {
   const response = await session.fetchWithSession(
     `${BASE_URL}/course/view.php?id=${courseId}`,
   );
   const html = await response.text();
   const $ = cheerio.load(html);
 
-  const resourceLinks = [];
-  const folderLinks = [];
+  const resourceLinks: DownloadTarget[] = [];
+  const folderLinks: DownloadTarget[] = [];
 
   $("li.activity").each((_i, activity) => {
     const className = $(activity).attr("class") || "";
@@ -89,7 +113,7 @@ async function discoverCourseDownloadTargets(courseId) {
     }
   });
 
-  const folderFiles = [];
+  const folderFiles: DownloadTarget[] = [];
   for (const folder of folderLinks) {
     const files = await parseFolderFiles(folder.url);
     for (const file of files) {
@@ -103,7 +127,10 @@ async function discoverCourseDownloadTargets(courseId) {
   };
 }
 
-async function testDownloadTarget(kind, target) {
+async function testDownloadTarget(
+  kind: DownloadResult["kind"],
+  target: DownloadTarget,
+): Promise<DownloadResult> {
   const response = await session.fetchWithSession(target.url);
   const status = response.status;
   const contentType = getContentType(response.headers);
@@ -139,7 +166,7 @@ async function main() {
 
   await login();
 
-  const allResults = [];
+  const allResults: DownloadResult[] = [];
 
   for (const courseId of COURSE_IDS) {
     console.log(`\n[2] Discovering targets in course ${courseId}...`);

@@ -1,21 +1,80 @@
-import { createLmsSession, loadEnvFromRoot } from "./utils/lms-session.mjs";
+import { createLmsSession, loadEnvFromRoot } from "../../helpers/lms-session";
+import type { Cheerio } from "cheerio";
+import type { Element } from "domhandler";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
 const ASSIGNMENT_IDS = [4155, 4250];
 
 loadEnvFromRoot();
 
-const cheerio = await import("cheerio");
+import * as cheerio from "cheerio";
 const session = createLmsSession({
   baseUrl: process.env.LMS_BASE_URL || DEFAULT_BASE_URL,
 });
 
-const normalizeText = (value) =>
+interface AssignmentDateFields {
+  opened?: string;
+  due?: string;
+  cutoff?: string;
+  allowFrom?: string;
+}
+
+interface StatusDateMeta {
+  dataTimestamp: string | null;
+  dataTime: string | null;
+  datetime: string | null;
+}
+
+interface FileManagerRepository {
+  type?: string;
+  id?: string | number;
+}
+
+interface FileManagerConfig {
+  itemid?: string | number;
+  maxfiles?: string | number;
+  maxbytes?: string | number;
+  accepted_types?: unknown;
+  filepicker?: {
+    accepted_types?: unknown;
+    repositories?: Record<string, FileManagerRepository>;
+  };
+}
+
+interface AssignmentViewData {
+  assignmentId: string;
+  courseName: string;
+  title: string;
+  openedAtText: string | null;
+  dueAtText: string | null;
+  cutoffAtText: string | null;
+  allowSubmissionsFromText: string | null;
+  descriptionLength: number;
+  submissionStatusText: string | null;
+  gradingStatusText: string | null;
+  timeRemainingText: string | null;
+  statusDateMeta: Record<string, StatusDateMeta>;
+}
+
+interface AssignmentEditData {
+  hasForm: boolean;
+  draftItemId: string | null;
+  sesskey: string | null;
+  supportsFileSubmission: boolean;
+  supportsOnlineTextSubmission: boolean;
+  acceptedFileTypes: string[];
+  maxFiles: number | null;
+  maxBytes: number | null;
+  uploadRepositoryId: string | null;
+  hiddenFieldCount: number;
+}
+
+const normalizeText = (value: unknown): string =>
   String(value || "")
     .replace(/\s+/g, " ")
     .trim();
 
-const extractJsonObjectAfterMarker = (input, marker) => {
+const extractJsonObjectAfterMarker = (input: string, marker: string): string | null => {
   const markerIndex = input.indexOf(marker);
   if (markerIndex === -1) return null;
   const start = input.indexOf("{", markerIndex + marker.length);
@@ -60,7 +119,7 @@ const extractJsonObjectAfterMarker = (input, marker) => {
   return null;
 };
 
-const parseAssignmentView = (html, assignmentId) => {
+const parseAssignmentView = (html: string, assignmentId: number): AssignmentViewData => {
   const $ = cheerio.load(html);
   const title =
     normalizeText($("h1").first().text()) || `Assignment ${assignmentId}`;
@@ -70,7 +129,7 @@ const parseAssignmentView = (html, assignmentId) => {
     .filter(Boolean);
   const courseName = breadcrumbItems[0] || "Course";
 
-  const dates = {};
+  const dates: AssignmentDateFields = {};
   $("[data-region='activity-dates'] div").each((_idx, el) => {
     const text = normalizeText($(el).text());
     const splitIndex = text.indexOf(":");
@@ -86,8 +145,8 @@ const parseAssignmentView = (html, assignmentId) => {
     if (key.startsWith("allow submissions from")) dates.allowFrom = value;
   });
 
-  const statusRows = {};
-  const statusDateMeta = {};
+  const statusRows: Record<string, string> = {};
+  const statusDateMeta: Record<string, StatusDateMeta> = {};
   $(".submissionstatustable tr, table.generaltable tr").each((_idx, row) => {
     let key = normalizeText($(row).find("th").first().text());
     let valueCell = $(row).find("td").first();
@@ -142,10 +201,10 @@ const parseAssignmentView = (html, assignmentId) => {
   };
 };
 
-const parseEditPage = (html) => {
+const parseEditPage = (html: string): AssignmentEditData => {
   const $ = cheerio.load(html);
   const forms = $("form[action*='/mod/assign/view.php'][method='post']");
-  let form = null;
+  let form: Cheerio<Element> | null = null;
   forms.each((_idx, element) => {
     if (form) return;
     const candidate = $(element);
@@ -173,7 +232,7 @@ const parseEditPage = (html) => {
     };
   }
 
-  const hiddenFields = {};
+  const hiddenFields: Record<string, string> = {};
   form.find("input[type='hidden'][name]").each((_idx, input) => {
     const name = $(input).attr("name");
     if (!name) return;
@@ -182,10 +241,10 @@ const parseEditPage = (html) => {
 
   const marker = "M.form_filemanager.init(Y, ";
   const configJsonText = extractJsonObjectAfterMarker(html, marker);
-  let config = null;
+  let config: FileManagerConfig | null = null;
   if (configJsonText) {
     try {
-      config = JSON.parse(configJsonText);
+      config = JSON.parse(configJsonText) as FileManagerConfig;
     } catch {
       config = null;
     }
@@ -199,10 +258,12 @@ const parseEditPage = (html) => {
     break;
   }
 
+  const rawAcceptedTypes = config?.filepicker?.accepted_types ?? config?.accepted_types;
+  const safeConfig = config ?? {};
   const acceptedFileTypes = Array.from(
     new Set(
-      (config?.filepicker?.accepted_types || config?.accepted_types || [])
-        .map((item) => normalizeText(String(item).toLowerCase()))
+      (Array.isArray(rawAcceptedTypes) ? rawAcceptedTypes : [])
+        .map((item: unknown) => normalizeText(String(item).toLowerCase()))
         .filter(Boolean),
     ),
   );
@@ -219,16 +280,16 @@ const parseEditPage = (html) => {
     hasForm: true,
     draftItemId:
       hiddenFields.files_filemanager ||
-      (config?.itemid ? String(config.itemid) : null),
+      (safeConfig.itemid ? String(safeConfig.itemid) : null),
     sesskey: hiddenFields.sesskey || null,
     supportsFileSubmission: Boolean(hiddenFields.files_filemanager),
     supportsOnlineTextSubmission: Boolean(onlineTextFieldName),
     acceptedFileTypes,
-    maxFiles: Number.isFinite(Number(config?.maxfiles))
-      ? Number(config.maxfiles)
+    maxFiles: Number.isFinite(Number(safeConfig.maxfiles))
+      ? Number(safeConfig.maxfiles)
       : null,
-    maxBytes: Number.isFinite(Number(config?.maxbytes))
-      ? Number(config.maxbytes)
+    maxBytes: Number.isFinite(Number(safeConfig.maxbytes))
+      ? Number(safeConfig.maxbytes)
       : null,
     uploadRepositoryId,
     hiddenFieldCount: Object.keys(hiddenFields).length,

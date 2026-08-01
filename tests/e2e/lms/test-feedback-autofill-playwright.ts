@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
-import { loadEnvFromRoot } from "./utils/lms-session.mjs";
+import { chromium, type Page } from "playwright";
+import { loadEnvFromRoot } from "../../helpers/lms-session";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
 const DEFAULT_MAX_COURSES = Number.POSITIVE_INFINITY;
@@ -10,7 +10,7 @@ const DEFAULT_MAX_FEEDBACKS_PER_COURSE = Number.POSITIVE_INFINITY;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 
 loadEnvFromRoot();
 
@@ -22,7 +22,7 @@ const args = process.argv.slice(2);
 const shouldSubmit = args.includes("--submit");
 const headless = !args.includes("--headed");
 
-const readNumericArg = (flag, fallback) => {
+const readNumericArg = (flag: string, fallback: number): number => {
   const raw =
     args.find((arg) => arg.startsWith(`${flag}=`))?.split("=")[1] || "";
   const value = Number.parseInt(raw, 10);
@@ -44,16 +44,21 @@ if (!username || !password) {
   process.exit(1);
 }
 
-const gotoAndSettle = async (page, url) => {
+const gotoAndSettle = async (page: Page, url: string): Promise<void> => {
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForLoadState("networkidle", { timeout: 7000 }).catch(() => {});
 };
 
-const unique = (values) => [...new Set(values.filter(Boolean))];
+const unique = (values: string[]): string[] => [
+  ...new Set(values.filter(Boolean)),
+];
 
-const collectCourseLinks = async (page, currentBaseUrl) => {
+const collectCourseLinks = async (
+  page: Page,
+  currentBaseUrl: string,
+): Promise<string[]> => {
   return page.evaluate((runtimeBaseUrl) => {
-    const toAbs = (href) => {
+    const toAbs = (href: string | null): string => {
       if (!href) return "";
       try {
         return new URL(href, runtimeBaseUrl).href;
@@ -68,9 +73,12 @@ const collectCourseLinks = async (page, currentBaseUrl) => {
   }, currentBaseUrl);
 };
 
-const collectFeedbackLinks = async (page, currentBaseUrl) => {
+const collectFeedbackLinks = async (
+  page: Page,
+  currentBaseUrl: string,
+): Promise<string[]> => {
   return page.evaluate((runtimeBaseUrl) => {
-    const toAbs = (href) => {
+    const toAbs = (href: string | null): string => {
       if (!href) return "";
       try {
         return new URL(href, runtimeBaseUrl).href;
@@ -97,7 +105,7 @@ const collectFeedbackLinks = async (page, currentBaseUrl) => {
   }, currentBaseUrl);
 };
 
-const openFeedbackAttemptIfNeeded = async (page) => {
+const openFeedbackAttemptIfNeeded = async (page: Page): Promise<void> => {
   const startCandidates = [
     page.getByRole("link", { name: /answer the questions|complete/i }).first(),
     page
@@ -132,17 +140,25 @@ const openFeedbackAttemptIfNeeded = async (page) => {
   }
 };
 
-const fillCurrentFeedbackForm = async (page) => {
+interface FilledFeedbackFields {
+  radioGroupsAnswered: number;
+  checkboxGroupsAnswered: number;
+  textFieldsFilled: number;
+}
+
+const fillCurrentFeedbackForm = async (
+  page: Page,
+): Promise<FilledFeedbackFields> => {
   return page.evaluate(() => {
-    const byName = new Map();
-    const result = {
+    const byName = new Map<string, HTMLInputElement[]>();
+    const result: FilledFeedbackFields = {
       radioGroupsAnswered: 0,
       checkboxGroupsAnswered: 0,
       textFieldsFilled: 0,
     };
 
     const radios = Array.from(
-      document.querySelectorAll("input[type='radio'][name]"),
+      document.querySelectorAll<HTMLInputElement>("input[type='radio'][name]"),
     ).filter((el) => !el.disabled);
 
     for (const radio of radios) {
@@ -165,9 +181,11 @@ const fillCurrentFeedbackForm = async (page) => {
       result.radioGroupsAnswered += 1;
     }
 
-    const checkboxGroups = new Map();
+    const checkboxGroups = new Map<string, HTMLInputElement[]>();
     const checkboxes = Array.from(
-      document.querySelectorAll("input[type='checkbox'][name]"),
+      document.querySelectorAll<HTMLInputElement>(
+        "input[type='checkbox'][name]",
+      ),
     ).filter((el) => !el.disabled);
 
     for (const checkbox of checkboxes) {
@@ -195,7 +213,7 @@ const fillCurrentFeedbackForm = async (page) => {
     }
 
     const textFields = Array.from(
-      document.querySelectorAll(
+      document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
         "textarea, input[type='text'], input:not([type])",
       ),
     ).filter((el) => !el.disabled && !el.readOnly);
@@ -215,7 +233,7 @@ const fillCurrentFeedbackForm = async (page) => {
   });
 };
 
-const clickSubmitButton = async (page) => {
+const clickSubmitButton = async (page: Page): Promise<boolean> => {
   const submitted = await page.evaluate(() => {
     const questionForm = Array.from(document.querySelectorAll("form")).find(
       (form) =>
@@ -235,11 +253,14 @@ const clickSubmitButton = async (page) => {
 
     const scopedRoot = questionForm || document;
     const candidates = submitSelectors.flatMap((selector) =>
-      Array.from(scopedRoot.querySelectorAll(selector)),
+      Array.from(scopedRoot.querySelectorAll<HTMLElement>(selector)),
     );
 
+    const labelFor = (node: HTMLElement): string =>
+      `${node.innerText || ""} ${"value" in node && typeof node.value === "string" ? node.value : ""}`.toLowerCase();
+
     const preferred = candidates.find((node) => {
-      const label = (node.innerText || node.value || "").toLowerCase();
+      const label = labelFor(node);
       return /submit your answers|submit|save changes|finish attempt/i.test(
         label,
       );
@@ -248,7 +269,7 @@ const clickSubmitButton = async (page) => {
     const target =
       preferred ||
       candidates.find((node) => {
-        const label = (node.innerText || node.value || "").toLowerCase();
+        const label = labelFor(node);
         return /continue|confirm|yes/i.test(label);
       });
 
@@ -276,7 +297,34 @@ const main = async () => {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const report = {
+  interface FeedbackEntry {
+    courseUrl: string;
+    feedbackUrl: string;
+    filled: boolean;
+    submitted: boolean;
+    radioGroupsAnswered: number;
+    checkboxGroupsAnswered: number;
+    textFieldsFilled: number;
+    error: string | null;
+  }
+
+  interface FeedbackReport {
+    baseUrl: string;
+    mode: "submit" | "dry-run";
+    startedAt: string;
+    finishedAt?: string;
+    coursesFound: number;
+    coursesVisited: number;
+    feedbackFormsFound: number;
+    feedbackFormsVisited: number;
+    feedbackFormsSubmitted: number;
+    radioGroupsAnswered: number;
+    checkboxGroupsAnswered: number;
+    textFieldsFilled: number;
+    entries: FeedbackEntry[];
+  }
+
+  const report: FeedbackReport = {
     baseUrl,
     mode: shouldSubmit ? "submit" : "dry-run",
     startedAt: new Date().toISOString(),
@@ -324,7 +372,7 @@ const main = async () => {
       report.feedbackFormsFound += feedbackLinksAll.length;
 
       for (const feedbackUrl of feedbackLinks) {
-        const entry = {
+    const entry: FeedbackEntry = {
           courseUrl,
           feedbackUrl,
           filled: false,

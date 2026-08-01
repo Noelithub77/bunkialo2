@@ -64,7 +64,7 @@ const info = await page.evaluate(() => {
         type: element.getAttribute("type"),
         name: element.getAttribute("name"),
         value: element.getAttribute("value"),
-        text: (element.innerText || element.textContent || "")
+        text: ((element as HTMLElement).innerText || element.textContent || "")
           .trim()
           .slice(0, 140),
       });

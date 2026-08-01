@@ -5,18 +5,23 @@ import {
   sendImmediateNotification,
 } from "@/utils/notifications";
 import { getPortalNotifications } from "./attendance-api";
+import { isNotificationRecent } from "@/utils/notification-inbox";
 
 export const syncPortalNotifications = async (): Promise<void> => {
   const page = await getPortalNotifications();
+  const recentItems = page.items.filter((item) =>
+    isNotificationRecent(item.createdAt),
+  );
   const store = usePortalNotificationStore.getState();
   const isBaseline = !store.hasBaseline;
-  const unseen = page.items.filter(
+  const unseen = recentItems.filter(
     (item) =>
       !store.fetchedIds.includes(item.id) &&
-      !store.deliveredIds.includes(item.id),
+      !store.deliveredIds.includes(item.id) &&
+      store.dismissedAtById[item.id] === undefined,
   );
 
-  store.setFetched(page.items);
+  store.setFetched(recentItems);
   if (isBaseline || unseen.length === 0) return;
   if (!useSettingsStore.getState().notificationsEnabled) return;
   if (!(await hasNotificationPermissions())) return;

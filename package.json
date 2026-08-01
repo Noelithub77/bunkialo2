@@ -11,8 +11,16 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "bun test",
-    "test:attendance-live": "node src/scripts/test-attendance-portal.mjs"
+    "test": "bun test tests/unit",
+    "test:attendance-live": "bun tests/integration/attendance-portal/test-attendance-portal.ts",
+    "test:lms-scraper": "bun tests/integration/lms/test-scraper.ts",
+    "test:dashboard": "bun tests/integration/lms/test-dashboard.ts",
+    "test:resources": "bun tests/integration/lms/test-resources-scraper.ts",
+    "test:downloads": "bun tests/integration/lms/test-lms-download.ts",
+    "test:assignment": "bun tests/integration/lms/test-assignment-scraper.ts",
+    "test:assignment-submit": "bun tests/integration/lms/test-assignment-submit.ts",
+    "test:e2e:assignment": "bun tests/e2e/lms/test-assignment-opened-playwright.ts",
+    "test:e2e:feedback": "bun tests/e2e/lms/test-feedback-autofill-playwright.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

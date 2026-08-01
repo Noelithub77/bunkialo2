@@ -1,5 +1,5 @@
-import { chromium } from "playwright";
-import { createLmsSession, loadEnvFromRoot } from "./utils/lms-session.mjs";
+import { chromium, type Page } from "playwright";
+import { createLmsSession, loadEnvFromRoot } from "../../helpers/lms-session";
 
 const DEFAULT_BASE_URL = "https://lmsug24.iiitkottayam.ac.in";
 const ASSIGNMENT_IDS = [4155, 4250];
@@ -10,19 +10,32 @@ const session = createLmsSession({
   baseUrl: process.env.LMS_BASE_URL || DEFAULT_BASE_URL,
 });
 
-const normalizeText = (value) =>
+interface DateRow {
+  label: string;
+  value: string;
+  dataTimestamp: string | null;
+  dataTime: string | null;
+  datetime: string | null;
+}
+
+interface DateRowsData {
+  rows: DateRow[];
+  activityDateRows: string[];
+}
+
+const normalizeText = (value: string | null | undefined): string =>
   String(value || "")
     .replace(/\s+/g, " ")
     .trim();
 
-const extractDateRows = async (page) => {
+const extractDateRows = async (page: Page): Promise<DateRowsData> => {
   return page.evaluate(() => {
-    const normalize = (value) =>
+    const normalize = (value: string | null): string =>
       String(value || "")
         .replace(/\s+/g, " ")
         .trim();
 
-    const rows = [];
+    const rows: DateRow[] = [];
     const tableRows = Array.from(
       document.querySelectorAll(
         ".submissionstatustable tr, table.generaltable tr",
@@ -73,7 +86,7 @@ const extractDateRows = async (page) => {
   });
 };
 
-const parseTimestampCandidate = (row) => {
+const parseTimestampCandidate = (row: DateRow): number | null => {
   const fromDataTimestamp = Number.parseInt(row.dataTimestamp || "", 10);
   if (Number.isFinite(fromDataTimestamp) && fromDataTimestamp > 0) {
     return fromDataTimestamp * 1000;
@@ -95,7 +108,7 @@ const parseTimestampCandidate = (row) => {
   return null;
 };
 
-const findOpenedTimestamp = (rows) => {
+const findOpenedTimestamp = (rows: DateRow[]): number | null => {
   const openedRow = rows.find((row) => {
     const label = normalizeText(row.label).toLowerCase().replace(/-/g, " ");
     return label.startsWith("opened") || label.startsWith("opening time");

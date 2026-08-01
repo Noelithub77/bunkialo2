@@ -40,13 +40,15 @@ bunx expo start
 
 ## Scripts
 
-- `bun run src/scripts/test-scraper.mjs`
-- `bun run src/scripts/test-dashboard.mjs`
-- `bun run src/scripts/test-resources-scraper.mjs`
-- `bun run src/scripts/test-lms-download.mjs`
-- `bun run src/scripts/test-timetable-logic.mjs`
-- `bun run src/scripts/test-assignment-scraper.mjs`
-- `bun run src/scripts/test-assignment-submit.mjs`
+- `bun test` (unit tests against app modules)
+- `bun run test:lms-scraper`
+- `bun run test:dashboard`
+- `bun run test:resources`
+- `bun run test:downloads`
+- `bun run test:assignment`
+- `bun run test:assignment-submit` (uploads only with explicit `--submit`)
+- `bun run test:e2e:assignment`
+- `bun run test:e2e:feedback`
 
 ## Contributing
 

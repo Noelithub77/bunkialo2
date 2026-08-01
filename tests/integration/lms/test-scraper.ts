@@ -1,17 +1,39 @@
 /**
  * Test script - fetches only IN PROGRESS courses
- * Run with: node src/scripts/test-scraper.mjs
+ * Run with: bun tests/integration/lms/test-scraper.ts
  * Required env: LMS_TEST_USERNAME, LMS_TEST_PASSWORD
  */
 
-const cheerio = await import("cheerio");
-import { createLmsSession, loadEnvFromRoot } from "./utils/lms-session.mjs";
+import * as cheerio from "cheerio";
+import { createLmsSession, loadEnvFromRoot } from "../../helpers/lms-session";
 
 loadEnvFromRoot();
 const session = createLmsSession();
 const BASE_URL = session.baseUrl;
 
-async function getInProgressCourses() {
+interface MoodleCourse {
+  id: string;
+  name: string;
+}
+
+interface AttendanceRecord {
+  date: string;
+  status: string;
+  points: string;
+}
+
+interface AttendanceResult {
+  records: AttendanceRecord[];
+  present: number;
+  total: number;
+}
+
+type JsonRecord = Record<string, unknown>;
+
+const asRecord = (value: unknown): JsonRecord =>
+  typeof value === "object" && value !== null ? (value as JsonRecord) : {};
+
+async function getInProgressCourses(): Promise<MoodleCourse[]> {
   console.log("\n[2] GET IN-PROGRESS COURSES (via API)");
 
   const sessionReady = await session.ensureSession();
@@ -51,23 +73,28 @@ async function getInProgressCourses() {
     },
   );
 
-  const data = await res.json();
+  const rawData: unknown = await res.json();
+  const data = Array.isArray(rawData) ? rawData.map(asRecord) : [];
 
   if (data[0]?.error) {
-    console.log(`  API Error: ${data[0].exception?.message || "Unknown"}`);
+    const exception = asRecord(data[0].exception);
+    console.log(`  API Error: ${String(exception.message || "Unknown")}`);
     return [];
   }
 
-  const courses = data[0]?.data?.courses || [];
+  const firstData = asRecord(data[0]?.data);
+  const courses = Array.isArray(firstData.courses)
+    ? firstData.courses.map(asRecord)
+    : [];
   console.log(`\n  IN-PROGRESS COURSES: ${courses.length}`);
 
   return courses.map((c) => ({
     id: String(c.id),
-    name: c.fullname || c.shortname,
+    name: String(c.fullname || c.shortname || "Unnamed course"),
   }));
 }
 
-async function getAttendance(courseId, courseName) {
+async function getAttendance(courseId: string, courseName: string): Promise<AttendanceResult | null> {
   console.log(`\n[3] ATTENDANCE: ${courseName.substring(0, 35)}`);
 
   const courseRes = await session.fetchWithSession(
@@ -76,7 +103,7 @@ async function getAttendance(courseId, courseName) {
   const courseHtml = await courseRes.text();
   const $ = cheerio.load(courseHtml);
 
-  let attId = null;
+  let attId: string | null = null;
   $('a[href*="/mod/attendance/view.php"]').each((_, el) => {
     const href = $(el).attr("href") || "";
     const match = href.match(/id=(\d+)/);
@@ -94,7 +121,7 @@ async function getAttendance(courseId, courseName) {
   const attHtml = await attRes.text();
   const $att = cheerio.load(attHtml);
 
-  const records = [];
+  const records: AttendanceRecord[] = [];
 
   $att("table").each((_, table) => {
     const text = $att(table).text().toLowerCase();

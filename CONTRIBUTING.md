@@ -19,13 +19,12 @@ bunx expo start
 
 ```bash
 bunx tsc --noEmit
-bun run src/scripts/test-assignment-scraper.mjs
-bun run src/scripts/test-assignment-submit.mjs
-bun run src/scripts/test-dashboard.mjs
-bun run src/scripts/test-lms-download.mjs
-bun run src/scripts/test-resources-scraper.mjs
-bun run src/scripts/test-scraper.mjs
-bun run src/scripts/test-timetable-logic.mjs
+bun test
+bun run test:lms-scraper
+bun run test:assignment
+bun run test:dashboard
+bun run test:downloads
+bun run test:resources
 ```
 
 ## Pull Request Rules

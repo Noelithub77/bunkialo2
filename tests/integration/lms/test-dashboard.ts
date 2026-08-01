@@ -1,19 +1,36 @@
 /**
  * Test script - Dashboard Timeline API exploration
- * Run with: node src/scripts/test-dashboard.mjs
+ * Run with: bun tests/integration/lms/test-dashboard.ts
  * Required env: LMS_TEST_USERNAME, LMS_TEST_PASSWORD
  */
 
-import { writeFileSync } from "fs";
-import { createLmsSession, loadEnvFromRoot } from "./utils/lms-session.mjs";
+import { writeFileSync } from "node:fs";
+import type { LmsSession } from "../../helpers/lms-session";
+import { createLmsSession, loadEnvFromRoot } from "../../helpers/lms-session";
 
 loadEnvFromRoot();
-let session;
-let BASE_URL;
+let session: LmsSession;
+let BASE_URL: string;
 
-async function testTimelineApi(sesskey) {
+interface TimelineEvent {
+  name?: string;
+  timesort?: number;
+  course?: { fullname?: string };
+  url?: string;
+}
+
+interface TimelineResponse {
+  error?: boolean;
+  exception?: { message?: string };
+  data?: { events?: TimelineEvent[] };
+}
+
+const asTimelineResponse = (value: unknown): TimelineResponse[] =>
+  Array.isArray(value) ? (value as TimelineResponse[]) : [];
+
+async function testTimelineApi(sesskey: string, lmsSession: LmsSession): Promise<unknown> {
   console.log("\n[2] TESTING core_calendar_get_action_events_by_timesort");
-  const sessionReady = await session.ensureSession();
+  const sessionReady = await lmsSession.ensureSession();
   if (!sessionReady) {
     console.log("  ERROR: Could not establish LMS session");
     return null;
@@ -31,7 +48,7 @@ async function testTimelineApi(sesskey) {
     },
   ];
 
-  const res = await session.fetchWithSession(
+  const res = await lmsSession.fetchWithSession(
     `${BASE_URL}/lib/ajax/service.php?sesskey=${sesskey}&info=core_calendar_get_action_events_by_timesort`,
     {
       method: "POST",
@@ -43,21 +60,22 @@ async function testTimelineApi(sesskey) {
     },
   );
 
-  const data = await res.json();
-  writeFileSync("src/scripts/timeline-response.json", JSON.stringify(data, null, 2));
-  console.log("  Saved response to src/scripts/timeline-response.json");
+  const data: unknown = await res.json();
+  const parsed = asTimelineResponse(data);
+  writeFileSync("tests/integration/lms/timeline-response.json", JSON.stringify(data, null, 2));
+  console.log("  Saved response to tests/integration/lms/timeline-response.json");
 
-  if (data[0]?.error) {
-    console.log("  Error:", data[0].exception?.message);
+  if (parsed[0]?.error) {
+    console.log("  Error:", parsed[0].exception?.message);
     return null;
   }
 
-  const events = data[0]?.data?.events || [];
+  const events = parsed[0]?.data?.events || [];
   console.log(`  Found ${events.length} upcoming events`);
 
   events.forEach((e, i) => {
-    const dueDate = new Date(e.timesort * 1000);
-    console.log(`  ${i + 1}. ${e.name}`);
+    const dueDate = new Date((e.timesort ?? 0) * 1000);
+    console.log(`  ${i + 1}. ${e.name || "(unnamed)"}`);
     console.log(`     Course: ${e.course?.fullname || "N/A"}`);
     console.log(`     Due: ${dueDate.toLocaleString()}`);
     console.log(`     URL: ${e.url}`);
@@ -90,7 +108,7 @@ async function main() {
     }
 
     console.log(`  Sesskey: ${sesskey}`);
-    await testTimelineApi(sesskey);
+    await testTimelineApi(sesskey, session);
 
     console.log("\n======================================");
     console.log("  DONE");

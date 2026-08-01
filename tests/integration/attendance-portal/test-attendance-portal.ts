@@ -1,21 +1,27 @@
-import { loadEnvFromRoot } from "./utils/lms-session.mjs";
-import { createAttendanceSession } from "./utils/attendance-session.mjs";
+import { createAttendanceSession } from "../../helpers/attendance-session";
+import { loadEnvFromRoot } from "../../helpers/lms-session";
 
 loadEnvFromRoot();
 
 const session = createAttendanceSession();
 
-const readJson = async (path) => {
+const asRecord = (value: unknown): Record<string, unknown> =>
+  typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+
+const readJson = async (path: string): Promise<unknown> => {
   const response = await session.request(path);
-  const body = await response.json();
+  const body: unknown = await response.json();
   if (!response.ok) throw new Error(`${path} failed (${response.status}).`);
   return body;
 };
 
-const countItems = (value, keys) => {
+const countItems = (value: unknown, keys: readonly string[]): number => {
   if (Array.isArray(value)) return value.length;
+  const record = asRecord(value);
   for (const key of keys) {
-    if (Array.isArray(value?.[key])) return value[key].length;
+    if (Array.isArray(record[key])) return record[key].length;
   }
   return 0;
 };
@@ -30,22 +36,31 @@ try {
   const stale = await session.refresh(oldRefresh);
   console.log(`stale refresh: ${stale.status}`);
 
-  const [profile, terms, attendance, notifications] = await Promise.all([
+  const [profileValue, terms, attendanceValue, notifications] = await Promise.all([
     readJson("/api/auth/me"),
     readJson("/api/terms"),
     readJson("/api/students/me/attendance"),
     readJson("/api/notifications"),
   ]);
-  const courses = attendance.byCourse ?? attendance.courses ?? [];
-  console.log(`profile: ${profile.email ? "ok" : "missing email"}`);
+  const profile = asRecord(profileValue);
+  const attendance = asRecord(attendanceValue);
+  const courses = Array.isArray(attendance.byCourse)
+    ? attendance.byCourse
+    : Array.isArray(attendance.courses)
+      ? attendance.courses
+      : [];
+  console.log(`profile: ${typeof profile.email === "string" ? "ok" : "missing email"}`);
   console.log(`terms: ${countItems(terms, ["items", "terms"])}`);
   console.log(`attendance courses: ${courses.length}`);
   console.log(`notifications: ${countItems(notifications, ["items"])}`);
 
   const sessionCounts = await Promise.all(
     courses.map(async (course) => {
+      const courseRecord = asRecord(course);
+      const courseId = courseRecord.courseId;
+      if (typeof courseId !== "string") return 0;
       const detail = await readJson(
-        `/api/students/me/courses/${encodeURIComponent(course.courseId)}/sessions`,
+        `/api/students/me/courses/${encodeURIComponent(courseId)}/sessions`,
       );
       return countItems(detail, ["sessions"]);
     }),

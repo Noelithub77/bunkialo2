@@ -117,10 +117,13 @@ const minutesToTime = (minutes: number): string => {
     .padStart(2, "0")}`;
 };
 
-const calculateDurationMinutes = (startMinutes: number, endMinutes: number) =>
+export const calculateDurationMinutes = (
+  startMinutes: number,
+  endMinutes: number,
+): number =>
   endMinutes - startMinutes;
 
-const getSessionType = (
+export const getSessionType = (
   desc: string,
   startMinutes: number,
   endMinutes: number,
