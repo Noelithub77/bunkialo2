@@ -139,7 +139,7 @@ export default function TimetableScreen() {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      await fetchAttendance();
+      await fetchAttendance({ force: true });
       scheduleTimetableRecompute();
     } finally {
       setRefreshing(false);

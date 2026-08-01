@@ -14,11 +14,21 @@ mock.module("@/services/scraper", {
 let portalConnected = false;
 let portalCourses = [];
 let portalFails = false;
+let portalSelfDisconnects = false;
+let portalCallCount = 0;
+let lastCachedArg;
 mock.module("@/services/attendance-portal", {
   namedExports: {
     hasPortalCredentials: async () => portalConnected,
-    fetchPortalAttendance: async () => {
-      if (portalFails) throw new Error("Portal request failed");
+    fetchPortalAttendance: async (_codes, cached) => {
+      portalCallCount += 1;
+      lastCachedArg = cached;
+      // Yield so concurrent callers overlap, which is what the guard must cover.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (portalFails) {
+        if (portalSelfDisconnects) portalConnected = false;
+        throw new Error("Portal session expired");
+      }
       return portalCourses;
     },
   },
@@ -43,12 +53,15 @@ beforeEach(() => {
   portalConnected = false;
   portalCourses = [];
   portalFails = false;
+  portalSelfDisconnects = false;
+  portalCallCount = 0;
   scraped = [];
   useAttendanceStore.setState({
     courses: [],
     isLoading: false,
     lastSyncTime: null,
     error: null,
+    portalDisconnected: false,
   });
 });
 
@@ -83,6 +96,96 @@ test("a background portal failure stays silent and keeps the cache", async () =>
 
   assert.deepEqual(ids(), ["cached"]);
   assert.equal(useAttendanceStore.getState().error, null);
+});
+
+// --- self-disconnection must not be silent ---
+
+test("a portal that logs itself out is reported as needing reconnection", async () => {
+  // performRefresh clears credentials when both the refresh token and the
+  // stored password are rejected. Without a flag the user just sees stale data
+  // forever and never learns to reconnect.
+  useAttendanceStore.setState({ courses: [course("cached")] });
+  portalConnected = true;
+  portalFails = true;
+  portalSelfDisconnects = true;
+
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.equal(useAttendanceStore.getState().portalDisconnected, true);
+  assert.match(useAttendanceStore.getState().error, /reconnect/i);
+  assert.deepEqual(ids(), ["cached"]);
+});
+
+test("a background self-disconnection still raises the flag", async () => {
+  portalConnected = true;
+  portalFails = true;
+  portalSelfDisconnects = true;
+
+  await useAttendanceStore.getState().fetchAttendance({ background: true });
+
+  assert.equal(useAttendanceStore.getState().portalDisconnected, true);
+});
+
+test("an ordinary network failure is not reported as a disconnection", async () => {
+  useAttendanceStore.setState({ courses: [course("cached")] });
+  portalConnected = true;
+  portalFails = true;
+  portalSelfDisconnects = false;
+
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.equal(useAttendanceStore.getState().portalDisconnected, false);
+});
+
+test("a successful fetch clears the reconnect flag", async () => {
+  useAttendanceStore.setState({ portalDisconnected: true });
+  portalConnected = true;
+  portalCourses = [course("p")];
+
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.equal(useAttendanceStore.getState().portalDisconnected, false);
+});
+
+// --- request load ---
+
+test("concurrent callers share one in-flight fetch", async () => {
+  // Dashboard mount, attendance tab mount and its sub-tabs all call this. Each
+  // portal fetch is 1 + N requests, so unshared bursts multiply quickly.
+  portalConnected = true;
+  portalCourses = [course("p")];
+
+  await Promise.all([
+    useAttendanceStore.getState().fetchAttendance(),
+    useAttendanceStore.getState().fetchAttendance(),
+    useAttendanceStore.getState().fetchAttendance(),
+  ]);
+
+  assert.equal(portalCallCount, 1);
+});
+
+test("a forced refresh bypasses the in-flight guard and the cache", async () => {
+  portalConnected = true;
+  portalCourses = [course("p")];
+
+  await useAttendanceStore.getState().fetchAttendance();
+  assert.equal(portalCallCount, 1);
+
+  await useAttendanceStore.getState().fetchAttendance({ force: true });
+
+  assert.equal(portalCallCount, 2);
+  // Empty cache means every course is re-fetched, not just changed ones.
+  assert.deepEqual(lastCachedArg, []);
+});
+
+test("an ordinary refresh passes the cached courses through", async () => {
+  portalConnected = true;
+  portalCourses = [course("p")];
+
+  await useAttendanceStore.getState().fetchAttendance();
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.deepEqual(lastCachedArg.map((c) => c.courseId), ["p"]);
 });
 
 test("falls back to Moodle when the portal is not connected", async () => {

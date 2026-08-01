@@ -167,7 +167,9 @@ export const CoursesContent = () => {
   }, [visibleAttendanceCourses, visibleBunkCourses]);
 
   const handleRefresh = useCallback(() => {
-    fetchAttendance();
+    // Pull to refresh is an explicit ask: bypass the shared in-flight guard and
+    // the unchanged-course cache so it always reloads.
+    fetchAttendance({ force: true });
   }, [fetchAttendance]);
 
   // modal visibility checks

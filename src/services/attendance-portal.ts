@@ -15,7 +15,10 @@ import type {
 } from "@/types";
 import { debug } from "@/utils/debug";
 import * as SecureStore from "expo-secure-store";
-import { toCourseAttendance } from "./attendance-portal-adapter";
+import {
+  resolveCourseId,
+  toCourseAttendance,
+} from "./attendance-portal-adapter";
 
 export const PORTAL_API = "https://attendance.iiitkottayam.ac.in/api";
 
@@ -280,6 +283,7 @@ export const fetchCourseSessions = async (
  */
 export const fetchPortalAttendance = async (
   moodleCourses: { courseId: string; courseCode: string }[],
+  cached: CourseAttendance[] = [],
 ): Promise<CourseAttendance[]> => {
   // Confirmed live 2026-08-01: {student, overall, byCourse, recent}. The course
   // list is `byCourse`, not `courses` — `courses` is the faculty dashboard's key.
@@ -294,8 +298,33 @@ export const fetchPortalAttendance = async (
     moodleCodes: moodleCourses.map((c) => c.courseCode).join(","),
   });
 
+  const cachedById = new Map(cached.map((course) => [course.courseId, course]));
+  let skipped = 0;
+
   const adapted = await Promise.all(
     courses.map(async (course) => {
+      const resolvedId = resolveCourseId(course, moodleCourses);
+      const previous = cachedById.get(resolvedId);
+
+      // The summary already carries present/total. If neither moved, no session
+      // was added, corrected or removed, so the per-course request would return
+      // exactly what is already cached. Skipping turns the usual refresh from
+      // 1 + N requests into 1.
+      //
+      // ponytail: totals are the only change signal the summary offers. Ceiling:
+      // a same-day correction that swaps one status for another without moving
+      // present or total is missed until the next change. Pull to refresh forces
+      // a full reload.
+      if (
+        previous &&
+        previous.records.length > 0 &&
+        previous.totalSessions === course.total &&
+        previous.attended === course.present
+      ) {
+        skipped += 1;
+        return previous;
+      }
+
       const sessions = await fetchCourseSessions(course.courseId);
       const result = toCourseAttendance(course, sessions, moodleCourses);
       debug.portal("Adapted course", {
@@ -308,6 +337,12 @@ export const fetchPortalAttendance = async (
       return result;
     }),
   );
+
+  debug.portal("Fetch complete", {
+    courses: courses.length,
+    requests: 1 + (courses.length - skipped),
+    reusedFromCache: skipped,
+  });
 
   return adapted;
 };

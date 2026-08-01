@@ -45,7 +45,8 @@ export default function SettingsScreen() {
   const theme = isDark ? Colors.dark : Colors.light;
 
   const { username, logout } = useAuthStore();
-  const { clearAttendance, fetchAttendance } = useAttendanceStore();
+  const { clearAttendance, fetchAttendance, portalDisconnected } =
+    useAttendanceStore();
   const { resetToLms } = useBunkStore();
   const { backgroundActivity, logs, clearLogs } = useDashboardStore();
   const {
@@ -388,6 +389,7 @@ export default function SettingsScreen() {
           <PortalSettingsSection
             isConnected={isPortalConnected}
             isBusy={isPortalBusy}
+            needsReconnect={portalDisconnected && !isPortalConnected}
             onConnect={() => {
               setPortalError(null);
               setPortalChallenge("none");

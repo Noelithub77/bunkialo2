@@ -445,6 +445,86 @@ test("a course payload with no sessions array does not throw", async () => {
   assert.equal(courses[0].percentage, 0);
 });
 
+// --- request load ---
+
+const summary = (over = {}) => ({
+  byCourse: [
+    {
+      courseId: "p-1",
+      courseCode: "CS101",
+      courseName: "Example",
+      present: 3,
+      total: 4,
+      ...over,
+    },
+  ],
+});
+
+const sessionsBody = {
+  sessions: [
+    {
+      sessionId: "s1",
+      date: "2026-01-01T00:00:00.000Z",
+      startTime: "09:00",
+      endTime: "09:55",
+      section: "A",
+      topic: null,
+      status: "PRESENT",
+    },
+  ],
+};
+
+test("skips the sessions request when a course's totals have not moved", async () => {
+  // One request per course per refresh adds up: the summary already reports
+  // present/total, so an unchanged course has nothing new to fetch.
+  vault.set("attendance_portal_refresh", "ref-1");
+  queue = [[200, summary()], [200, sessionsBody]];
+
+  const first = await portal.fetchPortalAttendance([]);
+  assert.equal(calls.length, 2);
+
+  queue = [[200, summary()]];
+  const second = await portal.fetchPortalAttendance([], first);
+
+  assert.equal(calls.length, 3, "only the summary should be re-fetched");
+  assert.equal(second[0].records.length, 1, "cached records are reused");
+  assert.equal(second[0].courseId, first[0].courseId);
+});
+
+test("re-fetches a course as soon as its totals change", async () => {
+  vault.set("attendance_portal_refresh", "ref-1");
+  queue = [[200, summary()], [200, sessionsBody]];
+  const first = await portal.fetchPortalAttendance([]);
+
+  queue = [[200, summary({ total: 5, present: 4 })], [200, sessionsBody]];
+  await portal.fetchPortalAttendance([], first);
+
+  assert.equal(calls.length, 4);
+  assert.match(calls[3].url, /\/sessions$/);
+});
+
+test("re-fetches when the cached course has no records", async () => {
+  // A course cached with zero records would otherwise never recover.
+  vault.set("attendance_portal_refresh", "ref-1");
+  queue = [[200, summary()], [200, sessionsBody]];
+
+  await portal.fetchPortalAttendance([], [
+    {
+      courseId: "portal:CS101",
+      courseName: "CS101 Example",
+      attendanceModuleId: null,
+      source: "portal",
+      totalSessions: 4,
+      attended: 3,
+      percentage: 75,
+      records: [],
+      lastUpdated: 0,
+    },
+  ]);
+
+  assert.equal(calls.length, 2);
+});
+
 test("disconnect clears everything", async () => {
   vault.set("attendance_portal_refresh", "ref-1");
   vault.set("attendance_portal_credentials", "{}");

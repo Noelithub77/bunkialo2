@@ -8,16 +8,34 @@ import { zustandStorage } from "./storage";
 
 interface AttendanceStoreState extends AttendanceState {
   hasHydrated: boolean;
+  /**
+   * The portal cleared its own credentials because both the refresh token and
+   * the stored password were rejected. Persisted: it must survive a restart,
+   * or the user only ever sees silently stale attendance.
+   */
+  portalDisconnected: boolean;
 }
 
 interface AttendanceActions {
   fetchAttendance: (options?: {
     background?: boolean;
     silent?: boolean;
+    force?: boolean;
   }) => Promise<void>;
   clearAttendance: () => void;
+  setPortalDisconnected: (portalDisconnected: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
+
+/**
+ * Shared so the dashboard, the attendance tab and its sub-tabs collapse into a
+ * single fetch when they mount together. Each portal fetch is 1 + N requests,
+ * so an unshared burst multiplies straight onto the portal.
+ */
+let inFlightFetch: Promise<void> | null = null;
+
+const PORTAL_DISCONNECTED_MESSAGE =
+  "Attendance portal signed out. Reconnect it in Settings.";
 
 /**
  * Course codes the portal adapter joins against, so a portal course resolves to
@@ -55,10 +73,16 @@ export const useAttendanceStore = create<
       lastSyncTime: null,
       error: null,
       hasHydrated: false,
+      portalDisconnected: false,
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+      setPortalDisconnected: (portalDisconnected) =>
+        set({ portalDisconnected }),
 
       fetchAttendance: async (options) => {
+        if (inFlightFetch && !options?.force) return inFlightFetch;
+
+        const run = async () => {
         const background = options?.background ?? false;
         const silent = options?.silent ?? false;
         if (background) {
@@ -68,10 +92,21 @@ export const useAttendanceStore = create<
         } else {
           set({ isLoading: true, error: null });
         }
+        const usingPortal = await portal.hasPortalCredentials();
+
         try {
-          const courses = (await portal.hasPortalCredentials())
-            ? await portal.fetchPortalAttendance(await getMoodleCourseCodes())
+          const courses = usingPortal
+            ? await portal.fetchPortalAttendance(
+                await getMoodleCourseCodes(),
+                // A forced refresh is an explicit ask, so drop the
+                // unchanged-course cache and reload every course.
+                options?.force ? [] : get().courses,
+              )
             : await scraper.fetchAllAttendance();
+
+          if (usingPortal && get().portalDisconnected) {
+            set({ portalDisconnected: false });
+          }
 
           // ponytail: an empty scrape means the attendance module is gone or the
           // session died, not that the student dropped every course. Overwriting
@@ -103,12 +138,25 @@ export const useAttendanceStore = create<
           debug.portal("Attendance fetch failed", {
             message: error instanceof Error ? error.message : String(error),
           });
+
+          // The portal clears its own credentials when the refresh token and
+          // the stored password are both rejected. Distinguish that from an
+          // ordinary network error: one needs the user, the other resolves
+          // itself. Raise the flag even in the background, where errors are
+          // otherwise swallowed, or the sign-out stays invisible forever.
+          const selfDisconnected =
+            usingPortal && !(await portal.hasPortalCredentials());
+          if (selfDisconnected) {
+            set({ portalDisconnected: true });
+          }
+
           if (background) {
             return;
           }
 
-          const message =
-            error instanceof Error
+          const message = selfDisconnected
+            ? PORTAL_DISCONNECTED_MESSAGE
+            : error instanceof Error
               ? error.message
               : "Failed to fetch attendance";
           set((state) => ({
@@ -116,6 +164,12 @@ export const useAttendanceStore = create<
             isLoading: silent ? state.isLoading : false,
           }));
         }
+        };
+
+        inFlightFetch = run().finally(() => {
+          inFlightFetch = null;
+        });
+        return inFlightFetch;
       },
 
       clearAttendance: () => {
@@ -124,6 +178,7 @@ export const useAttendanceStore = create<
           lastSyncTime: null,
           error: null,
           isLoading: false,
+          portalDisconnected: false,
         });
       },
     }),
@@ -133,6 +188,7 @@ export const useAttendanceStore = create<
       partialize: (state) => ({
         courses: state.courses,
         lastSyncTime: state.lastSyncTime,
+        portalDisconnected: state.portalDisconnected,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
