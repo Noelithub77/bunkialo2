@@ -189,6 +189,33 @@ test("an unrecognised status degrades to Unknown rather than throwing", () => {
 
 // --- summary figures ---
 
+test("marks courses as portal-sourced", () => {
+  // bunk-store's semester auto-drop is a Moodle-era heuristic. The portal only
+  // ever returns the active term, so the flag lets that heuristic stand down.
+  const course = toCourseAttendance(portalCourse(), [], []);
+  assert.equal(course.source, "portal");
+});
+
+test("derives the percentage when the payload omits it", () => {
+  // Live payload keys are courseId, courseCode, courseName, total, present,
+  // dlCredited. Percentage is not guaranteed.
+  const { percentage: _drop, ...withoutPercentage } = portalCourse({
+    present: 3,
+    total: 4,
+  });
+  const course = toCourseAttendance(withoutPercentage, [], []);
+  assert.equal(course.percentage, 75);
+});
+
+test("a course with no sessions yet reports zero rather than NaN", () => {
+  const { percentage: _drop, ...withoutPercentage } = portalCourse({
+    present: 0,
+    total: 0,
+  });
+  const course = toCourseAttendance(withoutPercentage, [], []);
+  assert.equal(course.percentage, 0);
+});
+
 test("copies the portal's own totals instead of recomputing them", () => {
   // The portal counts EXCUSED as absent; the app does not. Recomputing here
   // would make Bunkialo disagree with the figure the student sees officially.

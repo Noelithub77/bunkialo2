@@ -147,12 +147,17 @@ export const toCourseAttendance = (
     courseId: resolveCourseId(course, moodleCourses),
     courseName: `${course.courseCode} ${course.courseName}`,
     attendanceModuleId: null,
-    // Copied, not recomputed: the portal counts EXCUSED as absent and the app
-    // does not, so recomputing would make Bunkialo disagree with the official
-    // figure the student sees on the portal.
+    source: "portal",
+    // Copied where provided, not recomputed: the portal counts EXCUSED as
+    // absent and the app does not, so recomputing would make Bunkialo disagree
+    // with the official figure the student sees on the portal. The live payload
+    // carries total/present/dlCredited but not always a percentage, so fall
+    // back to the exact ratio rather than shipping undefined.
     totalSessions: course.total,
     attended: course.present,
-    percentage: course.percentage,
+    percentage:
+      course.percentage ??
+      (course.total > 0 ? (course.present / course.total) * 100 : 0),
     records,
     lastUpdated: Date.now(),
   };

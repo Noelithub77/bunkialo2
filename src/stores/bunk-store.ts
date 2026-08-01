@@ -182,6 +182,14 @@ export const useBunkStore = create<BunkStoreState & BunkActions>()(
 
         const autoDroppedCourseIds = new Set<string>();
         for (const course of attendanceCourses) {
+          // The auto-drop exists because Moodle's "in progress" course list
+          // keeps stale courses from previous semesters. The portal only ever
+          // returns the active term, so the heuristic has nothing to catch and
+          // its hardcoded Aug-Nov / Jan-Apr windows actively misfire: at the
+          // start of a term, sessions dated days earlier read as "outside the
+          // semester" and every course with 4+ records gets hidden.
+          if (course.source === "portal") continue;
+
           const decision = byCourseId[course.courseId];
           const optedOutForCurrentSemester =
             autoDropOptOutBySemester[course.courseId] ===

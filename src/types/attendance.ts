@@ -30,6 +30,12 @@ export interface CourseAttendance {
   courseId: string;
   courseName: string;
   attendanceModuleId: string | null;
+  /**
+   * Where the course came from. Absent means Moodle, so existing persisted
+   * data keeps working. The semester auto-drop heuristic in bunk-store only
+   * applies to Moodle courses; the portal returns the active term only.
+   */
+  source?: "lms" | "portal";
   totalSessions: number;
   attended: number;
   percentage: number;
@@ -71,7 +77,10 @@ export interface PortalCourse {
   courseName: string;
   present: number;
   total: number;
-  percentage: number;
+  /** Duty-leave sessions credited as attended. Observed live 2026-08-01. */
+  dlCredited?: number;
+  /** Not present in every payload; the adapter derives it from present/total. */
+  percentage?: number;
 }
 
 export interface AttendanceState {

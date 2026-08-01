@@ -236,8 +236,9 @@ const authedGet = async <T>(path: string): Promise<T> => {
   }
 
   const json = await response.json();
-  // Key names only: the payload itself carries the student's attendance.
-  debug.portal("Response", { path, keys: Object.keys(json ?? {}) });
+  // Joined, not an array: debug.ts sanitize() truncates arrays at 6 entries,
+  // which silently hid the `sessions` key and made this log lie.
+  debug.portal("Response", { path, keys: Object.keys(json ?? {}).join(",") });
   return json as T;
 };
 
@@ -269,8 +270,8 @@ export const fetchPortalAttendance = async (
 
   debug.portal("Attendance summary", {
     courseCount: courses.length,
-    courseKeys: courses[0] ? Object.keys(courses[0]) : [],
-    moodleCodes: moodleCourses.map((c) => c.courseCode),
+    courseKeys: courses[0] ? Object.keys(courses[0]).join(",") : "",
+    moodleCodes: moodleCourses.map((c) => c.courseCode).join(","),
   });
 
   const adapted = await Promise.all(
