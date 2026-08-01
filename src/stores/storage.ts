@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StateStorage } from "zustand/middleware";
+import type { StateStorage } from "zustand/middleware";
 
 // Zustand storage adapter for AsyncStorage
 export const zustandStorage: StateStorage = {

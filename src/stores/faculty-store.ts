@@ -1,5 +1,5 @@
 import type { Faculty, FacultyState } from "@/types";
-import Fuse, { IFuseOptions } from "fuse.js";
+import Fuse, { type IFuseOptions } from "fuse.js";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { zustandStorage } from "./storage";
