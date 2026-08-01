@@ -34,6 +34,9 @@ const KEYCHAIN_OPTIONS: SecureStore.SecureStoreOptions = {
 
 // Access token stays in memory only, mirroring the portal's own web client.
 let accessToken: string | null = null;
+// Held between the password step and the 2FA step so an incomplete login never
+// leaves a password on disk. Cleared by disconnectPortal.
+let pendingCredentials: Credentials | null = null;
 // Shared so concurrent 401s collapse into a single refresh. Without this, the
 // N+1 course fan-out fires N refreshes at once and, because the server rotates
 // refresh tokens, all but one are invalidated and the user is locked out.
@@ -84,6 +87,9 @@ export const hasPortalCredentials = async (): Promise<boolean> =>
 export const disconnectPortal = async (): Promise<void> => {
   accessToken = null;
   refreshInFlight = null;
+  // Drops any password held mid-2FA. Abandoning the flow must not leave it in
+  // memory for the rest of the process lifetime.
+  pendingCredentials = null;
   await SecureStore.deleteItemAsync(REFRESH_KEY);
   await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
   debug.scraper("Portal disconnected");
@@ -91,11 +97,15 @@ export const disconnectPortal = async (): Promise<void> => {
 
 /** Never logs the token or the password. */
 const persistSession = async (
-  data: { access: string; refresh: string },
+  data: { access: string; refresh?: string },
   credentials?: Credentials,
 ): Promise<void> => {
   accessToken = data.access;
-  await SecureStore.setItemAsync(REFRESH_KEY, data.refresh, KEYCHAIN_OPTIONS);
+  // A refresh response need not rotate the token. Writing undefined would throw
+  // on device, and clearing it would lock the user out on the next cold start.
+  if (data.refresh) {
+    await SecureStore.setItemAsync(REFRESH_KEY, data.refresh, KEYCHAIN_OPTIONS);
+  }
   if (credentials) {
     await SecureStore.setItemAsync(
       CREDENTIALS_KEY,
@@ -105,12 +115,6 @@ const persistSession = async (
   }
   debug.scraper("Portal session established");
 };
-
-/**
- * Credentials are held in memory between the password step and the 2FA step so
- * an incomplete login never leaves a password on disk.
- */
-let pendingCredentials: Credentials | null = null;
 
 export const login = async (
   email: string,

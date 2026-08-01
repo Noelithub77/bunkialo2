@@ -318,6 +318,35 @@ test("fetchPortalAttendance adapts the payload into CourseAttendance", async () 
   assert.match(courses[0].records[0].date, /^Thu 1 Jan 2026 9:00AM - 9:55AM$/);
 });
 
+test("a refresh response without a new token keeps the existing one", async () => {
+  // The portal's own client treats a missing refresh as "leave it alone".
+  // Writing undefined into SecureStore throws on device.
+  vault.set("attendance_portal_refresh", "ref-1");
+  queue = [
+    [401, { error: "missing_token" }],
+    [200, { access: "acc-2" }],
+    [200, { courses: [], recent: [] }],
+  ];
+
+  await portal.fetchPortalAttendance([]);
+
+  assert.equal(vault.get("attendance_portal_refresh"), "ref-1");
+});
+
+test("abandoning a 2FA challenge does not leave the password in memory", async () => {
+  queue = [
+    [200, { needs2fa: true, intermediate: "int-1" }],
+    [200, { access: "acc-1", refresh: "ref-1", user: {} }],
+  ];
+
+  await portal.login("s@iiitkottayam.ac.in", "pw");
+  await portal.disconnectPortal();
+
+  // The half-finished login is gone, so completing it later stores no password.
+  await portal.submitTotp("int-1", "123456");
+  assert.equal(vault.get("attendance_portal_credentials"), undefined);
+});
+
 test("disconnect clears everything", async () => {
   vault.set("attendance_portal_refresh", "ref-1");
   vault.set("attendance_portal_credentials", "{}");

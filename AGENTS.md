@@ -10,6 +10,8 @@ ALWAYS USE NATIVEWIND (TAILWIND FOR REACT NATIVE) and preffer it over stylesheet
 
 **Key Features**: Secure auth, Dashboard with timeline, Attendance tracking, Bunk management, Timetable generation, Mess menu, Academic calendar, GPA calculator, Background refresh, Local notifications, Offline cache, ICS export.
 
+**Attendance portal**: `https://attendance.iiitkottayam.ac.in` (attendance moved off Moodle).
+
 ## Tech Stack
 
 - **Framework**: Expo SDK 54 + Expo Router 6
@@ -285,9 +287,27 @@ components/
 
 ### Course & Attendance
 
-1. Fetch enrolled courses via `core_course_get_enrolled_courses_by_timeline_classification: inprogress`.
-2. Scrape `/mod/attendance/view.php?id={id}&view=5` for user report.
-3. Parse metrics: Total Sessions, Attended, Percentage.
+**The Moodle attendance module is retired.** IIIT Kottayam moved attendance to
+`https://attendance.iiitkottayam.ac.in`. Courses are still enrolled on Moodle, so Moodle
+remains the source for assignments, timeline, resources and faculty.
+
+Portal path (used when portal credentials are stored):
+
+1. `POST /api/auth/login` -> `{access, refresh, user}`, or a 2FA challenge.
+2. `GET /api/students/me/attendance` -> course summaries.
+3. `GET /api/students/me/courses/{id}/sessions` -> full session history per course.
+4. `services/attendance-portal-adapter.ts` converts sessions into `CourseAttendance`.
+
+Moodle fallback (no portal credentials): as before, scrape
+`/mod/attendance/view.php?id={id}&view=5`. Returns nothing now that the module is gone.
+
+**Key constraint**: the adapter emits Moodle-style date strings
+(`"Thu 1 Jan 2026 9:00AM - 9:55AM"`). `AttendanceRecord.date` is regex-parsed in 16 call
+sites and most fail *silently* on a format change, so the whole downstream pipeline
+(inference, bunk merge, conflicts, ICS export) is untouched by the migration. Do not put
+an ISO date in that field.
+
+See `docs/attendance-portal-recon.md` and `docs/attendance-portal-migration-plan.md`.
 
 ### LMS Resources Tree + Authenticated Downloads
 
@@ -301,6 +321,9 @@ components/
    - surface progress updates to UI/toast.
 
 ### Timetable Generation
+
+Unchanged by the portal migration: the portal exposes no student-visible schedule, so
+slots are still inferred from past sessions.
 
 1. Parse attendance records to extract day, time, and session type.
 2. Generate timetable slots from attendance data.
@@ -381,6 +404,20 @@ debug.scraper("Dashboard refresh triggered", data);
 - Avoid `Alert.alert` for simple notifications; reserve it for destructive confirmations or when you need multiple action buttons.
 
 ## Testing
+
+Unit tests (hermetic, no network) run on Node's built-in runner and import the real
+`.ts` sources via a small resolve hook in `src/scripts/test-setup.mjs`:
+
+```bash
+npm test
+```
+
+Requires Node 22.15+ for `module.registerHooks` and native TypeScript type stripping.
+Test files are named `*.test.mjs`. Note the scripts below are named `test-*.mjs` and also
+match `node --test`'s default glob, so `npm test` scopes explicitly -- a bare
+`node --test` would execute them against the live LMS with real credentials.
+
+Integration scripts (hit the network, need `.env` credentials):
 
 ```bash
 # Test scraper
