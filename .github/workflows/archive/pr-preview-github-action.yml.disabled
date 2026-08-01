@@ -1,4 +1,10 @@
-name: PR Preview (EAS Update)
+# Archived: replaced by .eas/workflows/pr-preview.yml.
+# This file is intentionally disabled by its extension.
+#
+# The old workflow used pull_request_target plus a fork checkout. That exposed
+# the Expo token to untrusted PR code and GitHub correctly blocked the run.
+
+name: PR Preview (legacy GitHub Action)
 
 on:
   pull_request_target:

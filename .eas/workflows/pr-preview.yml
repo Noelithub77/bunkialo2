@@ -1,0 +1,33 @@
+name: PR Preview Update
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
+jobs:
+  publish_preview:
+    name: Publish PR preview update
+    type: update
+    environment: development
+    params:
+      branch: pr-${{ github.event.pull_request.number }}
+      message: "PR #${{ github.event.pull_request.number }} preview"
+
+  comment:
+    name: Comment preview on PR
+    needs: [publish_preview]
+    type: github-comment
+    params:
+      message: "A preview update for this PR is ready to test."
+      update_group_ids:
+        - ${{ needs.publish_preview.outputs.first_update_group_id }}
