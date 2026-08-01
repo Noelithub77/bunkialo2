@@ -13,6 +13,9 @@ import { dirname, resolve as resolvePath } from "node:path";
 
 const SRC = resolvePath(dirname(fileURLToPath(import.meta.url)), "..");
 
+// React Native injects __DEV__ at build time; utils/debug.ts reads it at module load.
+globalThis.__DEV__ = false;
+
 // Native/Expo modules that cannot load outside a React Native runtime.
 const STUBBED = [
   "@react-native-async-storage/async-storage",

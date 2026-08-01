@@ -1,3 +1,4 @@
+import * as portal from "@/services/attendance-portal";
 import * as scraper from "@/services/scraper";
 import type { AttendanceState, CourseAttendance, CourseStats } from "@/types";
 import { create } from "zustand";
@@ -16,6 +17,32 @@ interface AttendanceActions {
   clearAttendance: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
+
+/**
+ * Course codes the portal adapter joins against, so a portal course resolves to
+ * the Moodle courseId every user customisation is already keyed by.
+ *
+ * Dynamic import: bunk-store imports this module, so a static import would be a
+ * cycle. Same pattern as services/api.ts.
+ */
+const getMoodleCourseCodes = async (): Promise<
+  { courseId: string; courseCode: string }[]
+> => {
+  try {
+    const { useBunkStore } = await import("./bunk-store");
+    return useBunkStore
+      .getState()
+      .courses.filter((course) => !course.isCustomCourse)
+      .map((course) => ({
+        courseId: course.courseId,
+        courseCode: course.config?.courseCode ?? "",
+      }))
+      .filter((course) => course.courseCode.length > 0);
+  } catch {
+    // ponytail: no mapping just means portal courses keep their portal: ids.
+    return [];
+  }
+};
 
 export const useAttendanceStore = create<
   AttendanceStoreState & AttendanceActions
@@ -41,7 +68,9 @@ export const useAttendanceStore = create<
           set({ isLoading: true, error: null });
         }
         try {
-          const courses = await scraper.fetchAllAttendance();
+          const courses = (await portal.hasPortalCredentials())
+            ? await portal.fetchPortalAttendance(await getMoodleCourseCodes())
+            : await scraper.fetchAllAttendance();
 
           // ponytail: an empty scrape means the attendance module is gone or the
           // session died, not that the student dropped every course. Overwriting

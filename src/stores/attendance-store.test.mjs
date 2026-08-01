@@ -11,6 +11,15 @@ mock.module("@/services/scraper", {
   namedExports: { fetchAllAttendance: async () => scraped },
 });
 
+let portalConnected = false;
+let portalCourses = [];
+mock.module("@/services/attendance-portal", {
+  namedExports: {
+    hasPortalCredentials: async () => portalConnected,
+    fetchPortalAttendance: async () => portalCourses,
+  },
+});
+
 const { useAttendanceStore } = await import("./attendance-store.ts");
 
 const course = (courseId) => ({
@@ -27,12 +36,34 @@ const course = (courseId) => ({
 const ids = () => useAttendanceStore.getState().courses.map((c) => c.courseId);
 
 beforeEach(() => {
+  portalConnected = false;
+  portalCourses = [];
+  scraped = [];
   useAttendanceStore.setState({
     courses: [],
     isLoading: false,
     lastSyncTime: null,
     error: null,
   });
+});
+
+test("reads from the portal when portal credentials exist", async () => {
+  portalConnected = true;
+  portalCourses = [course("p")];
+  scraped = [course("moodle")];
+
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.deepEqual(ids(), ["p"]);
+});
+
+test("falls back to Moodle when the portal is not connected", async () => {
+  portalConnected = false;
+  scraped = [course("moodle")];
+
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.deepEqual(ids(), ["moodle"]);
 });
 
 test("keeps cached courses when a foreground scrape returns nothing", async () => {

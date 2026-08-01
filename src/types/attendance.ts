@@ -37,6 +37,43 @@ export interface CourseAttendance {
   lastUpdated: number;
 }
 
+/**
+ * Attendance portal (attendance.iiitkottayam.ac.in) payloads.
+ * See docs/attendance-portal-recon.md. Field names are read off the portal's
+ * own render code; the exact date/time serialisation is still unconfirmed, so
+ * the adapter parses both plain dates and ISO timestamps.
+ */
+export type PortalSessionStatus =
+  | "PRESENT"
+  | "ABSENT"
+  | "LATE"
+  | "EXCUSED"
+  | "DUTY_LEAVE";
+
+export interface PortalSession {
+  sessionId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  section: string;
+  topic: string | null;
+  status: PortalSessionStatus;
+}
+
+export type PortalLoginResult =
+  | { kind: "success" }
+  | { kind: "needs2fa"; intermediate: string }
+  | { kind: "needsEmailOtp"; intermediate: string };
+
+export interface PortalCourse {
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  present: number;
+  total: number;
+  percentage: number;
+}
+
 export interface AttendanceState {
   courses: CourseAttendance[];
   isLoading: boolean;
