@@ -39,10 +39,24 @@ globalThis.fetch = async (url, init = {}) => {
 const authHeader = (call) =>
   new Headers(call.init.headers ?? {}).get("authorization");
 
+const queuedFetch = async (url, init = {}) => {
+  calls.push({ url: String(url), method: init.method ?? "GET", init });
+  const next = queue.shift();
+  if (!next) throw new Error(`unexpected request: ${url}`);
+  const [status, body] = next;
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  };
+};
+
 beforeEach(async () => {
   queue = [];
   calls.length = 0;
   vault.clear();
+  globalThis.fetch = queuedFetch;
   await portal.__resetForTests();
 });
 
@@ -345,6 +359,90 @@ test("abandoning a 2FA challenge does not leave the password in memory", async (
   // The half-finished login is gone, so completing it later stores no password.
   await portal.submitTotp("int-1", "123456");
   assert.equal(vault.get("attendance_portal_credentials"), undefined);
+});
+
+test("a hung request aborts instead of blocking forever", async () => {
+  // No timeout means a stalled portal leaves isLoading true and the attendance
+  // tab spinning with no way out. services/api.ts uses 30s for the same reason.
+  vault.set("attendance_portal_refresh", "ref-1");
+  const seen = [];
+  globalThis.fetch = async (url, init = {}) => {
+    seen.push(init.signal);
+    return { ok: true, status: 200, json: async () => ({ byCourse: [] }) };
+  };
+
+  await portal.fetchPortalAttendance([]);
+
+  assert.ok(seen[0], "request should carry an abort signal");
+  assert.equal(typeof seen[0].aborted, "boolean");
+});
+
+test("a session with a malformed date is dropped, not fatal", async () => {
+  vault.set("attendance_portal_refresh", "ref-1");
+  queue = [
+    [
+      200,
+      {
+        byCourse: [
+          {
+            courseId: "p-1",
+            courseCode: "CS101",
+            courseName: "Example",
+            present: 1,
+            total: 2,
+          },
+        ],
+      },
+    ],
+    [
+      200,
+      {
+        sessions: [
+          {
+            sessionId: "s1",
+            date: "2026-01-01T00:00:00.000Z",
+            startTime: "09:00",
+            endTime: "09:55",
+            section: "A",
+            topic: null,
+            status: "PRESENT",
+          },
+          { sessionId: "s2", date: "garbage", startTime: "x", endTime: "y" },
+        ],
+      },
+    ],
+  ];
+
+  const courses = await portal.fetchPortalAttendance([]);
+
+  assert.equal(courses[0].records.length, 1);
+  assert.equal(courses[0].percentage, 50);
+});
+
+test("a course payload with no sessions array does not throw", async () => {
+  vault.set("attendance_portal_refresh", "ref-1");
+  queue = [
+    [
+      200,
+      {
+        byCourse: [
+          {
+            courseId: "p-1",
+            courseCode: "CS101",
+            courseName: "Example",
+            present: 0,
+            total: 0,
+          },
+        ],
+      },
+    ],
+    [200, { course: {}, faculty: [] }],
+  ];
+
+  const courses = await portal.fetchPortalAttendance([]);
+
+  assert.equal(courses[0].records.length, 0);
+  assert.equal(courses[0].percentage, 0);
 });
 
 test("disconnect clears everything", async () => {

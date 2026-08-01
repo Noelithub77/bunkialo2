@@ -385,6 +385,19 @@ export default function SettingsScreen() {
             </Text>
           </View>
 
+          <PortalSettingsSection
+            isConnected={isPortalConnected}
+            isBusy={isPortalBusy}
+            onConnect={() => {
+              setPortalError(null);
+              setPortalChallenge("none");
+              setPortalIntermediate(null);
+              setShowPortalConnect(true);
+            }}
+            onDisconnect={() => setShowPortalDisconnectModal(true)}
+            theme={theme}
+          />
+
           <DashboardSettingsSection
             backgroundActivity={backgroundActivity}
             backgroundSyncActivityEnabled={backgroundSyncActivityEnabled}
@@ -489,19 +502,6 @@ export default function SettingsScreen() {
                   setAutoReconnectEnabled(enabled);
                   syncWifixBackgroundTask();
                 }}
-                theme={theme}
-              />
-
-              <PortalSettingsSection
-                isConnected={isPortalConnected}
-                isBusy={isPortalBusy}
-                onConnect={() => {
-                  setPortalError(null);
-                  setPortalChallenge("none");
-                  setPortalIntermediate(null);
-                  setShowPortalConnect(true);
-                }}
-                onDisconnect={() => setShowPortalDisconnectModal(true)}
                 theme={theme}
               />
               

@@ -13,10 +13,14 @@ mock.module("@/services/scraper", {
 
 let portalConnected = false;
 let portalCourses = [];
+let portalFails = false;
 mock.module("@/services/attendance-portal", {
   namedExports: {
     hasPortalCredentials: async () => portalConnected,
-    fetchPortalAttendance: async () => portalCourses,
+    fetchPortalAttendance: async () => {
+      if (portalFails) throw new Error("Portal request failed");
+      return portalCourses;
+    },
   },
 });
 
@@ -38,6 +42,7 @@ const ids = () => useAttendanceStore.getState().courses.map((c) => c.courseId);
 beforeEach(() => {
   portalConnected = false;
   portalCourses = [];
+  portalFails = false;
   scraped = [];
   useAttendanceStore.setState({
     courses: [],
@@ -55,6 +60,29 @@ test("reads from the portal when portal credentials exist", async () => {
   await useAttendanceStore.getState().fetchAttendance();
 
   assert.deepEqual(ids(), ["p"]);
+});
+
+test("a portal failure keeps the cached courses and surfaces an error", async () => {
+  useAttendanceStore.setState({ courses: [course("cached")] });
+  portalConnected = true;
+  portalFails = true;
+
+  await useAttendanceStore.getState().fetchAttendance();
+
+  assert.deepEqual(ids(), ["cached"]);
+  assert.ok(useAttendanceStore.getState().error);
+  assert.equal(useAttendanceStore.getState().isLoading, false);
+});
+
+test("a background portal failure stays silent and keeps the cache", async () => {
+  useAttendanceStore.setState({ courses: [course("cached")] });
+  portalConnected = true;
+  portalFails = true;
+
+  await useAttendanceStore.getState().fetchAttendance({ background: true });
+
+  assert.deepEqual(ids(), ["cached"]);
+  assert.equal(useAttendanceStore.getState().error, null);
 });
 
 test("falls back to Moodle when the portal is not connected", async () => {

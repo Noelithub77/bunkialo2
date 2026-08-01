@@ -247,6 +247,55 @@ test("record identity survives a faculty editing the session topic", () => {
   );
 });
 
+// --- malformed input ---
+
+test("a session ending before it starts produces no timetable slot", () => {
+  const sessions = ["2026-01-01", "2026-01-08", "2026-01-15", "2026-01-22"].map(
+    (date, i) =>
+      session({ sessionId: `s${i}`, date, startTime: "13:30", endTime: "11:30" }),
+  );
+
+  const { records } = toCourseAttendance(portalCourse(), sessions, []);
+  const slots = inferRecurringLmsSlots(records, { now: new Date(2026, 0, 29) });
+
+  // The string is emitted, but the inference parser rejects the range rather
+  // than inventing a negative-duration class.
+  assert.equal(slots.length, 0);
+});
+
+test("an out-of-range clock time is rejected", () => {
+  const course = toCourseAttendance(
+    portalCourse(),
+    [
+      session({ startTime: "25:00", endTime: "26:00" }),
+      session({ sessionId: "s2", startTime: "09:70", endTime: "10:00" }),
+    ],
+    [],
+  );
+  assert.equal(course.records.length, 0);
+});
+
+test("an empty session list yields an empty record list", () => {
+  const course = toCourseAttendance(portalCourse(), [], []);
+  assert.deepEqual(course.records, []);
+});
+
+test("a missing topic does not break the record", () => {
+  const record = firstRecord([session({ topic: null })]);
+  assert.equal(record.description, "");
+});
+
+test("sessions arriving out of order still infer one slot", () => {
+  const dates = ["2026-01-22", "2026-01-01", "2026-01-15", "2026-01-08"];
+  const sessions = dates.map((date, i) => session({ sessionId: `s${i}`, date }));
+
+  const { records } = toCourseAttendance(portalCourse(), sessions, []);
+  const slots = inferRecurringLmsSlots(records, { now: new Date(2026, 0, 29) });
+
+  assert.equal(slots.length, 1);
+  assert.equal(slots[0].dayOfWeek, 4);
+});
+
 // --- course identity join ---
 
 test("resolves a portal course onto the matching Moodle course id", () => {
@@ -270,6 +319,25 @@ test("falls back to a stable code-derived id when Moodle has no match", () => {
   // Stable across runs: a second call must produce the same key, or every sync
   // would orphan the previous sync's bunk records.
   assert.equal(resolveCourseId(...args), "portal:CS101");
+});
+
+test("picks a deterministic match when two Moodle courses share a code", () => {
+  const args = [
+    portalCourse({ courseCode: "CS101" }),
+    [
+      { courseId: "first", courseCode: "CS101" },
+      { courseId: "second", courseCode: "CS101" },
+    ],
+  ];
+  // Must not alternate between syncs, or bunk records would migrate course to
+  // course on every refresh.
+  assert.equal(resolveCourseId(...args), "first");
+  assert.equal(resolveCourseId(...args), "first");
+});
+
+test("a portal course with a blank code still gets a stable id", () => {
+  const id = resolveCourseId(portalCourse({ courseCode: "  " }), []);
+  assert.equal(id, "portal:p-1");
 });
 
 test("ignores Moodle courses whose code could not be extracted", () => {

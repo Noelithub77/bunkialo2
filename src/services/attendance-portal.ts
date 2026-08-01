@@ -50,6 +50,24 @@ export class PortalError extends Error {
   }
 }
 
+/**
+ * Matches the 30s on the Moodle axios instance (services/api.ts). Without it a
+ * stalled portal leaves isLoading true forever and the attendance tab spins
+ * with no way out — fetch has no default timeout.
+ */
+const REQUEST_TIMEOUT_MS = 30_000;
+
+// AbortSignal.timeout is unavailable on older Hermes; fall back to a manual
+// controller rather than dropping the timeout entirely.
+const timeoutSignal = (): AbortSignal => {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return controller.signal;
+};
+
 const postJson = async (path: string, body: unknown, token?: string) => {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -60,6 +78,7 @@ const postJson = async (path: string, body: unknown, token?: string) => {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal: timeoutSignal(),
   });
   return response;
 };
@@ -218,6 +237,7 @@ const authedGet = async <T>(path: string): Promise<T> => {
   const send = () =>
     fetch(`${PORTAL_API}${path}`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      signal: timeoutSignal(),
     });
 
   let response = await send();
