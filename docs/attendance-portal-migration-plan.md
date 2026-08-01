@@ -6,9 +6,64 @@ for the API surface.
 **Goal**: restore attendance, bunks and timetable from
 `attendance.iiitkottayam.ac.in`. Moodle keeps everything else.
 
-**Shape of the answer**: 1 new file, 3 edited, 1 test script. No new store, no new types
-file, no adapter file, no migration, no changes to `timetable-inference.ts`,
-`timetable-store.ts` or `bunk-store.ts`.
+**Shape of the answer**: no new store, no new types file, no migration, and no changes
+to `timetable-inference.ts`, `timetable-store.ts` or `bunk-store.ts`.
+
+## Status
+
+| Phase | State |
+|---|---|
+| P0 empty-scrape guard | Done. `stores/attendance-store.ts` |
+| P1 portal client + adapter | Done. Formats pinned against a live response 2026-08-01 |
+| P2 credential entry UI | Code complete, **not yet verified on a device** |
+| 2FA support | Not built. Blocked on whether it is enforced |
+
+`npm test` → 38 passing. `npx tsc --noEmit` clean. `npx expo lint` 0 errors.
+
+### Deviations from the plan as written
+
+1. **The adapter is its own file** (`services/attendance-portal-adapter.ts`), not folded
+   into the client. Testability forced it: the client imports `expo-secure-store`, so a
+   combined module cannot load under `node --test` without an Expo mock harness. The pure
+   adapter has type-only imports and loads directly.
+2. **A test harness was added** (`src/scripts/test-setup.mjs`, `test-stub.mjs`, `npm test`).
+   The existing `src/scripts/test-*.mjs` scripts duplicate the logic they test, so they
+   cannot disagree with the real code. The new harness resolves the `@/` alias and stubs
+   native modules so tests import real `.ts` sources. Requires Node 22.15+ for
+   `module.registerHooks` and native type stripping.
+   Test files are named `*.test.mjs`; the existing scripts are `test-*.mjs`. Both match
+   `node --test`'s default glob, so the `test` script scopes explicitly — a bare
+   `node --test` would execute the live-LMS scripts with real credentials.
+3. **`storage.ts:2`** changed `import { StateStorage }` to `import type`. It is a type
+   imported as a value; Metro's Babel tolerates it, Node's type stripping does not.
+   Behaviour identical.
+
+### Formats, confirmed 2026-08-01
+
+```
+date:      "2026-07-31T00:00:00.000Z"   calendar date at UTC midnight
+startTime: "11:30"                       24-hour HH:MM
+endTime:   "13:30"
+statuses seen: PRESENT, ABSENT
+```
+
+The UTC-midnight date was a real defect in the first cut: parsing it through local time
+rolls the day back for anyone west of UTC, producing the wrong weekday and filing the
+class on the wrong day of the timetable. It worked here only because IST is UTC+5:30.
+Fixed by reading the `YYYY-MM-DD` prefix directly. Could not be demonstrated as a failing
+test locally — Node ignores `TZ` on this Windows setup — so the invariant is encoded
+instead: the ISO form and the bare form must format identically.
+
+The 12-hour time branch was deleted once the real format was known. A meridiem time is
+now rejected, so a future format change surfaces as missing sessions rather than silently
+wrong times.
+
+### Known behaviour worth a decision
+
+A 2-hour slot (11:30–13:30 was observed) trips the existing `>= 110 minutes implies lab`
+rule at `utils/timetable-inference.ts:132` and is labelled a lab. That rule predates this
+work and also governs the Moodle path, so it was left alone. If those slots are not labs,
+changing it is a product decision affecting both sources.
 
 ---
 
@@ -167,14 +222,24 @@ without touching any timetable code.
 Settings screen, not `app/login.tsx`. Keeps the portal optional and avoids blocking
 first-run on a second password.
 
-Email + password fields, connect and disconnect. Connection state is
-`await hasPortalCredentials()`, not a store: it changes twice per install. Toast for
-feedback per AGENTS.md, `Alert.alert` only for the disconnect confirmation.
+- `components/settings/portal-settings-section.tsx` — connect / disconnect row.
+- `components/modals/portal-connect-modal.tsx` — email + password form.
+- `app/settings.tsx` — handlers and modal wiring.
 
-**Verify**: wrong password shows a clear error; disconnect wipes SecureStore; relaunch
-after disconnect makes no portal request.
+Connection state is local `useState` seeded from `hasPortalCredentials()`, not a store:
+it changes twice per install. Connecting calls `fetchAttendance()` and nothing else,
+because `syncFromLms` and timetable regeneration already run off `lastSyncTime` when the
+attendance tab renders (`app/(tabs)/attendance.tsx:111-123`). A 2FA challenge is reported
+as unsupported rather than failing opaquely.
 
-~80 lines.
+**Not covered by tests.** UI was not among the agreed seams, and React Native component
+testing would mean adding a renderer dependency for one form. Verify manually:
+
+1. Connect with a wrong password → clear error, nothing stored.
+2. Connect with correct credentials → attendance repopulates, timetable regenerates.
+3. Kill and relaunch → still connected, no re-prompt.
+4. Disconnect → confirm dialog, attendance clears, no portal requests afterwards.
+5. Connect on an account with 2FA, if one exists → the unsupported message, not a crash.
 
 ---
 
@@ -198,17 +263,20 @@ after disconnect makes no portal request.
 ## Sequencing
 
 ```
-P0 guard   ── ship now, independent
-P1 client  ── blocked on live response format
-P2 UI      ── blocked on P1
+P0 guard   ── done
+P1 client  ── done, formats pinned
+P2 UI      ── code complete, needs device verification
 ```
 
 ## Unresolved questions
 
-1. Exact `date`, `startTime`, `endTime` formats. **Blocks P1.**
-2. Is 2FA enforced for students? Decides whether P2 doubles.
-3. Does `present` include `LATE`? Only matters if percentages disagree with the portal.
-4. Sanctioned access from FACTS-H Lab / Team_Academics? Portal is `0.1.0` with active
+1. ~~Exact `date`, `startTime`, `endTime` formats.~~ Answered 2026-08-01, see above.
+2. **Is 2FA enforced for students?** Currently reported as unsupported. If any student
+   account requires it, that account cannot connect at all.
+3. **Does `present` include `LATE`?** Unsettled: the sampled course had no `LATE`
+   sessions. Only matters if the app's percentage disagrees with the portal's.
+4. **Are `EXCUSED` and `DUTY_LEAVE` ever sent to students?** Only `PRESENT` and `ABSENT`
+   were observed. The mapping handles all five, but is unexercised against real data.
+5. **Sanctioned access from FACTS-H Lab / Team_Academics?** Portal is `0.1.0` with active
    feature-flag work; a scraped contract can break on any deploy.
-
-1 through 3 settle from one authenticated page load with the Network tab open.
+6. **Rate limits**, given one request per course per refresh. Still unknown.

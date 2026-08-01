@@ -12,6 +12,7 @@ export { UnknownStatusModal } from "../attendance/unknown-status-modal";
 
 // Shared modals
 export { ConfirmModal } from "./confirm-modal";
+export { PortalConnectModal } from "./portal-connect-modal";
 export { SelectionModal } from "./selection-modal";
 export { SlotConflictModal } from "./slot-conflict-modal";
 

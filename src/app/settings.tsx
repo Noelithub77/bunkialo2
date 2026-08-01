@@ -8,8 +8,10 @@ import {
   WifixSettingsSection,
   SettingRow,
   BackgroundSyncStatusCard,
+  PortalSettingsSection,
 } from "@/components/settings";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
+import { PortalConnectModal } from "@/components/modals/portal-connect-modal";
 import { SelectionModal } from "@/components/modals/selection-modal";
 import { LogsSection } from "@/components/shared/logs-section";
 import { Container } from "@/components/ui/container";
@@ -26,10 +28,11 @@ import { requestNotificationPermissionsWithExplanation } from "@/utils/notificat
 import { Ionicons } from "@expo/vector-icons";
 import * as Application from "expo-application";
 import Constants from "expo-constants";
+import * as portal from "@/services/attendance-portal";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import * as Updates from "expo-updates";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Animated, LayoutAnimation, Pressable, ScrollView, Text, View } from "react-native";
 import type { ThemePreference } from "@/types";
 
@@ -39,7 +42,7 @@ export default function SettingsScreen() {
   const theme = isDark ? Colors.dark : Colors.light;
 
   const { username, logout } = useAuthStore();
-  const { clearAttendance } = useAttendanceStore();
+  const { clearAttendance, fetchAttendance } = useAttendanceStore();
   const { resetToLms } = useBunkStore();
   const { backgroundActivity, logs, clearLogs } = useDashboardStore();
   const {
@@ -70,6 +73,13 @@ export default function SettingsScreen() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
+
+  const [isPortalConnected, setIsPortalConnected] = useState(false);
+  const [isPortalBusy, setIsPortalBusy] = useState(false);
+  const [showPortalConnect, setShowPortalConnect] = useState(false);
+  const [showPortalDisconnectModal, setShowPortalDisconnectModal] =
+    useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
@@ -108,6 +118,48 @@ export default function SettingsScreen() {
       ? (configBuildNumber ?? Application.nativeBuildVersion)
       : (Application.nativeBuildVersion ?? configBuildNumber);
   const showBuildVersion = Constants.appOwnership !== "expo" && !!buildVersion;
+
+  // ponytail: local state, not a store. Connection status changes twice per
+  // install, so a subscription would be machinery for a boolean.
+  useEffect(() => {
+    void portal.hasPortalCredentials().then(setIsPortalConnected);
+  }, []);
+
+  const handlePortalConnect = async (email: string, password: string) => {
+    setIsPortalBusy(true);
+    setPortalError(null);
+    try {
+      const result = await portal.login(email, password);
+      if (result.kind !== "success") {
+        // 2FA is not implemented yet; say so rather than failing opaquely.
+        setPortalError(
+          "This account needs two-factor sign-in, which the app does not support yet.",
+        );
+        return;
+      }
+      setIsPortalConnected(true);
+      setShowPortalConnect(false);
+      // syncFromLms and timetable regeneration already run off lastSyncTime
+      // when the attendance tab renders, so this is the only trigger needed.
+      await fetchAttendance();
+    } catch {
+      setPortalError("Could not sign in. Check your email and password.");
+    } finally {
+      setIsPortalBusy(false);
+    }
+  };
+
+  const handlePortalDisconnectConfirm = async () => {
+    setShowPortalDisconnectModal(false);
+    setIsPortalBusy(true);
+    try {
+      await portal.disconnectPortal();
+      setIsPortalConnected(false);
+      clearAttendance();
+    } finally {
+      setIsPortalBusy(false);
+    }
+  };
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -404,6 +456,17 @@ export default function SettingsScreen() {
                 }}
                 theme={theme}
               />
+
+              <PortalSettingsSection
+                isConnected={isPortalConnected}
+                isBusy={isPortalBusy}
+                onConnect={() => {
+                  setPortalError(null);
+                  setShowPortalConnect(true);
+                }}
+                onDisconnect={() => setShowPortalDisconnectModal(true)}
+                theme={theme}
+              />
               
               <Text
                 className="mt-6 mb-2 ml-1 text-xs font-semibold uppercase"
@@ -423,6 +486,25 @@ export default function SettingsScreen() {
           />
         </View>
       </ScrollView>
+
+      <PortalConnectModal
+        visible={showPortalConnect}
+        isConnecting={isPortalBusy}
+        error={portalError}
+        onClose={() => setShowPortalConnect(false)}
+        onSubmit={handlePortalConnect}
+      />
+
+      <ConfirmModal
+        visible={showPortalDisconnectModal}
+        title="Disconnect Portal"
+        message="Attendance and timetable will stop updating until you reconnect. Your bunk notes are kept."
+        confirmText="Disconnect"
+        variant="destructive"
+        icon="link-outline"
+        onCancel={() => setShowPortalDisconnectModal(false)}
+        onConfirm={handlePortalDisconnectConfirm}
+      />
 
       <ConfirmModal
         visible={showLogoutModal}
