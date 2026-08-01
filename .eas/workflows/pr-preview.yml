@@ -28,6 +28,11 @@ jobs:
     needs: [publish_preview]
     type: github-comment
     params:
-      message: "A preview update for this PR is ready to test."
-      update_group_ids:
-        - ${{ needs.publish_preview.outputs.first_update_group_id }}
+      payload: |
+        ## PR preview update
+
+        **Expo Go:** [Open this update](https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&groupId=${{ needs.publish_preview.outputs.first_update_group_id }}&slug=exp&format=url)
+
+        ![Expo Go QR code](https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&groupId=${{ needs.publish_preview.outputs.first_update_group_id }}&slug=exp&format=svg)
+
+        The same update is also available from the EAS dashboard for the development build.
