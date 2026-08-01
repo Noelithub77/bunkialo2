@@ -27,9 +27,18 @@ export function AttendanceSetupSheet({ enabled }: AttendanceSetupSheetProps) {
 
   useEffect(() => {
     if (!enabled) return;
-    void getAttendanceCredentials().then((credentials) => {
-      if (!credentials) setVisible(true);
-    });
+    let active = true;
+    void getAttendanceCredentials()
+      .then((credentials) => {
+        if (active && !credentials) setVisible(true);
+      })
+      .catch(() => {
+        // A temporary SecureStore failure should not hide account setup.
+        if (active) setVisible(true);
+      });
+    return () => {
+      active = false;
+    };
   }, [enabled]);
 
   const finish = (result: Awaited<ReturnType<typeof login>>): void => {
