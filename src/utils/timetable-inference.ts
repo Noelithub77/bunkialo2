@@ -1,4 +1,9 @@
-import type { AttendanceRecord, DayOfWeek, SessionType } from "@/types";
+import type {
+  AttendanceRecord,
+  CourseAttendance,
+  DayOfWeek,
+  SessionType,
+} from "@/types";
 import { debug } from "@/utils/debug";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -81,6 +86,17 @@ interface InferenceOptions {
 }
 
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+const parseAttendanceDateMs = (value: string): number | null => {
+  const match = value.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+  if (!match) return null;
+  const month = MONTHS[match[2].toLowerCase()];
+  if (month === undefined) return null;
+  const date = new Date(Number(match[3]), month, Number(match[1]));
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
 
 type ParseFailureReason =
   | "missing_day"
@@ -172,6 +188,22 @@ const getInclusiveIsoWeekSpan = (
   const end = getStartOfIsoWeekUtcMs(toTimestampMs);
   if (end <= start) return 1;
   return Math.floor((end - start) / MS_PER_WEEK) + 1;
+};
+
+export const getTermWeekSpanCount = (
+  courses: CourseAttendance[],
+  termId: string,
+  now: Date = new Date(),
+): number | null => {
+  const dates = courses
+    .filter((course) => course.termId === termId)
+    .flatMap((course) =>
+      course.records
+        .map((record) => parseAttendanceDateMs(record.date))
+        .filter((value): value is number => value !== null),
+    );
+  if (dates.length === 0) return null;
+  return getInclusiveIsoWeekSpan(Math.min(...dates), now.getTime());
 };
 
 const parseAttendanceSlot = (

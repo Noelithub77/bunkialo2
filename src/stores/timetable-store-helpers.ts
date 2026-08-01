@@ -1,27 +1,10 @@
 import type {
-  CourseAttendance,
   DayOfWeek,
   SlotOccurrenceStats,
   TimetableSlot,
 } from "@/types";
 import { useAttendanceStore } from "./attendance-store";
 import { useBunkStore } from "./bunk-store";
-
-const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
-const MONTH_MAP: Record<string, number> = {
-  jan: 0,
-  feb: 1,
-  mar: 2,
-  apr: 3,
-  may: 4,
-  jun: 5,
-  jul: 6,
-  aug: 7,
-  sep: 8,
-  oct: 9,
-  nov: 10,
-  dec: 11,
-};
 
 export const makeTimetableId = (): string =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -36,42 +19,6 @@ export const timesOverlap = (
 export const timetableTimeToMinutes = (time: string): number => {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
-};
-
-const startOfIsoWeek = (timestamp: number): number => {
-  const date = new Date(timestamp);
-  const day = date.getUTCDay() || 7;
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() - (day - 1));
-  return date.getTime();
-};
-
-const parseAttendanceDate = (value: string): number | null => {
-  const match = value.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
-  if (!match) return null;
-  const month = MONTH_MAP[match[2].toLowerCase()];
-  if (month === undefined) return null;
-  const date = new Date(Number(match[3]), month, Number(match[1]));
-  if (Number.isNaN(date.getTime())) return null;
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-};
-
-export const getTermWeekSpanCount = (
-  courses: CourseAttendance[],
-  termId: string,
-): number | null => {
-  const dates = courses
-    .filter((course) => course.termId === termId)
-    .flatMap((course) =>
-    course.records
-      .map((record) => parseAttendanceDate(record.date))
-      .filter((value): value is number => value !== null),
-    );
-  if (dates.length === 0) return null;
-  const start = startOfIsoWeek(Math.min(...dates));
-  const end = startOfIsoWeek(Date.now());
-  return Math.max(1, Math.floor((end - start) / MS_PER_WEEK) + 1);
 };
 
 export const autoSlotStoreKey = (

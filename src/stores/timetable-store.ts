@@ -7,7 +7,10 @@ import type {
   TimetableSlot,
 } from "@/types";
 import { extractCourseName } from "@/utils/course-name";
-import { inferRecurringLmsSlotsVerbose } from "@/utils/timetable-inference";
+import {
+  getTermWeekSpanCount,
+  inferRecurringLmsSlotsVerbose,
+} from "@/utils/timetable-inference";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useAttendanceStore } from "./attendance-store";
@@ -17,7 +20,6 @@ import {
   autoSlotStoreKey,
   buildOutlierConflictId,
   buildPairConflictId,
-  getTermWeekSpanCount,
   isOutlierCandidate,
   makeTimetableId,
   mergeTimetableSlots,

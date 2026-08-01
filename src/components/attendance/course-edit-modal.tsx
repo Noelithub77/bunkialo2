@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
-import { getTermWeekSpanCount } from "@/stores/timetable-store-helpers";
 import type {
   CourseBunkData,
   CourseConfig,
@@ -13,7 +12,10 @@ import type {
   SessionType,
 } from "@/types";
 import { getRandomCourseColor } from "@/utils/course-color";
-import { inferRecurringLmsSlots } from "@/utils/timetable-inference";
+import {
+  getTermWeekSpanCount,
+  inferRecurringLmsSlots,
+} from "@/utils/timetable-inference";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useState } from "react";
