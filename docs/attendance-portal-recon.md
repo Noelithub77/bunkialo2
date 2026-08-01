@@ -106,10 +106,16 @@ Read off the render code. Field names are reliable; types are inferred.
 
 ### `GET /api/students/me/attendance?termId=`
 
+Top-level keys confirmed live 2026-08-01: `student`, `overall`, `byCourse`, `recent`.
+The course list is **`byCourse`**. Do not use `courses` — that is the *faculty*
+dashboard's key, and reading it off the bundle's faculty render code was the cause of
+the first integration failure (empty attendance, empty bunks, empty timetable).
+
 ```ts
 {
   student: { branch: string; semester: number | string };
-  courses: {
+  overall: { /* aggregate, field names unconfirmed */ };
+  byCourse: {
     courseId: string;
     courseCode: string;
     courseName: string;
@@ -118,7 +124,6 @@ Read off the render code. Field names are reliable; types are inferred.
     percentage: number;   // rendered with .toFixed(1)
   }[];
   recent: SessionRecord[];          // across all courses
-  thresholds: { weakBelow: number };
 }
 ```
 

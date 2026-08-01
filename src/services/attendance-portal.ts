@@ -260,10 +260,12 @@ export const fetchCourseSessions = async (
 export const fetchPortalAttendance = async (
   moodleCourses: { courseId: string; courseCode: string }[],
 ): Promise<CourseAttendance[]> => {
-  const summary = await authedGet<{ courses: PortalCourse[] }>(
+  // Confirmed live 2026-08-01: {student, overall, byCourse, recent}. The course
+  // list is `byCourse`, not `courses` — `courses` is the faculty dashboard's key.
+  const summary = await authedGet<{ byCourse: PortalCourse[] }>(
     "/students/me/attendance",
   );
-  const courses = summary.courses ?? [];
+  const courses = summary.byCourse ?? [];
 
   debug.portal("Attendance summary", {
     courseCount: courses.length,

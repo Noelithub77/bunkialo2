@@ -162,7 +162,7 @@ test("login rejects bad credentials without storing anything", async () => {
 test("an authenticated request carries the bearer token", async () => {
   queue = [
     [200, { access: "acc-1", refresh: "ref-1", user: {} }],
-    [200, { courses: [], recent: [] }],
+    [200, { student: {}, overall: {}, byCourse: [], recent: [] }],
   ];
 
   await portal.login("s@iiitkottayam.ac.in", "pw");
@@ -176,7 +176,7 @@ test("a 401 refreshes once and retries the original request", async () => {
   queue = [
     [401, { error: "missing_token" }],
     [200, { access: "acc-2", refresh: "ref-2" }],
-    [200, { courses: [], recent: [] }],
+    [200, { student: {}, overall: {}, byCourse: [], recent: [] }],
   ];
 
   await portal.fetchPortalAttendance([]);
@@ -225,7 +225,7 @@ test("a dead refresh token silently re-logs in with stored credentials", async (
     [401, { error: "missing_token" }],
     [401, { error: "invalid_refresh" }],
     [200, { access: "acc-2", refresh: "ref-2", user: {} }],
-    [200, { courses: [], recent: [] }],
+    [200, { student: {}, overall: {}, byCourse: [], recent: [] }],
   ];
 
   await portal.fetchPortalAttendance([]);
@@ -276,7 +276,7 @@ test("fetchPortalAttendance adapts the payload into CourseAttendance", async () 
     [
       200,
       {
-        courses: [
+        byCourse: [
           {
             courseId: "p-1",
             courseCode: "CS101",
@@ -325,7 +325,7 @@ test("a refresh response without a new token keeps the existing one", async () =
   queue = [
     [401, { error: "missing_token" }],
     [200, { access: "acc-2" }],
-    [200, { courses: [], recent: [] }],
+    [200, { student: {}, overall: {}, byCourse: [], recent: [] }],
   ];
 
   await portal.fetchPortalAttendance([]);
