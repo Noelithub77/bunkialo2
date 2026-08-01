@@ -147,6 +147,54 @@ test("a successful fetch clears the reconnect flag", async () => {
   assert.equal(useAttendanceStore.getState().portalDisconnected, false);
 });
 
+// --- needless churn ---
+
+test("an unchanged result leaves courses and lastSyncTime untouched", async () => {
+  // Every write replaces the courses array and bumps lastSyncTime, which
+  // attendance.tsx watches to run syncFromLms, which regenerates the timetable.
+  // Doing that on every navigation re-renders the whole tree for nothing.
+  portalConnected = true;
+  portalCourses = [course("p")];
+
+  await useAttendanceStore.getState().fetchAttendance();
+  const first = useAttendanceStore.getState();
+  const firstCourses = first.courses;
+  const firstSync = first.lastSyncTime;
+
+  // A fresh but equivalent payload, as a repeat fetch would produce.
+  portalCourses = [course("p")];
+  await useAttendanceStore.getState().fetchAttendance({ force: true });
+
+  const second = useAttendanceStore.getState();
+  assert.equal(second.courses, firstCourses, "array identity must be kept");
+  assert.equal(second.lastSyncTime, firstSync, "no downstream recompute");
+});
+
+test("a real change still updates courses and lastSyncTime", async () => {
+  portalConnected = true;
+  portalCourses = [course("p")];
+  await useAttendanceStore.getState().fetchAttendance();
+  const firstSync = useAttendanceStore.getState().lastSyncTime;
+
+  portalCourses = [{ ...course("p"), totalSessions: 11, attended: 10 }];
+  await useAttendanceStore.getState().fetchAttendance({ force: true });
+
+  const state = useAttendanceStore.getState();
+  assert.equal(state.courses[0].totalSessions, 11);
+  assert.notEqual(state.lastSyncTime, firstSync);
+});
+
+test("a new course appearing counts as a change", async () => {
+  portalConnected = true;
+  portalCourses = [course("p")];
+  await useAttendanceStore.getState().fetchAttendance();
+
+  portalCourses = [course("p"), course("q")];
+  await useAttendanceStore.getState().fetchAttendance({ force: true });
+
+  assert.deepEqual(ids(), ["p", "q"]);
+});
+
 // --- request load ---
 
 test("concurrent callers share one in-flight fetch", async () => {

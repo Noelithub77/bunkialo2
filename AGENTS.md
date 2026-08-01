@@ -307,7 +307,8 @@ sites and most fail *silently* on a format change, so the whole downstream pipel
 (inference, bunk merge, conflicts, ICS export) is untouched by the migration. Do not put
 an ISO date in that field.
 
-See `docs/attendance-portal-recon.md` and `docs/attendance-portal-migration-plan.md`.
+See `docs/attendance-portal.md` for the integration and `docs/attendance-portal-recon.md`
+for the API surface. Enable the `PORTAL` category in `utils/debug.ts` to trace it.
 
 ### LMS Resources Tree + Authenticated Downloads
 

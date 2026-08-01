@@ -38,6 +38,24 @@ const PORTAL_DISCONNECTED_MESSAGE =
   "Attendance portal signed out. Reconnect it in Settings.";
 
 /**
+ * Cheap identity for a fetch result. Writing `courses` replaces the array and
+ * bumps `lastSyncTime`, which app/(tabs)/attendance.tsx watches to run
+ * syncFromLms, which rewrites bunk-store, which regenerates the timetable. Doing
+ * that on every navigation re-renders the whole tree for no new data.
+ *
+ * ponytail: totals and record counts, not a deep compare. Ceiling: a correction
+ * that swaps one session's status without moving any count is treated as
+ * unchanged until the next real change. Pull to refresh forces a full reload.
+ */
+const courseSignature = (courses: CourseAttendance[]): string =>
+  courses
+    .map(
+      (course) =>
+        `${course.courseId}:${course.totalSessions}:${course.attended}:${course.records.length}`,
+    )
+    .join("|");
+
+/**
  * Course codes the portal adapter joins against, so a portal course resolves to
  * the Moodle courseId every user customisation is already keyed by.
  *
@@ -114,6 +132,15 @@ export const useAttendanceStore = create<
           // Ceiling: a student who genuinely unenrols from everything keeps stale
           // data until logout, which clears it anyway.
           if (courses.length === 0 && get().courses.length > 0) {
+            set((state) => ({
+              isLoading: background || silent ? state.isLoading : false,
+            }));
+            return;
+          }
+
+          // Nothing new: leave courses and lastSyncTime alone so the bunk sync
+          // and timetable regeneration downstream stay put.
+          if (courseSignature(courses) === courseSignature(get().courses)) {
             set((state) => ({
               isLoading: background || silent ? state.isLoading : false,
             }));

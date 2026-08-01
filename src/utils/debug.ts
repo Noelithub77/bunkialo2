@@ -14,7 +14,7 @@ type LogCategory =
   | "PORTAL";
 
 const ENABLED_CATEGORIES: LogCategory[] = [
-  "PORTAL",
+  // "PORTAL",
   // "AUTH",
   // "COOKIE",
   // "API",
