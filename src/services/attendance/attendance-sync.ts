@@ -48,7 +48,9 @@ const toRecord = (
     endTime: session.endTime,
     section: session.section,
     topic: session.topic,
-    description: session.topic ?? session.section ?? "Class",
+    // Keep the portal section for matching, but do not expose room codes such
+    // as "DS-B4" as if they were the session name.
+    description: session.topic ?? "Class",
     status,
     sourceStatus: session.status,
     points: status === "Absent" ? "0 / 1" : "1 / 1",

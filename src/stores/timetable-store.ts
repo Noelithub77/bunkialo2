@@ -17,7 +17,7 @@ import {
   autoSlotStoreKey,
   buildOutlierConflictId,
   buildPairConflictId,
-  getGlobalWeekSpanCount,
+  getTermWeekSpanCount,
   isOutlierCandidate,
   makeTimetableId,
   mergeTimetableSlots,
@@ -54,7 +54,7 @@ export const useTimetableStore = create<TimetableStoreState>()(
         const attendanceCourses = useAttendanceStore.getState().courses;
         const { courses: bunkCourses, hiddenCourses } = useBunkStore.getState();
         const { timeOverlapResolutions, outlierResolutions } = get();
-        const globalWeekSpanCount = getGlobalWeekSpanCount(attendanceCourses);
+        const weekSpanByTerm = new Map<string, number | null>();
 
         const autoSlotMap = new Map<string, TimetableSlot>();
         const autoSlotStatsMap = new Map<string, SlotOccurrenceStats>();
@@ -72,9 +72,18 @@ export const useTimetableStore = create<TimetableStoreState>()(
           const displayName =
             bunkCourse?.config?.alias || extractCourseName(course.courseName);
 
+          let totalWeekSpanOverride = weekSpanByTerm.get(course.termId);
+          if (totalWeekSpanOverride === undefined) {
+            totalWeekSpanOverride = getTermWeekSpanCount(
+              attendanceCourses,
+              course.termId,
+            );
+            weekSpanByTerm.set(course.termId, totalWeekSpanOverride);
+          }
+
           const inferred = inferRecurringLmsSlotsVerbose(course.records, {
             startToleranceMinutes: 20,
-            totalWeekSpanOverride: globalWeekSpanCount ?? undefined,
+            totalWeekSpanOverride: totalWeekSpanOverride ?? undefined,
           });
           const candidatesByDay = new Map<
             DayOfWeek,

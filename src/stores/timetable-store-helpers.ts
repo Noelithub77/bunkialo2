@@ -57,14 +57,17 @@ const parseAttendanceDate = (value: string): number | null => {
   return date.getTime();
 };
 
-export const getGlobalWeekSpanCount = (
+export const getTermWeekSpanCount = (
   courses: CourseAttendance[],
+  termId: string,
 ): number | null => {
-  const dates = courses.flatMap((course) =>
+  const dates = courses
+    .filter((course) => course.termId === termId)
+    .flatMap((course) =>
     course.records
       .map((record) => parseAttendanceDate(record.date))
       .filter((value): value is number => value !== null),
-  );
+    );
   if (dates.length === 0) return null;
   const start = startOfIsoWeek(Math.min(...dates));
   const end = startOfIsoWeek(Date.now());
