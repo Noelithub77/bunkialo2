@@ -33,6 +33,7 @@ function DefaultPopupContent({ popup }: { popup: PopupNotice }) {
 export function NoticePopup() {
   const hasHydrated = usePopupStore((state) => state.hasHydrated);
   const seenPopupIds = usePopupStore((state) => state.seenPopupIds);
+  const dismissedPopupIds = usePopupStore((state) => state.dismissedPopupIds);
   const notifiedPopupIds = usePopupStore((state) => state.notifiedPopupIds);
   const markAsSeen = usePopupStore((state) => state.markAsSeen);
   const markAsNotified = usePopupStore((state) => state.markAsNotified);
@@ -78,17 +79,18 @@ export function NoticePopup() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      if (currentPopup) markAsSeen(currentPopup.id);
       setModalVisible(false);
       setCurrentPopup(null);
     });
-  }, [backdropOpacity, currentPopup, markAsSeen, slideAnim]);
+  }, [backdropOpacity, slideAnim]);
 
   useEffect(() => {
     if (!hasHydrated || modalVisible) return;
 
     const unseen = POPUP_NOTICES.filter(
-      (popup) => !seenPopupIds.includes(popup.id),
+      (popup) =>
+        !seenPopupIds.includes(popup.id) &&
+        !dismissedPopupIds.includes(popup.id),
     );
     if (unseen.length === 0) return;
 
@@ -100,9 +102,19 @@ export function NoticePopup() {
 
     backdropOpacity.setValue(0);
     slideAnim.setValue(300);
-    setCurrentPopup(sorted[0]);
+    const nextPopup = sorted[0];
+    markAsSeen(nextPopup.id);
+    setCurrentPopup(nextPopup);
     setModalVisible(true);
-  }, [hasHydrated, modalVisible, seenPopupIds, backdropOpacity, slideAnim]);
+  }, [
+    hasHydrated,
+    markAsSeen,
+    modalVisible,
+    seenPopupIds,
+    dismissedPopupIds,
+    backdropOpacity,
+    slideAnim,
+  ]);
 
   useEffect(() => {
     if (modalVisible && currentPopup) animateIn();

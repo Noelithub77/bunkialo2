@@ -1,9 +1,4 @@
-import type {
-  NotificationConcern,
-  NotificationPriorityFilter,
-  NotificationReadFilter,
-} from "@/types";
-import { NOTIFICATION_RETENTION_DAYS } from "@/utils/notification-inbox";
+import type { NotificationConcern } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
@@ -11,9 +6,6 @@ import { Divider, Menu } from "react-native-paper";
 
 interface NotificationInboxControlsProps {
   concern: NotificationConcern;
-  readFilter: NotificationReadFilter;
-  priorityFilter: NotificationPriorityFilter;
-  unreadCount: number;
   counts: Record<NotificationConcern, number>;
   hasCurrentItems: boolean;
   hasAnyItems: boolean;
@@ -25,8 +17,6 @@ interface NotificationInboxControlsProps {
     border: string;
   };
   onConcernChange: (value: NotificationConcern) => void;
-  onReadFilterChange: (value: NotificationReadFilter) => void;
-  onPriorityFilterChange: (value: NotificationPriorityFilter) => void;
   onMarkCurrentRead: () => void;
   onRequestClearCurrent: () => void;
   onRequestClearAll: () => void;
@@ -42,45 +32,18 @@ const concernOptions: {
   { value: "app", label: "App" },
 ];
 
-const readOptions: { value: NotificationReadFilter; label: string }[] = [
-  { value: "all", label: "All status" },
-  { value: "unread", label: "Unread" },
-  { value: "read", label: "Read" },
-];
-
-const priorityOptions: {
-  value: NotificationPriorityFilter;
-  label: string;
-}[] = [
-  { value: "all", label: "All priority" },
-  { value: "important", label: "Important" },
-  { value: "normal", label: "Normal" },
-];
-
-const selectedLabel = <T extends string>(
-  options: { value: T; label: string }[],
-  value: T,
-): string => options.find((option) => option.value === value)?.label ?? value;
-
 export function NotificationInboxControls({
   concern,
-  readFilter,
-  priorityFilter,
-  unreadCount,
   counts,
   hasCurrentItems,
   hasAnyItems,
   theme,
   onConcernChange,
-  onReadFilterChange,
-  onPriorityFilterChange,
   onMarkCurrentRead,
   onRequestClearCurrent,
   onRequestClearAll,
   onClose,
 }: NotificationInboxControlsProps) {
-  const [readMenuVisible, setReadMenuVisible] = React.useState(false);
-  const [priorityMenuVisible, setPriorityMenuVisible] = React.useState(false);
   const [moreMenuVisible, setMoreMenuVisible] = React.useState(false);
 
   return (
@@ -95,9 +58,6 @@ export function NotificationInboxControls({
             style={{ color: theme.text }}
           >
             Notifications
-          </Text>
-          <Text className="text-[12px]" style={{ color: theme.textSecondary }}>
-            {unreadCount} unread · last {NOTIFICATION_RETENTION_DAYS} days
           </Text>
         </View>
         <View className="flex-row items-center gap-1">
@@ -196,82 +156,6 @@ export function NotificationInboxControls({
             </Pressable>
           );
         })}
-      </View>
-
-      <View className="flex-row gap-2">
-        <Menu
-          visible={readMenuVisible}
-          onDismiss={() => setReadMenuVisible(false)}
-          anchor={
-            <Pressable
-              onPress={() => setReadMenuVisible(true)}
-              className="flex-row items-center gap-1.5 rounded-full border px-3 py-2 active:opacity-60"
-              style={{ borderColor: theme.border }}
-            >
-              <Text
-                className="text-[11px] font-semibold"
-                style={{ color: theme.text }}
-              >
-                {selectedLabel(readOptions, readFilter)}
-              </Text>
-              <Ionicons
-                name="chevron-down"
-                size={12}
-                color={theme.textSecondary}
-              />
-            </Pressable>
-          }
-        >
-          {readOptions.map((option) => (
-            <Menu.Item
-              key={option.value}
-              title={option.label}
-              trailingIcon={readFilter === option.value ? "check" : undefined}
-              onPress={() => {
-                onReadFilterChange(option.value);
-                setReadMenuVisible(false);
-              }}
-            />
-          ))}
-        </Menu>
-
-        <Menu
-          visible={priorityMenuVisible}
-          onDismiss={() => setPriorityMenuVisible(false)}
-          anchor={
-            <Pressable
-              onPress={() => setPriorityMenuVisible(true)}
-              className="flex-row items-center gap-1.5 rounded-full border px-3 py-2 active:opacity-60"
-              style={{ borderColor: theme.border }}
-            >
-              <Text
-                className="text-[11px] font-semibold"
-                style={{ color: theme.text }}
-              >
-                {selectedLabel(priorityOptions, priorityFilter)}
-              </Text>
-              <Ionicons
-                name="chevron-down"
-                size={12}
-                color={theme.textSecondary}
-              />
-            </Pressable>
-          }
-        >
-          {priorityOptions.map((option) => (
-            <Menu.Item
-              key={option.value}
-              title={option.label}
-              trailingIcon={
-                priorityFilter === option.value ? "check" : undefined
-              }
-              onPress={() => {
-                onPriorityFilterChange(option.value);
-                setPriorityMenuVisible(false);
-              }}
-            />
-          ))}
-        </Menu>
       </View>
     </View>
   );

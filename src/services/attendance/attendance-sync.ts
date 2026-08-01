@@ -98,7 +98,6 @@ export const syncAttendance = async (
   const identities = matchCourses(
     portalCourses,
     lmsResult.status === "fulfilled" ? lmsResult.courses : [],
-    linkState.manualLinks,
   );
   linkState.setIdentities(identities);
 

@@ -19,7 +19,6 @@ import { initializeNotifications } from "@/utils/notifications";
 import { syncPortalNotifications } from "@/services/attendance/portal-notification-sync";
 import { usePortalNotificationStore } from "@/stores/portal-notification-store";
 import { scheduleIdleTask } from "@/utils/scheduling";
-import { isNotificationRecent } from "@/utils/notification-inbox";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
@@ -81,7 +80,6 @@ export default function DashboardScreen() {
       state.hasHydrated &&
       POPUP_NOTICES.some(
         (popup) =>
-          isNotificationRecent(popup.timestamp) &&
           !state.seenPopupIds.includes(popup.id) &&
           !state.dismissedPopupIds.includes(popup.id),
       ),

@@ -29,7 +29,6 @@ import { Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import type { ThemePreference } from "@/types";
 import { AccountSettingsSection } from "@/components/settings/account-settings-section";
-import { CourseLinkSettingsSection } from "@/components/settings/course-link-settings-section";
 import { DeveloperSettingsSection } from "@/components/settings/developer-settings-section";
 
 export default function SettingsScreen() {
@@ -297,8 +296,6 @@ export default function SettingsScreen() {
           </View>
 
           <AccountSettingsSection lmsUsername={username} theme={theme} />
-          <CourseLinkSettingsSection theme={theme} />
-
           <DashboardSettingsSection
             backgroundActivity={backgroundActivity}
             backgroundSyncActivityEnabled={backgroundSyncActivityEnabled}

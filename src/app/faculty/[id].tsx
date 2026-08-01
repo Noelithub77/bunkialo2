@@ -1,4 +1,5 @@
 import { Container } from "@/components/ui/container";
+import { FacultyImageViewer } from "@/components/faculty/faculty-image-viewer";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFacultyStore } from "@/stores/faculty-store";
@@ -7,7 +8,6 @@ import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import ImageViewing from "react-native-image-viewing";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function FacultyDetailScreen() {
@@ -36,7 +36,10 @@ export default function FacultyDetailScreen() {
             Faculty not found
           </Text>
           <Pressable onPress={() => router.back()} className="mt-4">
-            <Text className="text-[15px] font-medium" style={{ color: Colors.status.info }}>
+            <Text
+              className="text-[15px] font-medium"
+              style={{ color: Colors.status.info }}
+            >
               Go Back
             </Text>
           </Pressable>
@@ -63,8 +66,6 @@ export default function FacultyDetailScreen() {
       Linking.openURL(faculty.page.link);
     }
   };
-
-  const viewerBackgroundColor = isDark ? "#040712F5" : "#0B1220F0";
 
   return (
     <Container>
@@ -110,10 +111,16 @@ export default function FacultyDetailScreen() {
             </View>
           )}
 
-          <Text className="text-[22px] font-bold text-center" style={{ color: theme.text }}>
+          <Text
+            className="text-[22px] font-bold text-center"
+            style={{ color: theme.text }}
+          >
             {faculty.name}
           </Text>
-          <Text className="mt-1 text-[15px] text-center" style={{ color: theme.textSecondary }}>
+          <Text
+            className="mt-1 text-[15px] text-center"
+            style={{ color: theme.textSecondary }}
+          >
             {faculty.designation}
           </Text>
 
@@ -136,7 +143,10 @@ export default function FacultyDetailScreen() {
               onPress={handlePhone}
             >
               <Ionicons name="call" size={22} color={Colors.status.success} />
-              <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
+              <Text
+                className="text-[12px] font-medium"
+                style={{ color: theme.text }}
+              >
                 Call
               </Text>
             </Pressable>
@@ -148,7 +158,10 @@ export default function FacultyDetailScreen() {
               onPress={handleEmail}
             >
               <Ionicons name="mail" size={22} color={Colors.status.info} />
-              <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
+              <Text
+                className="text-[12px] font-medium"
+                style={{ color: theme.text }}
+              >
                 Email
               </Text>
             </Pressable>
@@ -160,7 +173,10 @@ export default function FacultyDetailScreen() {
               onPress={handleWebpage}
             >
               <Ionicons name="globe" size={22} color={Colors.status.warning} />
-              <Text className="text-[12px] font-medium" style={{ color: theme.text }}>
+              <Text
+                className="text-[12px] font-medium"
+                style={{ color: theme.text }}
+              >
                 Website
               </Text>
             </Pressable>
@@ -172,7 +188,10 @@ export default function FacultyDetailScreen() {
           className="mb-4 rounded-xl p-4"
           style={{ backgroundColor: theme.backgroundSecondary }}
         >
-          <Text className="mb-4 text-[16px] font-semibold" style={{ color: theme.text }}>
+          <Text
+            className="mb-4 text-[16px] font-semibold"
+            style={{ color: theme.text }}
+          >
             Contact
           </Text>
 
@@ -246,7 +265,10 @@ export default function FacultyDetailScreen() {
             className="mb-4 rounded-xl p-4"
             style={{ backgroundColor: theme.backgroundSecondary }}
           >
-            <Text className="mb-4 text-[16px] font-semibold" style={{ color: theme.text }}>
+            <Text
+              className="mb-4 text-[16px] font-semibold"
+              style={{ color: theme.text }}
+            >
               Areas of Expertise
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -255,7 +277,9 @@ export default function FacultyDetailScreen() {
                   key={index}
                   className="rounded-full px-4 py-1.5"
                   style={{
-                    backgroundColor: isDark ? Colors.gray[800] : Colors.gray[200],
+                    backgroundColor: isDark
+                      ? Colors.gray[800]
+                      : Colors.gray[200],
                   }}
                 >
                   <Text className="text-[13px]" style={{ color: theme.text }}>
@@ -273,7 +297,10 @@ export default function FacultyDetailScreen() {
             className="mb-4 rounded-xl p-4"
             style={{ backgroundColor: theme.backgroundSecondary }}
           >
-            <Text className="mb-4 text-[16px] font-semibold" style={{ color: theme.text }}>
+            <Text
+              className="mb-4 text-[16px] font-semibold"
+              style={{ color: theme.text }}
+            >
               Qualification
             </Text>
             <Text
@@ -286,52 +313,12 @@ export default function FacultyDetailScreen() {
         )}
       </ScrollView>
       {faculty.imageUrl ? (
-        <ImageViewing
-          images={[{ uri: faculty.imageUrl }]}
-          imageIndex={0}
+        <FacultyImageViewer
+          imageUrl={faculty.imageUrl}
+          facultyName={faculty.name}
+          designation={faculty.designation}
           visible={isImageViewerVisible}
-          onRequestClose={() => setIsImageViewerVisible(false)}
-          backgroundColor={viewerBackgroundColor}
-          swipeToCloseEnabled
-          doubleTapToZoomEnabled
-          presentationStyle="overFullScreen"
-          HeaderComponent={() => (
-            <View className="px-5 pt-14">
-              <View className="flex-row items-start justify-between">
-                <View
-                  className="max-w-[80%] rounded-2xl px-4 py-2.5"
-                  style={{ backgroundColor: "#FFFFFF1A" }}
-                >
-                  <Text className="text-[16px] font-semibold text-white">
-                    {faculty.name}
-                  </Text>
-                  <Text className="mt-0.5 text-[12px] text-white/80">
-                    {faculty.designation}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => setIsImageViewerVisible(false)}
-                  className="h-10 w-10 items-center justify-center rounded-full"
-                  style={{ backgroundColor: "#FFFFFF22" }}
-                  hitSlop={8}
-                >
-                  <Ionicons name="close" size={20} color="#FFFFFF" />
-                </Pressable>
-              </View>
-            </View>
-          )}
-          FooterComponent={() => (
-            <View className="items-center px-6 pb-12">
-              <View
-                className="rounded-full px-4 py-2"
-                style={{ backgroundColor: "#FFFFFF1A" }}
-              >
-                <Text className="text-[12px] text-white/90">
-                  Pinch or double-tap to zoom • Swipe down to close
-                </Text>
-              </View>
-            </View>
-          )}
+          onClose={() => setIsImageViewerVisible(false)}
         />
       ) : null}
     </Container>

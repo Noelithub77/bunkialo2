@@ -1,4 +1,5 @@
 import { LogsSection } from "@/components/shared/logs-section";
+import { CourseLinkSettingsSection } from "@/components/settings/course-link-settings-section";
 import { Colors } from "@/constants/theme";
 import type { DashboardBackgroundActivity, DashboardLog } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -106,6 +107,7 @@ export function DeveloperSettingsSection({
             onToggleAutoReconnect={onToggleAutoReconnect}
             theme={theme}
           />
+          <CourseLinkSettingsSection theme={theme} />
           <Text
             className="mb-2 ml-1 mt-6 text-xs font-semibold uppercase"
             style={{ color: theme.textSecondary }}

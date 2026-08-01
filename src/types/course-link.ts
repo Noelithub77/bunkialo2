@@ -1,4 +1,4 @@
-export type CourseMappingSource = "code" | "name" | "manual" | "unresolved";
+export type CourseMappingSource = "code" | "name" | "unresolved";
 
 export interface CourseIdentity {
   key: string;
@@ -8,10 +8,4 @@ export interface CourseIdentity {
   lmsCourseId: string | null;
   attendanceCourseId: string | null;
   mappingSource: CourseMappingSource;
-}
-
-export interface ManualCourseLink {
-  termId: string;
-  attendanceCourseId: string;
-  lmsCourseId: string | null;
 }

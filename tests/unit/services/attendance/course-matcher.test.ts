@@ -21,21 +21,18 @@ const lmsCourses: Course[] = [
 
 describe("course matching", () => {
   test("matches an exact course code", () => {
-    const [result] = matchCourses([portalCourse], lmsCourses, []);
+    const [result] = matchCourses([portalCourse], lmsCourses);
     expect(result.lmsCourseId).toBe("160");
     expect(result.mappingSource).toBe("code");
   });
 
-  test("manual links take priority", () => {
-    const [result] = matchCourses([portalCourse], lmsCourses, [
-      {
-        termId: "term-1",
-        attendanceCourseId: "attendance-1",
-        lmsCourseId: "161",
-      },
-    ]);
-    expect(result.lmsCourseId).toBe("161");
-    expect(result.mappingSource).toBe("manual");
+  test("matches a close course name when the code is unavailable", () => {
+    const [result] = matchCourses(
+      [{ ...portalCourse, code: "UNKNOWN", name: "Operating System" }],
+      [{ id: "160", name: "Operating Systems", url: "" }],
+    );
+    expect(result.lmsCourseId).toBe("160");
+    expect(result.mappingSource).toBe("name");
   });
 
   test("leaves an ambiguous course unresolved", () => {
@@ -45,7 +42,6 @@ describe("course matching", () => {
         { id: "1", name: "System Design", url: "" },
         { id: "2", name: "Systems Engineering", url: "" },
       ],
-      [],
     );
     expect(result.mappingSource).toBe("unresolved");
   });

@@ -2,16 +2,11 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { zustandStorage } from "./storage";
 import { POPUP_NOTICES } from "@/data/popups";
-import { isNotificationRecent } from "@/utils/notification-inbox";
 
 const VALID_POPUP_IDS = new Set(POPUP_NOTICES.map((popup) => popup.id));
 
-const getRecentPopupIds = (): Set<string> =>
-  new Set(
-    POPUP_NOTICES.filter((popup) => isNotificationRecent(popup.timestamp)).map(
-      (popup) => popup.id,
-    ),
-  );
+const getValidPopupIds = (): Set<string> =>
+  new Set(POPUP_NOTICES.map((popup) => popup.id));
 
 const normalizePopupIds = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -99,7 +94,6 @@ interface PopupState {
   hasHydrated: boolean;
   markAsSeen: (id: string) => void;
   markAsNotified: (id: string) => void;
-  markAsUnseen: (id: string) => void;
   markAllAsSeen: () => void;
   dismissPopups: (ids: string[]) => void;
   pruneExpiredPopups: () => void;
@@ -145,17 +139,8 @@ export const usePopupStore = create<PopupState>()(
         });
       },
 
-      markAsUnseen: (id: string) => {
-        if (!VALID_POPUP_IDS.has(id)) return;
-        set((state) => ({
-          seenPopupIds: state.seenPopupIds.filter((popupId) => popupId !== id),
-        }));
-      },
-
       markAllAsSeen: () => {
-        set({
-          seenPopupIds: Array.from(getRecentPopupIds()),
-        });
+        set({ seenPopupIds: Array.from(VALID_POPUP_IDS) });
       },
 
       dismissPopups: (ids) => {
@@ -168,14 +153,14 @@ export const usePopupStore = create<PopupState>()(
       },
 
       pruneExpiredPopups: () => {
-        const recentIds = getRecentPopupIds();
+        const validIds = getValidPopupIds();
         set((state) => ({
-          seenPopupIds: state.seenPopupIds.filter((id) => recentIds.has(id)),
+          seenPopupIds: state.seenPopupIds.filter((id) => validIds.has(id)),
           notifiedPopupIds: state.notifiedPopupIds.filter((id) =>
-            recentIds.has(id),
+            validIds.has(id),
           ),
           dismissedPopupIds: state.dismissedPopupIds.filter((id) =>
-            recentIds.has(id),
+            validIds.has(id),
           ),
         }));
       },
@@ -189,7 +174,6 @@ export const usePopupStore = create<PopupState>()(
         if (!hasHydrated) return false;
         return POPUP_NOTICES.some(
           (popup) =>
-            isNotificationRecent(popup.timestamp) &&
             !seenPopupIds.includes(popup.id) &&
             !dismissedPopupIds.includes(popup.id),
         );
@@ -200,7 +184,6 @@ export const usePopupStore = create<PopupState>()(
         if (!hasHydrated) return [];
         return POPUP_NOTICES.filter(
           (popup) =>
-            isNotificationRecent(popup.timestamp) &&
             !seenPopupIds.includes(popup.id) &&
             !dismissedPopupIds.includes(popup.id),
         );
