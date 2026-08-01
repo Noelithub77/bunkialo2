@@ -6,20 +6,26 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 
+export type PortalChallenge = "none" | "needs2fa" | "needsEmailOtp";
+
 interface PortalConnectModalProps {
   visible: boolean;
   isConnecting: boolean;
   error: string | null;
+  challenge: PortalChallenge;
   onClose: () => void;
   onSubmit: (email: string, password: string) => void;
+  onSubmitCode: (code: string, useBackupCode: boolean) => void;
 }
 
 export function PortalConnectModal({
   visible,
   isConnecting,
   error,
+  challenge,
   onClose,
   onSubmit,
+  onSubmitCode,
 }: PortalConnectModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -27,16 +33,28 @@ export function PortalConnectModal({
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setEmail("");
       setPassword("");
+      setCode("");
+      setUseBackupCode(false);
     }
   }, [visible]);
 
-  const canSubmit =
-    email.trim().length > 0 && password.length > 0 && !isConnecting;
+  // A fresh challenge means a fresh code field.
+  useEffect(() => {
+    setCode("");
+    setUseBackupCode(false);
+  }, [challenge]);
+
+  const isChallenge = challenge !== "none";
+  const canSubmit = isChallenge
+    ? code.trim().length > 0 && !isConnecting
+    : email.trim().length > 0 && password.length > 0 && !isConnecting;
 
   return (
     <Modal
@@ -57,15 +75,21 @@ export function PortalConnectModal({
                 className="text-[18px] font-semibold"
                 style={{ color: theme.text }}
               >
-                Connect Attendance Portal
+                {isChallenge
+                  ? "Two-Factor Verification"
+                  : "Connect Attendance Portal"}
               </Text>
               <Text
                 className="mt-1 text-[12px]"
                 style={{ color: theme.textSecondary }}
               >
-                Attendance moved off Moodle. Sign in to
-                attendance.iiitkottayam.ac.in to restore attendance and your
-                timetable.
+                {challenge === "needsEmailOtp"
+                  ? "Enter the code sent to your email."
+                  : challenge === "needs2fa"
+                    ? useBackupCode
+                      ? "Enter one of your saved backup codes."
+                      : "Enter the code from your authenticator app."
+                    : "Attendance moved off Moodle. Sign in to attendance.iiitkottayam.ac.in to restore attendance and your timetable."}
               </Text>
             </View>
             <Pressable onPress={onClose} hitSlop={8}>
@@ -73,29 +97,60 @@ export function PortalConnectModal({
             </Pressable>
           </View>
 
-          <View className="gap-3">
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="username"
-              placeholder="you@iiitkottayam.ac.in"
-              editable={!isConnecting}
-            />
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              editable={!isConnecting}
-            />
-          </View>
+          {isChallenge ? (
+            <View className="gap-3">
+              <Input
+                label={useBackupCode ? "Backup Code" : "Verification Code"}
+                value={code}
+                onChangeText={setCode}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType={useBackupCode ? "default" : "number-pad"}
+                textContentType={useBackupCode ? "none" : "oneTimeCode"}
+                placeholder={useBackupCode ? "xxxx-xxxx" : "123456"}
+                editable={!isConnecting}
+              />
+              {challenge === "needs2fa" && (
+                <Pressable
+                  onPress={() => setUseBackupCode((prev) => !prev)}
+                  disabled={isConnecting}
+                >
+                  <Text
+                    className="text-[12px] underline"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    {useBackupCode
+                      ? "Use authenticator code instead"
+                      : "Use a backup code instead"}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          ) : (
+            <View className="gap-3">
+              <Input
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="username"
+                placeholder="you@iiitkottayam.ac.in"
+                editable={!isConnecting}
+              />
+              <Input
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                editable={!isConnecting}
+              />
+            </View>
+          )}
 
           {error ? (
             <Text
@@ -115,8 +170,20 @@ export function PortalConnectModal({
           </Text>
 
           <Button
-            title={isConnecting ? "Connecting…" : "Connect"}
-            onPress={() => onSubmit(email.trim(), password)}
+            title={
+              isConnecting
+                ? isChallenge
+                  ? "Verifying…"
+                  : "Connecting…"
+                : isChallenge
+                  ? "Verify"
+                  : "Connect"
+            }
+            onPress={() =>
+              isChallenge
+                ? onSubmitCode(code.trim(), useBackupCode)
+                : onSubmit(email.trim(), password)
+            }
             disabled={!canSubmit}
             className="mt-4"
           />

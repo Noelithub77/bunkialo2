@@ -8,6 +8,7 @@ import {
   syncWifixBackgroundTask,
   unregisterWifixBackgroundTask,
 } from "@/background/wifix-background";
+import * as portalService from "@/services/attendance-portal";
 import * as authService from "@/services/auth";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
@@ -116,6 +117,14 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       useLmsResourcesStore.getState().clearCourseResources();
       useAssignmentStore.getState().clearAssignmentCache();
       useAttendanceUIStore.getState().resetUI();
+
+      // The portal holds a second set of credentials. Leaving them behind would
+      // make "log out" untrue for one of the two accounts the app stores.
+      try {
+        await portalService.disconnectPortal();
+      } catch (error) {
+        console.error("Failed to disconnect attendance portal", error);
+      }
 
       await authService.logout();
     } catch (error) {

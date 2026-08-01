@@ -11,7 +11,10 @@ import {
   PortalSettingsSection,
 } from "@/components/settings";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
-import { PortalConnectModal } from "@/components/modals/portal-connect-modal";
+import {
+  PortalConnectModal,
+  type PortalChallenge,
+} from "@/components/modals/portal-connect-modal";
 import { SelectionModal } from "@/components/modals/selection-modal";
 import { LogsSection } from "@/components/shared/logs-section";
 import { Container } from "@/components/ui/container";
@@ -80,6 +83,11 @@ export default function SettingsScreen() {
   const [showPortalDisconnectModal, setShowPortalDisconnectModal] =
     useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const [portalChallenge, setPortalChallenge] =
+    useState<PortalChallenge>("none");
+  const [portalIntermediate, setPortalIntermediate] = useState<string | null>(
+    null,
+  );
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
@@ -125,25 +133,52 @@ export default function SettingsScreen() {
     void portal.hasPortalCredentials().then(setIsPortalConnected);
   }, []);
 
+  const finishPortalConnect = async () => {
+    setIsPortalConnected(true);
+    setShowPortalConnect(false);
+    setPortalChallenge("none");
+    setPortalIntermediate(null);
+    // syncFromLms and timetable regeneration already run off lastSyncTime
+    // when the attendance tab renders, so this is the only trigger needed.
+    await fetchAttendance();
+  };
+
   const handlePortalConnect = async (email: string, password: string) => {
     setIsPortalBusy(true);
     setPortalError(null);
     try {
       const result = await portal.login(email, password);
       if (result.kind !== "success") {
-        // 2FA is not implemented yet; say so rather than failing opaquely.
-        setPortalError(
-          "This account needs two-factor sign-in, which the app does not support yet.",
-        );
+        setPortalChallenge(result.kind);
+        setPortalIntermediate(result.intermediate);
         return;
       }
-      setIsPortalConnected(true);
-      setShowPortalConnect(false);
-      // syncFromLms and timetable regeneration already run off lastSyncTime
-      // when the attendance tab renders, so this is the only trigger needed.
-      await fetchAttendance();
+      await finishPortalConnect();
     } catch {
       setPortalError("Could not sign in. Check your email and password.");
+    } finally {
+      setIsPortalBusy(false);
+    }
+  };
+
+  const handlePortalSubmitCode = async (
+    code: string,
+    useBackupCode: boolean,
+  ) => {
+    if (!portalIntermediate) return;
+    setIsPortalBusy(true);
+    setPortalError(null);
+    try {
+      if (useBackupCode) {
+        await portal.submitBackupCode(portalIntermediate, code);
+      } else if (portalChallenge === "needsEmailOtp") {
+        await portal.submitEmailOtp(portalIntermediate, code);
+      } else {
+        await portal.submitTotp(portalIntermediate, code);
+      }
+      await finishPortalConnect();
+    } catch {
+      setPortalError("That code was not accepted. Try again.");
     } finally {
       setIsPortalBusy(false);
     }
@@ -462,6 +497,8 @@ export default function SettingsScreen() {
                 isBusy={isPortalBusy}
                 onConnect={() => {
                   setPortalError(null);
+                  setPortalChallenge("none");
+                  setPortalIntermediate(null);
                   setShowPortalConnect(true);
                 }}
                 onDisconnect={() => setShowPortalDisconnectModal(true)}
@@ -491,8 +528,10 @@ export default function SettingsScreen() {
         visible={showPortalConnect}
         isConnecting={isPortalBusy}
         error={portalError}
+        challenge={portalChallenge}
         onClose={() => setShowPortalConnect(false)}
         onSubmit={handlePortalConnect}
+        onSubmitCode={handlePortalSubmitCode}
       />
 
       <ConfirmModal

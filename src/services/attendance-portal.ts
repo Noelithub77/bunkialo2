@@ -8,6 +8,7 @@
  */
 import type {
   CourseAttendance,
+  Credentials,
   PortalCourse,
   PortalLoginResult,
   PortalSession,
@@ -20,6 +21,16 @@ export const PORTAL_API = "https://attendance.iiitkottayam.ac.in/api";
 
 const REFRESH_KEY = "attendance_portal_refresh";
 const CREDENTIALS_KEY = "attendance_portal_credentials";
+
+/**
+ * Stricter than the Moodle path's default: keeps secrets out of device backups
+ * and unreadable while the phone is locked. Applied here because these keys are
+ * new; changing the existing lms_credentials entry would invalidate every
+ * current user's saved login.
+ */
+const KEYCHAIN_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
 
 // Access token stays in memory only, mirroring the portal's own web client.
 let accessToken: string | null = null;
@@ -50,6 +61,23 @@ const postJson = async (path: string, body: unknown, token?: string) => {
   return response;
 };
 
+/**
+ * Credentials use the shared `Credentials` shape from types/auth.ts, the same
+ * one services/auth.ts writes for Moodle. `username` holds the portal email.
+ */
+export const getPortalCredentials = async (): Promise<Credentials | null> => {
+  const stored = await SecureStore.getItemAsync(CREDENTIALS_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as Credentials;
+  } catch {
+    // Corrupt entry is indistinguishable from no entry, and keeping it would
+    // wedge every future login attempt.
+    await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
+    return null;
+  }
+};
+
 export const hasPortalCredentials = async (): Promise<boolean> =>
   (await SecureStore.getItemAsync(CREDENTIALS_KEY)) !== null;
 
@@ -58,7 +86,31 @@ export const disconnectPortal = async (): Promise<void> => {
   refreshInFlight = null;
   await SecureStore.deleteItemAsync(REFRESH_KEY);
   await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
+  debug.scraper("Portal disconnected");
 };
+
+/** Never logs the token or the password. */
+const persistSession = async (
+  data: { access: string; refresh: string },
+  credentials?: Credentials,
+): Promise<void> => {
+  accessToken = data.access;
+  await SecureStore.setItemAsync(REFRESH_KEY, data.refresh, KEYCHAIN_OPTIONS);
+  if (credentials) {
+    await SecureStore.setItemAsync(
+      CREDENTIALS_KEY,
+      JSON.stringify(credentials),
+      KEYCHAIN_OPTIONS,
+    );
+  }
+  debug.scraper("Portal session established");
+};
+
+/**
+ * Credentials are held in memory between the password step and the 2FA step so
+ * an incomplete login never leaves a password on disk.
+ */
+let pendingCredentials: Credentials | null = null;
 
 export const login = async (
   email: string,
@@ -71,39 +123,81 @@ export const login = async (
 
   const data = await response.json();
 
-  if (data.needs2fa) {
-    return { kind: "needs2fa", intermediate: data.intermediate };
-  }
-  if (data.needsEmailOtp) {
-    return { kind: "needsEmailOtp", intermediate: data.intermediate };
+  if (data.needs2fa || data.needsEmailOtp) {
+    pendingCredentials = { username: email, password };
+    return {
+      kind: data.needs2fa ? "needs2fa" : "needsEmailOtp",
+      intermediate: data.intermediate,
+    };
   }
 
-  accessToken = data.access;
-  await SecureStore.setItemAsync(REFRESH_KEY, data.refresh);
-  await SecureStore.setItemAsync(
-    CREDENTIALS_KEY,
-    JSON.stringify({ email, password }),
-  );
-  debug.scraper("Portal login succeeded");
+  await persistSession(data, { username: email, password });
   return { kind: "success" };
+};
+
+const completeChallenge = async (
+  path: string,
+  body: Record<string, string>,
+): Promise<PortalLoginResult> => {
+  const response = await postJson(path, body);
+  if (!response.ok) {
+    throw new PortalError(response.status, "Portal verification failed");
+  }
+
+  const data = await response.json();
+  await persistSession(data, pendingCredentials ?? undefined);
+  pendingCredentials = null;
+  return { kind: "success" };
+};
+
+export const submitTotp = (intermediate: string, code: string) =>
+  completeChallenge("/auth/login/totp", { intermediate, code });
+
+export const submitEmailOtp = (intermediate: string, code: string) =>
+  completeChallenge("/auth/login/email-otp", { intermediate, code });
+
+export const submitBackupCode = (intermediate: string, backupCode: string) =>
+  completeChallenge("/auth/login/backup-code", { intermediate, backupCode });
+
+/**
+ * Re-authenticates from the stored password when the refresh token is dead,
+ * mirroring services/auth.ts tryAutoLogin. Without this the stored password
+ * would serve no purpose and should not be kept at all.
+ */
+const tryAutoLogin = async (): Promise<boolean> => {
+  const credentials = await getPortalCredentials();
+  if (!credentials) return false;
+
+  try {
+    const result = await login(credentials.username, credentials.password);
+    // A 2FA account cannot heal silently; it needs the user present.
+    return result.kind === "success";
+  } catch {
+    return false;
+  }
 };
 
 const performRefresh = async (): Promise<boolean> => {
   const refresh = await SecureStore.getItemAsync(REFRESH_KEY);
-  if (!refresh) return false;
 
-  const response = await postJson("/auth/refresh", { refresh });
-  if (!response.ok) {
-    debug.scraper("Portal refresh rejected, clearing credentials");
-    await disconnectPortal();
-    return false;
+  if (refresh) {
+    const response = await postJson("/auth/refresh", { refresh });
+    if (response.ok) {
+      const data = await response.json();
+      // The server may rotate the refresh token; persisting it is not optional.
+      await persistSession(data);
+      return true;
+    }
+    debug.scraper("Portal refresh rejected, falling back to stored login");
   }
 
-  const data = await response.json();
-  accessToken = data.access;
-  // The server may rotate the refresh token; persisting it is not optional.
-  if (data.refresh) await SecureStore.setItemAsync(REFRESH_KEY, data.refresh);
-  return true;
+  if (await tryAutoLogin()) return true;
+
+  // Both paths failed: the password is stale or revoked. Clearing it means the
+  // next launch prompts instead of retrying a rejected password forever.
+  debug.scraper("Portal re-authentication failed, clearing credentials");
+  await disconnectPortal();
+  return false;
 };
 
 const refreshAccess = (): Promise<boolean> => {
@@ -174,4 +268,5 @@ export const fetchPortalAttendance = async (
 export const __resetForTests = async (): Promise<void> => {
   accessToken = null;
   refreshInFlight = null;
+  pendingCredentials = null;
 };
