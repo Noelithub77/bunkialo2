@@ -42,31 +42,19 @@ export const mapPortalStatus = (status: string): AttendanceStatus =>
   STATUS_MAP[status as PortalSessionStatus] ?? "Unknown";
 
 /**
- * Minutes since midnight from either "09:00" / "09:00:00" or "9:00 AM".
- * ponytail: tolerant because the portal's exact serialisation is unconfirmed.
- * Pin this to one form once a live response is captured.
+ * Minutes since midnight. The portal sends 24-hour "HH:MM" (observed: "11:30").
+ * ponytail: seconds tolerated because ISO time serialisation varies; 12-hour
+ * parsing removed since the portal does not send it. Add it back if a payload
+ * ever arrives with a meridiem — the symptom would be dropped sessions.
  */
 const parseTimeToMinutes = (value: string): number | null => {
-  const trimmed = value.trim();
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return null;
 
-  const twelveHour = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?[Mm]\.?$/);
-  if (twelveHour) {
-    const hours = Number(twelveHour[1]) % 12;
-    const minutes = twelveHour[2] ? Number(twelveHour[2]) : 0;
-    if (hours > 11 || minutes > 59) return null;
-    const isPm = twelveHour[3].toLowerCase() === "p";
-    return (hours + (isPm ? 12 : 0)) * 60 + minutes;
-  }
-
-  const twentyFour = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-  if (twentyFour) {
-    const hours = Number(twentyFour[1]);
-    const minutes = Number(twentyFour[2]);
-    if (hours > 23 || minutes > 59) return null;
-    return hours * 60 + minutes;
-  }
-
-  return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
 };
 
 /**
@@ -81,14 +69,25 @@ const formatClockTime = (minutes: number): string => {
   return `${hours12}:${(minutes % 60).toString().padStart(2, "0")}${meridiem}`;
 };
 
-/** Accepts "2026-01-01" and full ISO timestamps. Local-time midnight for the former. */
+/**
+ * The portal sends a calendar date pinned to UTC midnight
+ * ("2026-07-31T00:00:00.000Z"). Passing that to `new Date()` and reading local
+ * getters rolls the date back a day for anyone west of UTC, which yields the
+ * wrong weekday and files the class under the wrong day of the timetable.
+ *
+ * So take the calendar part verbatim and build a local date from it. Works
+ * identically for a bare "2026-07-31", and is timezone-proof by construction.
+ */
 const parseSessionDate = (value: string): Date | null => {
-  const plain = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (plain) {
-    return new Date(Number(plain[1]), Number(plain[2]) - 1, Number(plain[3]));
-  }
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+
+  const date = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 /**

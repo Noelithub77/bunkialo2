@@ -65,16 +65,45 @@ test("derives the weekday name from the date rather than trusting input", () => 
   assert.match(record.date, /^Thu 1 Jan 2026 /);
 });
 
-test("accepts a full ISO timestamp as well as a plain date", () => {
-  const record = firstRecord([session({ date: "2026-01-01T03:30:00.000Z" })]);
-  assert.match(record.date, /^Thu 1 Jan 2026 /);
+test("formats a real portal payload", () => {
+  // Captured live 2026-08-01: the portal sends a calendar date pinned to UTC
+  // midnight and 24-hour HH:MM times. 31 Jul 2026 is a Friday.
+  const record = firstRecord([
+    session({
+      date: "2026-07-31T00:00:00.000Z",
+      startTime: "11:30",
+      endTime: "13:30",
+    }),
+  ]);
+  assert.equal(record.date, "Fri 31 Jul 2026 11:30AM - 1:30PM");
 });
 
-test("accepts 12-hour clock times as well as 24-hour", () => {
+test("the UTC-midnight date is read as a calendar date, not converted", () => {
+  // Converting "...T00:00:00.000Z" through local time rolls the day back for
+  // anyone west of UTC, which silently moves the class to the wrong weekday.
+  // These two must agree in every timezone.
+  const iso = firstRecord([session({ date: "2026-07-31T00:00:00.000Z" })]);
+  const plain = firstRecord([session({ date: "2026-07-31" })]);
+  assert.equal(iso.date, plain.date);
+  assert.match(iso.date, /^Fri 31 Jul 2026 /);
+});
+
+test("tolerates seconds on the clock times", () => {
   const record = firstRecord([
-    session({ startTime: "9:00 AM", endTime: "9:55 AM" }),
+    session({ startTime: "11:30:00", endTime: "13:30:00" }),
   ]);
-  assert.equal(parseTimeSlot(record.date), "9:00AM - 9:55AM");
+  assert.equal(parseTimeSlot(record.date), "11:30AM - 1:30PM");
+});
+
+test("rejects a meridiem time rather than misreading it", () => {
+  // The portal sends 24-hour only. If that ever changes, sessions get dropped
+  // and attendance looks short — which is louder than a silent 12-hour misparse.
+  const course = toCourseAttendance(
+    portalCourse(),
+    [session({ startTime: "9:00 AM", endTime: "9:55 AM" })],
+    [],
+  );
+  assert.equal(course.records.length, 0);
 });
 
 test("formats afternoon times as PM", () => {

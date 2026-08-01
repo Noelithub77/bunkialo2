@@ -139,17 +139,26 @@ Read off the render code. Field names are reliable; types are inferred.
 
 ### `SessionRecord`
 
+**Confirmed against a live response, 2026-08-01.**
+
 ```ts
 {
   sessionId: string;
-  date: string;        // rendered through a date formatter, so ISO-ish. UNVERIFIED exact format.
-  startTime: string;   // rendered through a time formatter. UNVERIFIED exact format.
-  endTime: string;
-  section: string;
+  date: string;        // "2026-07-31T00:00:00.000Z" — calendar date at UTC midnight
+  startTime: string;   // "11:30" — 24-hour HH:MM
+  endTime: string;     // "13:30"
   topic: string | null;
+  section: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED" | "DUTY_LEAVE";
 }
 ```
+
+The date being pinned to UTC midnight matters: parsing it through local time rolls
+the day back for anyone west of UTC, giving the wrong weekday and filing the class
+under the wrong day of the timetable. Read the `YYYY-MM-DD` prefix, never convert.
+
+Observed statuses in one course's history: `PRESENT`, `ABSENT`. The other three
+come from the faculty marking UI and have not been seen in student data yet.
 
 The session list has no date-range or pagination parameter in its call site, and the UI
 filters All / Present / Absent purely client-side. That is only correct if the server
@@ -230,9 +239,8 @@ no student endpoint exposes it. Plan for inference from past sessions, same as t
 
 Each needs one live authenticated request.
 
-1. **Exact `date`, `startTime`, `endTime` string formats.** Decides the adapter's parsing.
-   Both go through formatter functions before display, so the raw values are not visible
-   in the bundle.
+1. ~~Exact `date`, `startTime`, `endTime` string formats.~~ **Answered 2026-08-01**, see
+   `SessionRecord` above. Pinned in `services/attendance-portal-adapter.ts`.
 2. **Is 2FA enforced for students?** Decides whether ~150 lines of TOTP/OTP UI ship.
 3. **Does `/students/me/courses/{id}/sessions` accept `termId`?** Not present at the call
    site. Past-term course drill-down may 404.
