@@ -162,7 +162,7 @@ export const useAttendanceStore = create<
           }));
         } catch (error) {
           // Without this a portal failure is indistinguishable from "no data".
-          debug.portal("Attendance fetch failed", {
+          debug.scraper("Attendance fetch failed", {
             message: error instanceof Error ? error.message : String(error),
           });
 

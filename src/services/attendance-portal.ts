@@ -114,7 +114,7 @@ export const disconnectPortal = async (): Promise<void> => {
   pendingCredentials = null;
   await SecureStore.deleteItemAsync(REFRESH_KEY);
   await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
-  debug.portal("Portal disconnected");
+  debug.scraper("Portal disconnected");
 };
 
 /** Never logs the token or the password. */
@@ -135,7 +135,7 @@ const persistSession = async (
       KEYCHAIN_OPTIONS,
     );
   }
-  debug.portal("Portal session established");
+  debug.scraper("Portal session established");
 };
 
 export const login = async (
@@ -214,14 +214,14 @@ const performRefresh = async (): Promise<boolean> => {
       await persistSession(data);
       return true;
     }
-    debug.portal("Portal refresh rejected, falling back to stored login");
+    debug.scraper("Portal refresh rejected, falling back to stored login");
   }
 
   if (await tryAutoLogin()) return true;
 
   // Both paths failed: the password is stale or revoked. Clearing it means the
   // next launch prompts instead of retrying a rejected password forever.
-  debug.portal("Portal re-authentication failed, clearing credentials");
+  debug.scraper("Portal re-authentication failed, clearing credentials");
   await disconnectPortal();
   return false;
 };
@@ -254,14 +254,14 @@ const authedGet = async <T>(path: string): Promise<T> => {
   }
 
   if (!response.ok) {
-    debug.portal("Request failed", { path, status: response.status });
+    debug.scraper("Request failed", { path, status: response.status });
     throw new PortalError(response.status, `Portal request failed: ${path}`);
   }
 
   const json = await response.json();
   // Joined, not an array: debug.ts sanitize() truncates arrays at 6 entries,
   // which silently hid the `sessions` key and made this log lie.
-  debug.portal("Response", { path, keys: Object.keys(json ?? {}).join(",") });
+  debug.scraper("Response", { path, keys: Object.keys(json ?? {}).join(",") });
   return json as T;
 };
 
@@ -292,7 +292,7 @@ export const fetchPortalAttendance = async (
   );
   const courses = summary.byCourse ?? [];
 
-  debug.portal("Attendance summary", {
+  debug.scraper("Attendance summary", {
     courseCount: courses.length,
     courseKeys: courses[0] ? Object.keys(courses[0]).join(",") : "",
     moodleCodes: moodleCourses.map((c) => c.courseCode).join(","),
@@ -327,7 +327,7 @@ export const fetchPortalAttendance = async (
 
       const sessions = await fetchCourseSessions(course.courseId);
       const result = toCourseAttendance(course, sessions, moodleCourses);
-      debug.portal("Adapted course", {
+      debug.scraper("Adapted course", {
         code: course.courseCode,
         resolvedId: result.courseId,
         joinedToMoodle: !result.courseId.startsWith("portal:"),
@@ -338,7 +338,7 @@ export const fetchPortalAttendance = async (
     }),
   );
 
-  debug.portal("Fetch complete", {
+  debug.scraper("Fetch complete", {
     courses: courses.length,
     requests: 1 + (courses.length - skipped),
     reusedFromCache: skipped,

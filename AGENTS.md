@@ -308,7 +308,7 @@ sites and most fail *silently* on a format change, so the whole downstream pipel
 an ISO date in that field.
 
 See `docs/attendance-portal.md` for the integration and `docs/attendance-portal-recon.md`
-for the API surface. Enable the `PORTAL` category in `utils/debug.ts` to trace it.
+for the API surface.
 
 ### LMS Resources Tree + Authenticated Downloads
 

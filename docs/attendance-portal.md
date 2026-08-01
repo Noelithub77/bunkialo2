@@ -189,6 +189,9 @@ until a few weeks accumulate.
 npm test        # 80 hermetic tests, no network
 ```
 
+Portal logging goes through `debug.scraper`, which is a no-op by default like every
+other category in `utils/debug.ts`. Enable it there when tracing.
+
 Runs on Node's built-in runner and imports the real `.ts` sources through a resolve hook
 (`src/scripts/test-setup.mjs`). Requires **Node 22.15+** for `module.registerHooks` and
 native TypeScript type stripping.
