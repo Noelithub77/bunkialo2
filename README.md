@@ -40,7 +40,7 @@ bunx expo start
 
 ### Android development build
 
-Download the [Bunkialo2 1.4.0 Android development APK](https://expo.dev/artifacts/eas/q_sAgtRYkMH-6p8JDHlPdiCgNUXCdhVqo6UoOTNAGYw.apk), install it on an Android device, and use the EAS Update preview link from the matching pull request. The [EAS build page](https://expo.dev/accounts/ialexpo/projects/Bunkialo2/builds) lists future builds.
+Download the latest Android development APK from the [GitHub Releases page](https://github.com/Noelithub77/bunkialo2/releases), install it on an Android device, and use the EAS Update preview link from the matching pull request.
 
 ## Scripts
 
