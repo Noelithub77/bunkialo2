@@ -17,8 +17,7 @@ bunx expo start
 
 ## Android development build
 
-Download the latest APK from the [Bunkialo2 EAS builds](https://expo.dev/accounts/ialexpo/projects/Bunkialo2/builds).
-Use the development build for EAS Update previews; Expo Go cannot load updates that use a custom runtime version.
+Download the [Bunkialo2 1.4.0 Android development APK](https://expo.dev/artifacts/eas/q_sAgtRYkMH-6p8JDHlPdiCgNUXCdhVqo6UoOTNAGYw.apk) for device testing. The [EAS builds page](https://expo.dev/accounts/ialexpo/projects/Bunkialo2/builds) lists future builds. Use the development build for EAS Update previews; Expo Go cannot load updates that use a custom runtime version.
 
 ## Quality Checks
 
