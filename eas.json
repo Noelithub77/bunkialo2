@@ -6,7 +6,11 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "channel": "production",
+      "distribution": "internal",
+      "channel": "development",
+      "android": {
+        "buildType": "apk"
+      },
       "bun": "1.3.8"
     },
     "preview": {
