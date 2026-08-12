@@ -46,32 +46,37 @@ const parseAttendanceDate = (value: string): Date | null => {
 };
 
 const buildWindow = (
-  year: number,
-  startMonth: number,
-  endMonth: number,
-  keySuffix: "jan-apr" | "aug-nov",
+  semesterKey: string,
+  startDate: Date,
+  endDate: Date,
 ): SemesterWindow => {
-  const startDate = new Date(year, startMonth, 1);
   startDate.setHours(0, 0, 0, 0);
-  const endDate = new Date(year, endMonth + 1, 0);
   endDate.setHours(23, 59, 59, 999);
-
-  return {
-    semesterKey: `${year}-${keySuffix}`,
-    startDate,
-    endDate,
-  };
+  return { semesterKey, startDate, endDate };
 };
+
+const buildEvenWindow = (year: number): SemesterWindow =>
+  buildWindow(
+    `${year}-jan-jun`,
+    new Date(year, 0, 1),
+    new Date(year, 5, 30),
+  );
+
+const buildOddWindow = (startYear: number): SemesterWindow =>
+  buildWindow(
+    `${startYear}-jul-jan`,
+    new Date(startYear, 6, 1),
+    new Date(startYear + 1, 0, 31),
+  );
 
 export const getCurrentSemesterWindow = (now: Date = new Date()): SemesterWindow => {
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  if (month >= 0 && month <= 6) {
-    return buildWindow(year, 0, 3, "jan-apr");
-  }
-
-  return buildWindow(year, 7, 10, "aug-nov");
+  // IIIT Kottayam's odd semester runs from July into January.
+  if (month === 0) return buildOddWindow(year - 1);
+  if (month >= 6) return buildOddWindow(year);
+  return buildEvenWindow(year);
 };
 
 export const evaluateCourseAgainstSemesterWindow = (

@@ -1,4 +1,4 @@
-import { checkSession, tryAutoLogin } from "@/services/auth";
+import { checkSession, tryAutoLogin } from "@/services/auth/lms-auth";
 import { getCurrentBaseUrl } from "@/services/api";
 import { ASSIGNMENT_STALE_MS } from "@/constants/assignment";
 import type {

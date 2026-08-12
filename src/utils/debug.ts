@@ -1,6 +1,7 @@
 // Debug utility for logging with timestamps and categories
 
-const DEBUG_ENABLED = __DEV__; // Only in development
+// Expo defines __DEV__ at runtime; unit-test runners do not.
+const DEBUG_ENABLED = typeof __DEV__ !== "undefined" && __DEV__;
 
 type LogCategory =
   | "AUTH"

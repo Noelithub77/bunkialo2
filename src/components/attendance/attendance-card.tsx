@@ -121,6 +121,8 @@ const getStatusColor = (status: AttendanceStatus): string => {
       return Colors.status.warning;
     case "Excused":
       return Colors.status.info;
+    case "Duty Leave":
+      return Colors.status.info;
     case "Unknown":
       return Colors.status.unknown;
   }
@@ -233,7 +235,7 @@ export function AttendanceCard({
           description: record.description,
           timeSlot: time,
           note: record.remarks || "",
-          source: "lms" as const,
+          source: "attendancePortal" as const,
           isDutyLeave: false,
           dutyLeaveNote: "",
           isMarkedPresent: record.status === "Present",

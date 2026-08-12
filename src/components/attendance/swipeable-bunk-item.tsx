@@ -203,13 +203,15 @@ export function SwipeableBunkItem({
                 className="rounded-full px-2 py-0.5"
                 style={{
                   backgroundColor:
-                    bunk.source === "lms"
+                    bunk.source === "attendancePortal" || bunk.source === "lms"
                       ? Colors.status.info
                       : Colors.status.warning,
                 }}
               >
                 <Text className="text-[10px] font-semibold text-white">
-                  {bunk.source.toUpperCase()}
+                  {bunk.source === "attendancePortal"
+                    ? "ATTENDANCE"
+                    : bunk.source.toUpperCase()}
                 </Text>
               </View>
 

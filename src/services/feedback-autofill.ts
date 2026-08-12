@@ -2,9 +2,9 @@ import {
   checkSession,
   refreshAuthSession,
   tryAutoLogin,
-} from "@/services/auth";
+} from "@/services/auth/lms-auth";
 import { api, getCurrentBaseUrl } from "@/services/api";
-import { fetchCourses } from "@/services/scraper";
+import { fetchCourses } from "@/services/lms-courses";
 import {
   getAttr,
   getText,

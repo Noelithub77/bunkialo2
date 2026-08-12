@@ -18,5 +18,5 @@
     "nativewind-env.d.ts",
     ".expo/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "bunkialo-landing/**"]
+  "exclude": ["node_modules", "bunkialo-landing/**", "src/services/archive/**"]
 }

@@ -8,6 +8,7 @@ kotlin.daemon.jvmargs=-Xmx2g
 org.gradle.workers.max=2
 org.gradle.caching=true
 org.gradle.parallel=true
-org.gradle.configureondemand=true
+# React Native library codegen must be configured before CMake autolinking.
+org.gradle.configureondemand=false
 org.gradle.daemon=false
 EOF

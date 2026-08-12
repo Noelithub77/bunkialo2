@@ -1,6 +1,6 @@
 import { useSettingsStore } from "@/stores/settings-store";
 import type { TimelineEvent } from "@/types";
-import { tryAutoLogin } from "./auth";
+import { tryAutoLogin } from "./auth/lms-auth";
 import { syncDashboardNotifications } from "./dashboard-notifications";
 import { fetchDashboardEvents } from "./dashboard";
 

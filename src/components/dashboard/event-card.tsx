@@ -2,6 +2,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { resolveDashboardEventRoute } from "@/course/utils/event-route";
 import { useBunkStore } from "@/stores/bunk-store";
+import { useCourseLinkStore } from "@/stores/course-link-store";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import type { TimelineEvent } from "@/types";
 import { extractCourseName } from "@/utils/course-name";
@@ -90,6 +91,11 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
   const [nowMs, setNowMs] = useState(Date.now());
   const [showPreciseCountdown, setShowPreciseCountdown] = useState(false);
   const bunkCourses = useBunkStore((state) => state.courses);
+  const linkedCourseKey = useCourseLinkStore((state) =>
+    state.identities.find(
+      (identity) => identity.lmsCourseId === String(event.course.id),
+    )?.key,
+  );
   const isPastDue = isOverdue || event.overdue;
   const msToDue = event.timesort * 1000 - nowMs;
   const isWithinNextHour = msToDue > 0 && msToDue <= 60 * 60 * 1000;
@@ -103,7 +109,11 @@ export const EventCard = ({ event, isOverdue }: EventCardProps) => {
   const fallbackColor =
     Colors.courseColors[event.course.id % Colors.courseColors.length];
   const courseColor =
-    bunkCourses.find((course) => course.courseId === String(event.course.id))
+    bunkCourses.find(
+      (course) =>
+        course.courseId === linkedCourseKey ||
+        course.courseId === String(event.course.id),
+    )
       ?.config?.color || fallbackColor;
 
   const openOnLms = async () => {

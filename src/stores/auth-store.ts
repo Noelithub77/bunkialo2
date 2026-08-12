@@ -8,7 +8,9 @@ import {
   syncWifixBackgroundTask,
   unregisterWifixBackgroundTask,
 } from "@/background/wifix-background";
-import * as authService from "@/services/auth";
+import { logoutFromAttendancePortal } from "@/services/auth/attendance-auth";
+import { login as loginProvider } from "@/services/auth/login";
+import * as lmsAuth from "@/services/auth/lms-auth";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
 import { useBunkStore } from "@/stores/bunk-store";
@@ -17,12 +19,14 @@ import { useFacultyStore } from "@/stores/faculty-store";
 import { useLmsResourcesStore } from "@/stores/lms-resources-store";
 import { useAssignmentStore } from "@/stores/assignment-store";
 import { useTimetableStore } from "@/stores/timetable-store";
+import { useCourseLinkStore } from "@/stores/course-link-store";
+import { usePortalNotificationStore } from "@/stores/portal-notification-store";
 import type { AuthState } from "@/types";
 import { scheduleIdleTask } from "@/utils/scheduling";
-import axios from "axios";
+import { isAxiosError } from "axios";
 
 const isNetworkError = (error: unknown): boolean => {
-  if (axios.isAxiosError(error)) {
+  if (isAxiosError(error)) {
     if (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") {
       return true;
     }
@@ -41,6 +45,7 @@ const isNetworkError = (error: unknown): boolean => {
 
 interface AuthActions {
   login: (username: string, password: string) => Promise<boolean>;
+  completeLogin: (username: string) => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setError: (error: string | null) => void;
@@ -55,10 +60,26 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   username: null,
   error: null,
 
+  completeLogin: (username) =>
+    set({
+      isLoggedIn: true,
+      username,
+      isLoading: false,
+      isCheckingAuth: false,
+      isOffline: false,
+      error: null,
+    }),
+
   login: async (username, password) => {
     set({ isLoading: true, error: null, isOffline: false });
     try {
-      const success = await authService.login(username, password);
+      const result = await loginProvider({
+        provider: "lms",
+        mode: "password",
+        username,
+        password,
+      });
+      const success = result.status === "success";
       if (success) {
         set({
           isLoggedIn: true,
@@ -117,7 +138,12 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       useAssignmentStore.getState().clearAssignmentCache();
       useAttendanceUIStore.getState().resetUI();
 
-      await authService.logout();
+      useCourseLinkStore.getState().clearCourseLinks();
+      usePortalNotificationStore.getState().clearPortalNotifications();
+      await Promise.allSettled([
+        lmsAuth.logout(),
+        logoutFromAttendancePortal(),
+      ]);
     } catch (error) {
       console.error("Logout failed", error);
     } finally {
@@ -134,10 +160,10 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
 
   checkAuth: async () => {
     set({ isCheckingAuth: true, error: null, isOffline: false });
-    let credentials: Awaited<ReturnType<typeof authService.getCredentials>>;
+    let credentials: Awaited<ReturnType<typeof lmsAuth.getCredentials>>;
 
     try {
-      credentials = await authService.getCredentials();
+      credentials = await lmsAuth.getCredentials();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to read credentials";
@@ -173,7 +199,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     scheduleIdleTask(() => {
       void (async () => {
         try {
-          const success = await authService.tryAutoLogin();
+          const success = await lmsAuth.tryAutoLogin();
           if (!success) {
             set({
               isLoggedIn: false,

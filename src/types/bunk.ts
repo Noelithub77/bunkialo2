@@ -4,7 +4,7 @@
 
 import type { DayOfWeek, ManualSlot, SessionType } from "./timetable";
 
-export type BunkSource = "lms" | "user";
+export type BunkSource = "attendancePortal" | "lms" | "user";
 
 export interface BunkRecord {
   id: string;

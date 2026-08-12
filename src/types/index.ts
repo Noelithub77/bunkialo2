@@ -5,6 +5,9 @@
 
 export * from "./attendance";
 export * from "./auth";
+export * from "./attendance-portal";
+export * from "./course-link";
+export * from "./notification";
 export * from "./academic-calendar";
 export * from "./assignment";
 export * from "./bunk";

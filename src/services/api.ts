@@ -35,7 +35,8 @@ export const api = axios.create({
 
 // Request interceptor: attach cookies to outgoing requests
 api.interceptors.request.use((config) => {
-  const cookieHeader = cookieStore.getCookieHeader();
+  const requestUrl = new URL(config.url ?? "/", config.baseURL).toString();
+  const cookieHeader = cookieStore.getCookieHeader(requestUrl);
   if (cookieHeader) {
     config.headers.Cookie = cookieHeader;
   }
@@ -52,7 +53,11 @@ api.interceptors.response.use(
     const setCookie = response.headers["set-cookie"];
     if (setCookie) {
       debug.api(`Response has Set-Cookie header`);
-      cookieStore.setCookiesFromHeader(setCookie);
+      const responseUrl = new URL(
+        response.config.url ?? "/",
+        response.config.baseURL,
+      ).toString();
+      cookieStore.setCookiesFromHeader(setCookie, responseUrl);
     }
 
     debug.api(`RESPONSE: ${response.status} ${response.config.url}`);
@@ -120,7 +125,7 @@ const handleReauth = async (): Promise<boolean> => {
 const performReauth = async (): Promise<boolean> => {
   try {
     // dynamic import to avoid circular dependency
-    const { getCredentials, login } = await import("./auth");
+    const { getCredentials, login } = await import("./auth/lms-auth");
     const credentials = await getCredentials();
 
     if (!credentials) {

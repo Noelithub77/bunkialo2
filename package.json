@@ -1,7 +1,7 @@
 {
   "name": "bunkialo",
   "main": "expo-router/entry",
-  "version": "1.3.15",
+  "version": "1.3.16",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -10,24 +10,34 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "bun test tests/unit",
+    "test:attendance-live": "bun tests/integration/attendance-portal/test-attendance-portal.ts",
+    "test:lms-scraper": "bun tests/integration/lms/test-scraper.ts",
+    "test:dashboard": "bun tests/integration/lms/test-dashboard.ts",
+    "test:resources": "bun tests/integration/lms/test-resources-scraper.ts",
+    "test:downloads": "bun tests/integration/lms/test-lms-download.ts",
+    "test:assignment": "bun tests/integration/lms/test-assignment-scraper.ts",
+    "test:assignment-submit": "bun tests/integration/lms/test-assignment-submit.ts",
+    "test:e2e:assignment": "bun tests/e2e/lms/test-assignment-opened-playwright.ts",
+    "test:e2e:feedback": "bun tests/e2e/lms/test-feedback-autofill-playwright.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
-    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/netinfo": "11.4.1",
-    "@react-native-vector-icons/material-design-icons": "^12.4.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/material-top-tabs": "^7.4.13",
     "@react-navigation/native": "^7.1.8",
     "@shopify/react-native-skia": "2.2.12",
     "axios": "^1.13.2",
+    "axios-jwt": "^4.0.3",
+    "axios-retry": "^4.5.0",
     "css-select": "^6.0.0",
     "date-fns": "^4.1.0",
     "domhandler": "^5.0.3",
     "domutils": "^3.2.2",
-    "expo": "~54.0.32",
+    "expo": "~54.0.36",
     "expo-application": "~7.0.8",
     "expo-background-task": "^1.0.10",
     "expo-blur": "~15.0.8",
@@ -36,25 +46,26 @@
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-document-picker": "~14.0.8",
-    "expo-file-system": "~19.0.21",
-    "expo-font": "~14.0.10",
+    "expo-file-system": "~19.0.23",
+    "expo-font": "~14.0.12",
     "expo-haptics": "~15.0.8",
     "expo-image": "~3.0.11",
     "expo-insights": "~0.10.8",
     "expo-intent-launcher": "~13.0.8",
     "expo-linear-gradient": "^15.0.8",
-    "expo-linking": "~8.0.11",
-    "expo-notifications": "~0.32.16",
-    "expo-router": "~6.0.22",
+    "expo-linking": "~8.0.12",
+    "expo-notifications": "~0.32.17",
+    "expo-router": "~6.0.24",
     "expo-secure-store": "^15.0.8",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
+    "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
     "expo-system-ui": "~6.0.9",
     "expo-task-manager": "~14.0.9",
-    "expo-updates": "~29.0.16",
-    "expo-web-browser": "~15.0.10",
+    "expo-updates": "~29.0.19",
+    "expo-web-browser": "~15.0.11",
     "fuse.js": "^7.1.0",
     "htmlparser2": "^10.0.0",
     "nativewind": "^4.1.0",
@@ -72,12 +83,13 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-tab-view": "^4.2.2",
-    "react-native-vector-icons": "^10.3.0",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
+    "zod": "^4.4.3",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "@types/react": "~19.1.0",
     "cheerio": "^1.1.2",
     "eslint": "^9.25.0",
@@ -90,5 +102,14 @@
     "tough-cookie": "^6.0.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "@react-native-async-storage/async-storage",
+        "@react-native-vector-icons/material-design-icons",
+        "react-native-vector-icons"
+      ]
+    }
+  }
 }

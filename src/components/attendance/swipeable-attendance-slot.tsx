@@ -46,6 +46,8 @@ const getStatusColor = (status: AttendanceStatus): string => {
       return Colors.status.warning;
     case "Excused":
       return Colors.status.info;
+    case "Duty Leave":
+      return Colors.status.info;
     case "Unknown":
       return Colors.status.unknown;
   }
@@ -61,6 +63,8 @@ const getStatusIcon = (status: AttendanceStatus): IoniconName => {
       return "time";
     case "Excused":
       return "document-text";
+    case "Duty Leave":
+      return "shield-checkmark";
     case "Unknown":
       return "help";
   }

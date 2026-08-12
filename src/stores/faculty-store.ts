@@ -76,7 +76,7 @@ export const useFacultyStore = create<FacultyState & FacultyActions>()(
       },
     }),
     {
-      name: "faculty-storage",
+      name: "faculty-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         recentSearches: state.recentSearches,

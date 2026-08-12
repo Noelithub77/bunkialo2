@@ -59,6 +59,9 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       "expo-router",
       "expo-build-properties",
       "expo-background-task",
+      "expo-font",
+      "expo-sqlite",
+      "expo-web-browser",
       [
         "expo-notifications",
         {

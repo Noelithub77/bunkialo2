@@ -9,7 +9,7 @@ import {
   WIFIX_PORTAL_PRESETS,
 } from "@/constants/wifix";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { getCredentials } from "@/services/auth";
+import { getCredentials } from "@/services/auth/lms-auth";
 import {
   checkConnectivity,
   getDefaultPortalBaseUrl,

@@ -1,5 +1,5 @@
 import type { DashboardLog } from "@/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -37,7 +37,7 @@ export const useWifixLogStore = create<WifixLogStore>()(
       clearLogs: () => set({ logs: [] }),
     }),
     {
-      name: "wifix-log-storage",
+      name: "wifix-log-storage-sqlite-v1",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         logs: state.logs,

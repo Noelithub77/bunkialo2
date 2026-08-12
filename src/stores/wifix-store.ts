@@ -1,6 +1,6 @@
 import { DEFAULT_MANUAL_PORTAL_URL } from "@/constants/wifix";
 import type { WifixPortalSource, WifixSettings } from "@/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -33,7 +33,7 @@ export const useWifixStore = create<WifixStore>()(
       setPortalSource: (source) => set({ portalSource: source }),
     }),
     {
-      name: "wifix-settings",
+      name: "wifix-settings-sqlite-v1",
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),
