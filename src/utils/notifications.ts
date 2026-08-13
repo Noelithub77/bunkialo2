@@ -1,14 +1,9 @@
-import AsyncStorage from "expo-sqlite/kv-store";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { zustandStorage } from "@/stores/storage";
+import type { NotificationChannelConfig } from "./notifications.types";
 
 const NOTIFICATION_PERMISSIONS_ASKED = "notification_permissions_asked";
-
-type NotificationChannelConfig = {
-  id: string;
-  lightColor?: string;
-  name: string;
-};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -69,13 +64,13 @@ export const initializeNotifications = async (): Promise<void> => {
     { id: "attendance", name: "Attendance updates" },
   ]);
 
-  const hasAsked = await AsyncStorage.getItem(NOTIFICATION_PERMISSIONS_ASKED);
+  const hasAsked = await zustandStorage.getItem(NOTIFICATION_PERMISSIONS_ASKED);
   if (hasAsked) {
     return;
   }
 
   await requestNotificationPermissions();
-  await AsyncStorage.setItem(NOTIFICATION_PERMISSIONS_ASKED, "true");
+  await zustandStorage.setItem(NOTIFICATION_PERMISSIONS_ASKED, "true");
 };
 
 export const scheduleDateNotification = async (params: {

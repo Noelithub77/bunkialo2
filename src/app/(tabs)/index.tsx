@@ -274,18 +274,20 @@ export default function DashboardScreen() {
     username?.startsWith("2022") || username?.startsWith("2023");
 
   const fabActions = [
-    {
-      icon: "wifi",
-      label: "WiFix",
-      color: theme.text,
-      style: { backgroundColor: theme.backgroundSecondary },
-      labelStyle: actionLabelStyle,
-      containerStyle: actionContainerStyle,
-      onPress: () => {
-        setShowFabMenu(false);
-        router.push("/wifix");
-      },
-    },
+    ...(process.env.EXPO_OS !== "web"
+      ? [{
+          icon: "wifi",
+          label: "WiFix",
+          color: theme.text,
+          style: { backgroundColor: theme.backgroundSecondary },
+          labelStyle: actionLabelStyle,
+          containerStyle: actionContainerStyle,
+          onPress: () => {
+            setShowFabMenu(false);
+            router.push("/wifix");
+          },
+        }]
+      : []),
     {
       icon: "calculator-variant",
       label: "GPA Calculator",

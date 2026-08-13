@@ -15,7 +15,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Stack, router } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
@@ -53,6 +53,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
   const { hasHydrated: dashboardHydrated } = useDashboardStore();
+  const pathname = usePathname();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const [fontsLoaded, fontError] = useFonts({
@@ -68,14 +69,19 @@ export default function RootLayout() {
   }, [checkAuth]);
 
   useEffect(() => {
+    if (process.env.EXPO_OS !== "web" || !("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.register("/service-worker.js");
+  }, []);
+
+  useEffect(() => {
     if (!isCheckingAuth) {
-      if (isLoggedIn) {
+      if (isLoggedIn && pathname === "/login") {
         router.replace("/(tabs)");
-      } else {
+      } else if (!isLoggedIn && pathname !== "/login") {
         router.replace("/login");
       }
     }
-  }, [isCheckingAuth, isLoggedIn]);
+  }, [isCheckingAuth, isLoggedIn, pathname]);
 
   useEffect(() => {
     if (!fontsReady || isCheckingAuth || !appHydrated) return;

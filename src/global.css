@@ -6,3 +6,15 @@
   /* Web-only: keep in sync with `Colors.accent` in `src/constants/theme.ts`. */
   --bunkialo-accent: #ffab00;
 }
+
+html,
+body,
+#root {
+  min-width: 320px;
+}
+
+@media (min-width: 960px) {
+  body {
+    overscroll-behavior: none;
+  }
+}

@@ -1,7 +1,7 @@
 import type { DashboardLog } from "@/types";
-import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { zustandStorage } from "./storage";
 
 interface WifixLogStore {
   logs: DashboardLog[];
@@ -38,7 +38,7 @@ export const useWifixLogStore = create<WifixLogStore>()(
     }),
     {
       name: "wifix-log-storage-sqlite-v1",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         logs: state.logs,
       }),

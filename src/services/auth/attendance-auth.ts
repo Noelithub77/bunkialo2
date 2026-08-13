@@ -163,6 +163,11 @@ export const loginToAttendancePortal = async (
   }
 };
 
+export const checkAttendanceSession = async (): Promise<boolean> => {
+  const credentials = await getAttendanceCredentials();
+  return credentials !== null;
+};
+
 let credentialFallbackUsed = false;
 
 export const refreshAttendanceTokens = async (

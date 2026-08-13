@@ -4,11 +4,13 @@ import {
   hasNotificationPermissions,
   sendImmediateNotification,
 } from "@/utils/notifications";
+import type { PortalNotificationPage } from "@/types";
 import { getPortalNotifications } from "./attendance-api";
 import { isNotificationRecent } from "@/utils/notification-inbox";
 
-export const syncPortalNotifications = async (): Promise<void> => {
-  const page = await getPortalNotifications();
+export const syncPortalNotificationsFromPage = async (
+  page: PortalNotificationPage,
+): Promise<void> => {
   const recentItems = page.items.filter((item) =>
     isNotificationRecent(item.createdAt),
   );
@@ -37,4 +39,8 @@ export const syncPortalNotifications = async (): Promise<void> => {
     delivered.push(item.id);
   }
   usePortalNotificationStore.getState().addDeliveredIds(delivered);
+};
+
+export const syncPortalNotifications = async (): Promise<void> => {
+  await syncPortalNotificationsFromPage(await getPortalNotifications());
 };

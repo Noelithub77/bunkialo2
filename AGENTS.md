@@ -75,6 +75,7 @@ constants/             # App constants (theme, wifix)
 scripts/               # Node utilities (generate-icons, test-scraper, test-dashboard, test-timetable)
 assets/                # Images/icons
 global.css             # Web baseline
+tests/e2e/hosted/       # Hosted web auth-state setup and route checks
 ```
 
 ## Key Types (`types/index.ts`)
@@ -397,6 +398,12 @@ bun run test:dashboard
 bun run test:resources
 bun run test:downloads
 bun run test:attendance-live
+
+# Hosted web tests. Credentials are read locally from .env and the session is saved under artifacts/.
+bun run test:e2e:hosted-auth
+bun run test:e2e:hosted-timetable
+# Add --headed to the auth command when visually debugging the hosted flow.
+bun run test:e2e:hosted-auth -- --headed
 ```
 
 ## Script Session Utility
@@ -405,6 +412,8 @@ bun run test:attendance-live
 - Do not duplicate cookie jar/login/redirect code in each script.
 - Prefer `fetchWithSession()` (auto re-login + retry on login-page responses) for protected LMS endpoints.
 - Use `loadEnvFromRoot()` to read `.env` in scripts.
+- Hosted web tests use Playwright storage state at `artifacts/playwright/hosted-auth.json`; never commit this file or add production login bypasses.
+- Refresh hosted auth state with `bun run test:e2e:hosted-auth` when the saved Worker session expires.
 
 ---
 

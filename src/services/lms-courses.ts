@@ -2,7 +2,6 @@ import type {
   Course,
   MoodleAjaxRequest,
   MoodleAjaxResponse,
-  MoodleCourseApiResponse,
   MoodleCourseTimelineData,
 } from "@/types";
 import { debug } from "@/utils/debug";
@@ -41,6 +40,34 @@ const fetchCoursesFromHtml = async (): Promise<Course[]> => {
   return courses;
 };
 
+export const parseCoursesPayload = (value: unknown): Course[] => {
+  if (typeof value !== "object" || value === null) return [];
+  const record = value as Record<string, unknown>;
+  const data = record.data;
+  if (typeof data !== "object" || data === null) return [];
+  const courses = (data as Record<string, unknown>).courses;
+  if (!Array.isArray(courses)) return [];
+  return courses.flatMap((course): Course[] => {
+    if (typeof course !== "object" || course === null) return [];
+    const item = course as Record<string, unknown>;
+    if (typeof item.id !== "number") return [];
+    const name = typeof item.fullname === "string"
+      ? item.fullname
+      : typeof item.shortname === "string"
+        ? item.shortname
+        : null;
+    if (!name) return [];
+    return [{
+      id: String(item.id),
+      name,
+      shortName: typeof item.shortname === "string" ? item.shortname : undefined,
+      url: typeof item.viewurl === "string"
+        ? item.viewurl
+        : `${BASE_URL}/course/view.php?id=${item.id}`,
+    }];
+  });
+};
+
 export const fetchCourses = async (): Promise<Course[]> => {
   const sesskey = await getSesskey();
   if (!sesskey) return fetchCoursesFromHtml();
@@ -72,12 +99,7 @@ export const fetchCourses = async (): Promise<Course[]> => {
       throw new Error(result?.exception?.message || "Could not fetch courses");
     }
 
-    return result.data.courses.map((course: MoodleCourseApiResponse) => ({
-      id: String(course.id),
-      name: course.fullname || course.shortname,
-      shortName: course.shortname,
-      url: `${BASE_URL}/course/view.php?id=${course.id}`,
-    }));
+    return parseCoursesPayload(result);
   } catch (error) {
     debug.scraper(`Course API failed, using HTML fallback: ${String(error)}`);
     return fetchCoursesFromHtml();

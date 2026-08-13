@@ -3,10 +3,11 @@ import { LoginCredentialsStep } from "@/components/auth/login-credentials-step";
 import { PortalChallengeStep } from "@/components/auth/portal-challenge-step";
 import { login } from "@/services/auth/login";
 import { ATTENDANCE_PORTAL_URL } from "@/services/auth/attendance-auth";
+import { getWebCredential } from "@/services/auth/web-password-manager.web";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AuthLoginRequest } from "@/types";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,6 +28,19 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const completeLogin = useAuthStore((state) => state.completeLogin);
+
+  useEffect(() => {
+    if (process.env.EXPO_OS !== "web") return;
+    let active = true;
+    void getWebCredential().then((credential) => {
+      if (!active || !credential) return;
+      setRollNumber(credential.identifier);
+      setLmsPassword(credential.password);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const submitLms = async (): Promise<void> => {
     setLoading(true);
@@ -185,7 +199,9 @@ export default function LoginScreen() {
               </View>
             ) : null}
             <Text className="text-center text-xs text-zinc-500">
-              Credentials stay encrypted on this device.
+              {process.env.EXPO_OS === "web"
+                ? "Your browser password manager can securely save and autofill credentials."
+                : "Credentials stay encrypted on this device."}
             </Text>
           </View>
         </KeyboardAwareScrollView>
