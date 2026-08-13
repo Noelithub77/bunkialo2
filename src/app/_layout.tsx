@@ -190,7 +190,7 @@ export default function RootLayout() {
                 </View>
               )}
             </Portal>
-            <AttendanceSetupSheet enabled={isLoggedIn} />
+            <AttendanceSetupSheet enabled={isLoggedIn && pathname !== "/login"} />
             <AppSyncController />
           </PaperProvider>
         </ToastProviderWithViewport>
