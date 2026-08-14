@@ -3,7 +3,8 @@ import { createServer } from "node:net";
 
 const isWindows = process.platform === "win32";
 const bunCommand = isWindows ? "bun.exe" : "bun";
-const forwardedArgs = process.argv.slice(2);
+const forwardedArgs = process.argv.slice(2).filter((arg) => arg !== "--open");
+const shouldOpenBrowser = process.argv.slice(2).includes("--open");
 
 const getPortArgIndex = (args) => args.findIndex(
   (arg) => arg === "--port" || arg === "-p" || arg.startsWith("--port="),
@@ -68,6 +69,40 @@ const start = (command, args) => {
   return child;
 };
 
+const openBrowser = (url) => {
+  if (isWindows) {
+    const browser = spawn("cmd.exe", ["/c", "start", "", url], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    browser.unref();
+    return;
+  }
+
+  const command = process.platform === "darwin" ? "open" : "xdg-open";
+  const browser = spawn(command, [url], {
+    detached: true,
+    stdio: "ignore",
+  });
+  browser.unref();
+};
+
+const openBrowserWhenReady = async (url) => {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (shuttingDown) return;
+    try {
+      await fetch(url);
+      openBrowser(url);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  if (!shuttingDown) openBrowser(url);
+};
+
 process.on("SIGINT", () => shutdown());
 process.on("SIGTERM", () => shutdown());
 
@@ -118,4 +153,8 @@ build.once("exit", (code) => {
   worker.once("exit", (workerCode) => {
     if (!shuttingDown) shutdown(workerCode ?? 1);
   });
+
+  if (shouldOpenBrowser) {
+    void openBrowserWhenReady(`http://localhost:${relayPort}`);
+  }
 });

@@ -74,6 +74,21 @@
       "command": "bunx",
       "args": ["expo", "start"],
       "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "close": false
+      }
+    },
+    {
+      "label": "Start Web",
+      "type": "shell",
+      "command": "bun",
+      "args": ["run", "web", "--", "--open"],
+      "group": {
         "kind": "build",
         "isDefault": true
       },

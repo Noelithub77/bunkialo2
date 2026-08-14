@@ -41,12 +41,16 @@ export function MealCarousel() {
   const setHorizontalContentGestureActive = useGestureUiStore(
     (state) => state.setHorizontalContentGestureActive,
   );
-  const [activeIndex, setActiveIndex] = useState(0);
+  const now = new Date();
+  const { meals, initialIndex } = getNearbyMeals(now);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>(null);
-  const [carouselWidth, setCarouselWidth] = useState(DEFAULT_CAROUSEL_WIDTH);
+  const [carouselWidth, setCarouselWidth] = useState<number | null>(null);
+  const [isInitialPositioned, setIsInitialPositioned] = useState(false);
 
-  const cardWidth = Math.max(220, Math.round(carouselWidth * 0.65));
-  const sideSpacing = Math.max(0, (carouselWidth - cardWidth) / 2);
+  const measuredWidth = carouselWidth ?? DEFAULT_CAROUSEL_WIDTH;
+  const cardWidth = Math.max(220, Math.round(measuredWidth * 0.65));
+  const sideSpacing = Math.max(0, (measuredWidth - cardWidth) / 2);
   const snapInterval = cardWidth + CARD_SPACING;
 
   // recompute time on focus
@@ -57,8 +61,6 @@ export function MealCarousel() {
     }, []),
   );
 
-  const now = new Date();
-  const { meals, initialIndex } = getNearbyMeals(now);
   const activeIndexRef = useRef(activeIndex);
   const hasInitialScrolledRef = useRef(false);
   const initialIndexRef = useRef(initialIndex);
@@ -103,6 +105,7 @@ export function MealCarousel() {
   useEffect(() => {
     activeIndexRef.current = initialIndex;
     setActiveIndex(initialIndex);
+    setIsInitialPositioned(false);
     // Mark as initial scrolled after a short delay since onMomentumScrollEnd may not fire
     const timer = setTimeout(() => {
       hasInitialScrolledRef.current = true;
@@ -130,12 +133,30 @@ export function MealCarousel() {
   const handleCarouselLayout = useCallback(
     (event: LayoutChangeEvent) => {
       const nextWidth = event.nativeEvent.layout.width;
-      if (nextWidth > 0 && Math.abs(nextWidth - carouselWidth) > 1) {
+      if (
+        nextWidth > 0 &&
+        (carouselWidth === null || Math.abs(nextWidth - carouselWidth) > 1)
+      ) {
         setCarouselWidth(nextWidth);
+        setIsInitialPositioned(false);
       }
     },
     [carouselWidth],
   );
+
+  useEffect(() => {
+    if (carouselWidth === null) return;
+
+    const frame = requestAnimationFrame(() => {
+      flatListRef.current?.scrollToOffset({
+        offset: initialIndex * snapInterval,
+        animated: false,
+      });
+      setIsInitialPositioned(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [carouselWidth, initialIndex, snapInterval]);
 
   if (meals.length === 0) {
     return (
@@ -286,7 +307,11 @@ export function MealCarousel() {
   };
 
   return (
-    <View className="-mx-4" onLayout={handleCarouselLayout}>
+    <View
+      className="-mx-4 w-full"
+      onLayout={handleCarouselLayout}
+      style={{ opacity: isInitialPositioned ? 1 : 0 }}
+    >
       <FlatList
         ref={flatListRef}
         data={meals}
@@ -299,11 +324,11 @@ export function MealCarousel() {
         showsHorizontalScrollIndicator={false}
         snapToInterval={snapInterval}
         decelerationRate="fast"
+        initialNumToRender={meals.length}
         contentContainerStyle={{ paddingHorizontal: sideSpacing }}
         ItemSeparatorComponent={() => <View style={{ width: CARD_SPACING }} />}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
-        initialScrollIndex={initialIndex}
         getItemLayout={(_, index) => ({
           length: snapInterval,
           offset: snapInterval * index,
