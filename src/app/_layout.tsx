@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
 import { AppSyncController } from "@/components/sync/app-sync-controller";
+import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -69,8 +70,17 @@ export default function RootLayout() {
   }, [checkAuth]);
 
   useEffect(() => {
-    if (process.env.EXPO_OS !== "web" || !("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.register("/service-worker.js");
+    if (
+      process.env.EXPO_OS !== "web" ||
+      process.env.NODE_ENV !== "production" ||
+      !("serviceWorker" in navigator)
+    ) {
+      return;
+    }
+
+    void navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // The app remains usable if the PWA worker is unavailable.
+    });
   }, []);
 
   useEffect(() => {
@@ -192,6 +202,9 @@ export default function RootLayout() {
             </Portal>
             <AttendanceSetupSheet enabled={isLoggedIn && pathname !== "/login"} />
             <AppSyncController />
+            {process.env.EXPO_OS === "web" ? (
+              <PwaInstallPrompt isLoggedIn={isLoggedIn} />
+            ) : null}
           </PaperProvider>
         </ToastProviderWithViewport>
       </KeyboardProvider>

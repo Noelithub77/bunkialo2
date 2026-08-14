@@ -198,6 +198,8 @@ export function NoticePopup() {
             style={{
               transform: [{ translateY: slideAnim }],
               backgroundColor: theme.background,
+              marginHorizontal: 16,
+              paddingHorizontal: 24,
               paddingBottom: Math.max(24, insets.bottom + 16),
               borderWidth: 1,
               borderColor: isDark

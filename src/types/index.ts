@@ -23,3 +23,4 @@ export * from "./resources";
 export * from "./timetable";
 export * from "./wifix";
 export * from "./popup";
+export * from "./pwa";

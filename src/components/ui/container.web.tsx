@@ -20,7 +20,10 @@ export function Container({
     <View
       className={`mx-auto w-full max-w-[1180px] flex-1 ${className ?? ""}`}
       style={[
-        { backgroundColor: isDark ? Colors.black : Colors.white },
+        {
+          backgroundColor: isDark ? Colors.black : Colors.white,
+          paddingHorizontal: 12,
+        },
         safeArea && { paddingTop: 12, paddingBottom: 12 },
         style,
       ]}

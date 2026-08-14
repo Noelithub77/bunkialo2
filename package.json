@@ -9,7 +9,7 @@
     "fetch-faculty": "node ./scripts/fetch-faculty.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
+    "web": "node ./scripts/dev-web.mjs",
     "web:build": "node ./scripts/build-web.mjs",
     "worker:dev": "bun run web:build && wrangler dev",
     "worker:types": "wrangler types",

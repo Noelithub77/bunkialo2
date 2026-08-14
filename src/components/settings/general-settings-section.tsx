@@ -4,6 +4,7 @@ import { Text, View } from "react-native";
 
 type GeneralSettingsSectionProps = {
   isCheckingUpdate: boolean;
+  onInstallPwa: () => void;
   onCheckForUpdates: () => void;
   onClearCache: () => void;
   onLogout: () => void;
@@ -11,10 +12,12 @@ type GeneralSettingsSectionProps = {
   onSetTheme: () => void;
   theme: typeof Colors.light;
   themeLabel: string;
+  showPwaInstall: boolean;
 };
 
 export const GeneralSettingsSection = ({
   isCheckingUpdate,
+  onInstallPwa,
   onCheckForUpdates,
   onClearCache,
   onLogout,
@@ -22,6 +25,7 @@ export const GeneralSettingsSection = ({
   onSetTheme,
   theme,
   themeLabel,
+  showPwaInstall,
 }: GeneralSettingsSectionProps) => (
   <>
     <Text
@@ -51,6 +55,20 @@ export const GeneralSettingsSection = ({
         loading={isCheckingUpdate}
         theme={theme}
       />
+      {showPwaInstall ? (
+        <>
+          <View
+            className="h-px"
+            style={{ marginLeft: 48, backgroundColor: theme.border }}
+          />
+          <SettingRow
+            icon="download-outline"
+            label="Install Bunkialo"
+            onPress={onInstallPwa}
+            theme={theme}
+          />
+        </>
+      ) : null}
       <View
         className="h-px"
         style={{ marginLeft: 48, backgroundColor: theme.border }}
