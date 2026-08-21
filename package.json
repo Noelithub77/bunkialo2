@@ -9,7 +9,12 @@
     "fetch-faculty": "node ./scripts/fetch-faculty.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
+    "web": "node ./scripts/dev-web.mjs",
+    "web:build": "node ./scripts/build-web.mjs",
+    "worker:dev": "bun run web:build && wrangler dev",
+    "worker:types": "wrangler types",
+    "worker:check": "wrangler deploy --dry-run",
+    "worker:deploy": "bun run web:build && wrangler deploy",
     "lint": "expo lint",
     "test": "bun test tests/unit",
     "test:attendance-live": "bun tests/integration/attendance-portal/test-attendance-portal.ts",
@@ -17,13 +22,17 @@
     "test:dashboard": "bun tests/integration/lms/test-dashboard.ts",
     "test:resources": "bun tests/integration/lms/test-resources-scraper.ts",
     "test:downloads": "bun tests/integration/lms/test-lms-download.ts",
+    "test:web-relay": "bun tests/integration/worker/test-web-lms-login.ts",
     "test:assignment": "bun tests/integration/lms/test-assignment-scraper.ts",
     "test:assignment-submit": "bun tests/integration/lms/test-assignment-submit.ts",
     "test:e2e:assignment": "bun tests/e2e/lms/test-assignment-opened-playwright.ts",
-    "test:e2e:feedback": "bun tests/e2e/lms/test-feedback-autofill-playwright.ts"
+    "test:e2e:feedback": "bun tests/e2e/lms/test-feedback-autofill-playwright.ts",
+    "test:e2e:hosted-auth": "bun tests/e2e/hosted/setup-auth-state.ts",
+    "test:e2e:hosted-timetable": "bun tests/e2e/hosted/test-timetable-playwright.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@pushforge/builder": "^2.0.5",
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -68,6 +77,7 @@
     "expo-updates": "~29.0.19",
     "expo-web-browser": "~15.0.11",
     "fuse.js": "^7.1.0",
+    "hono": "^4.13.1",
     "htmlparser2": "^10.0.0",
     "nativewind": "^4.1.0",
     "react": "19.1.0",
@@ -90,6 +100,8 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.21.1",
+    "@cloudflare/workers-types": "^5.20260812.1",
     "@types/bun": "^1.3.14",
     "@types/react": "~19.1.0",
     "cheerio": "^1.1.2",
@@ -101,7 +113,10 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.17",
     "tough-cookie": "^6.0.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.10",
+    "workbox-build": "^7.4.1",
+    "wrangler": "^4.121.0"
   },
   "private": true,
   "expo": {

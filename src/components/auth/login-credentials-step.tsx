@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CredentialForm } from "@/components/auth/credential-form";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -33,9 +34,10 @@ export function LoginCredentialsStep({
 }: LoginCredentialsStepProps) {
   const [showPassword, setShowPassword] = useState(false);
   const ready = Boolean(identifier.trim() && password);
+  const formName = accountLabel.toLowerCase().replaceAll(" ", "-");
 
   return (
-    <View className="gap-5">
+    <CredentialForm name={`${formName}-login`} onSubmit={onSubmit}>
       <View className="gap-1">
         <Text className="text-xs font-semibold uppercase tracking-[2px] text-zinc-400">
           {accountLabel}
@@ -55,6 +57,11 @@ export function LoginCredentialsStep({
           keyboardType={identifierType}
           inputMode={identifierType === "email-address" ? "email" : "text"}
           returnKeyType="next"
+          autoComplete="username"
+          textContentType="username"
+          webId={`${formName}-username`}
+          webName="username"
+          webRequired
         />
         <View>
           <Input
@@ -66,6 +73,11 @@ export function LoginCredentialsStep({
             autoCorrect={false}
             returnKeyType="go"
             onSubmitEditing={() => ready && onSubmit()}
+            autoComplete="current-password"
+            textContentType="password"
+            webId={`${formName}-password`}
+            webName="password"
+            webRequired
             style={{ paddingRight: 52 }}
           />
           <Pressable
@@ -96,6 +108,6 @@ export function LoginCredentialsStep({
         loading={loading}
         disabled={!ready}
       />
-    </View>
+    </CredentialForm>
   );
 }

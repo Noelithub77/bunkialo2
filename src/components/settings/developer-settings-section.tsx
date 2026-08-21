@@ -100,13 +100,15 @@ export function DeveloperSettingsSection({
             />
           </View>
           <BackgroundSyncStatusCard activity={activity} theme={theme} />
-          <WifixSettingsSection
-            autoReconnectEnabled={autoReconnectEnabled}
-            backgroundIntervalMinutes={backgroundIntervalMinutes}
-            onPressBackgroundInterval={onPressWifixInterval}
-            onToggleAutoReconnect={onToggleAutoReconnect}
-            theme={theme}
-          />
+          {process.env.EXPO_OS !== "web" ? (
+            <WifixSettingsSection
+              autoReconnectEnabled={autoReconnectEnabled}
+              backgroundIntervalMinutes={backgroundIntervalMinutes}
+              onPressBackgroundInterval={onPressWifixInterval}
+              onToggleAutoReconnect={onToggleAutoReconnect}
+              theme={theme}
+            />
+          ) : null}
           <CourseLinkSettingsSection theme={theme} />
           <Text
             className="mb-2 ml-1 mt-6 text-xs font-semibold uppercase"

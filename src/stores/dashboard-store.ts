@@ -6,9 +6,9 @@ import type {
   DashboardState,
   TimelineEvent,
 } from "@/types";
-import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { zustandStorage } from "./storage";
 
 type DashboardFetchResult =
   | {
@@ -169,7 +169,7 @@ export const useDashboardStore = create<DashboardStore>()(
     }),
     {
       name: "dashboard-storage-sqlite-v1",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         events: state.events,
         upcomingEvents: state.upcomingEvents,
@@ -178,8 +178,12 @@ export const useDashboardStore = create<DashboardStore>()(
         backgroundActivity: state.backgroundActivity,
         logs: state.logs,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn("Dashboard store rehydration failed", error);
+        }
         state?.setHasHydrated(true);
+        useDashboardStore.setState({ hasHydrated: true });
       },
     },
   ),

@@ -6,3 +6,32 @@
   /* Web-only: keep in sync with `Colors.accent` in `src/constants/theme.ts`. */
   --bunkialo-accent: #ffab00;
 }
+
+html,
+body,
+#root {
+  min-width: 320px;
+}
+
+/* Keep web scrolling available without showing browser scrollbars. */
+html,
+body,
+#root,
+* {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+@media (min-width: 960px) {
+  body {
+    overscroll-behavior: none;
+  }
+}

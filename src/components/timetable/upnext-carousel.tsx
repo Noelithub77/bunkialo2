@@ -44,6 +44,13 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
   const [carouselWidth, setCarouselWidth] = useState(DEFAULT_CAROUSEL_WIDTH);
+  const activeIndexRef = useRef(activeIndex);
+  const hasInitialScrolledRef = useRef(false);
+  const initialScrollIndexRef = useRef(0);
+  const nearbySlotsLengthRef = useRef(0);
+
+  activeIndexRef.current = activeIndex;
+  hasInitialScrolledRef.current = hasInitialScrolled;
 
   const cardWidth = useMemo(
     () => Math.max(240, Math.round(carouselWidth * 0.72)),
@@ -70,6 +77,7 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
 
   const now = new Date();
   const nearbySlots = getNearbySlots(slots, now);
+  nearbySlotsLengthRef.current = nearbySlots.length;
 
   const currentDay = now.getDay();
   const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
@@ -101,6 +109,7 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
     );
     return currentIndex >= 0 ? currentIndex : 0;
   }, [nearbySlots, currentClass, nextClass]);
+  initialScrollIndexRef.current = initialScrollIndex;
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
@@ -117,14 +126,17 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
     }
 
     // start new timer - snap back after 2s inactivity
-    const centerIndex = Math.min(initialScrollIndex, nearbySlots.length - 1);
+    const centerIndex = Math.min(
+      initialScrollIndexRef.current,
+      nearbySlotsLengthRef.current - 1,
+    );
     snapTimerRef.current = setTimeout(() => {
       flatListRef.current?.scrollToIndex({
         index: centerIndex,
         animated: true,
       });
     }, 2000);
-  }, [nearbySlots.length, initialScrollIndex]);
+  }, []);
 
   const clearSnapTimer = useCallback(() => {
     if (snapTimerRef.current) {
@@ -142,10 +154,13 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
 
   // Initialize activeIndex to match initialScrollIndex to prevent jitter
   useEffect(() => {
+    initialScrollIndexRef.current = initialScrollIndex;
+    hasInitialScrolledRef.current = false;
     setActiveIndex(initialScrollIndex);
 
     // Mark as initial scrolled after a short delay since onMomentumScrollEnd may not fire
     const timer = setTimeout(() => {
+      hasInitialScrolledRef.current = true;
       setHasInitialScrolled(true);
     }, 500);
 
@@ -156,16 +171,17 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       if (viewableItems.length > 0) {
         const newIndex = viewableItems[0].index ?? 0;
-        if (newIndex !== activeIndex) {
+        if (newIndex !== activeIndexRef.current) {
+          activeIndexRef.current = newIndex;
           setActiveIndex(newIndex);
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          if (hasInitialScrolled) {
+          if (hasInitialScrolledRef.current) {
             resetSnapTimer();
           }
         }
       }
     },
-    [activeIndex, hasInitialScrolled, resetSnapTimer],
+    [resetSnapTimer],
   );
 
   const handleCarouselLayout = useCallback(

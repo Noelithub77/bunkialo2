@@ -15,7 +15,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Stack, router } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
 import { AppSyncController } from "@/components/sync/app-sync-controller";
+import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -53,6 +54,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
   const { hasHydrated: dashboardHydrated } = useDashboardStore();
+  const pathname = usePathname();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const [fontsLoaded, fontError] = useFonts({
@@ -68,14 +70,28 @@ export default function RootLayout() {
   }, [checkAuth]);
 
   useEffect(() => {
+    if (
+      process.env.EXPO_OS !== "web" ||
+      process.env.NODE_ENV !== "production" ||
+      !("serviceWorker" in navigator)
+    ) {
+      return;
+    }
+
+    void navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // The app remains usable if the PWA worker is unavailable.
+    });
+  }, []);
+
+  useEffect(() => {
     if (!isCheckingAuth) {
-      if (isLoggedIn) {
+      if (isLoggedIn && pathname === "/login") {
         router.replace("/(tabs)");
-      } else {
+      } else if (!isLoggedIn && pathname !== "/login") {
         router.replace("/login");
       }
     }
-  }, [isCheckingAuth, isLoggedIn]);
+  }, [isCheckingAuth, isLoggedIn, pathname]);
 
   useEffect(() => {
     if (!fontsReady || isCheckingAuth || !appHydrated) return;
@@ -184,8 +200,11 @@ export default function RootLayout() {
                 </View>
               )}
             </Portal>
-            <AttendanceSetupSheet enabled={isLoggedIn} />
+            <AttendanceSetupSheet enabled={isLoggedIn && pathname !== "/login"} />
             <AppSyncController />
+            {process.env.EXPO_OS === "web" ? (
+              <PwaInstallPrompt isLoggedIn={isLoggedIn} />
+            ) : null}
           </PaperProvider>
         </ToastProviderWithViewport>
       </KeyboardProvider>

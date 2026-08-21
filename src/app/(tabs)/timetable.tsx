@@ -22,6 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
+import type { ErrorBoundaryProps } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +34,34 @@ import {
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { FAB, Portal } from "react-native-paper";
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === "dark" ? Colors.dark : Colors.light;
+
+  return (
+    <Container>
+      <View className="flex-1 items-center justify-center gap-3 px-6">
+        <Ionicons name="warning-outline" size={42} color={Colors.status.warning} />
+        <Text className="text-center text-xl font-bold" style={{ color: theme.text }}>
+          Timetable could not load
+        </Text>
+        <Text className="text-center text-sm" style={{ color: theme.textSecondary }}>
+          {error.message || "An unexpected error occurred."}
+        </Text>
+        <Pressable
+          className="rounded-xl px-4 py-3"
+          style={{ backgroundColor: theme.text }}
+          onPress={() => void retry()}
+        >
+          <Text className="font-semibold" style={{ color: theme.background }}>
+            Try again
+          </Text>
+        </Pressable>
+      </View>
+    </Container>
+  );
+}
 
 export default function TimetableScreen() {
   const colorScheme = useColorScheme();

@@ -11,7 +11,7 @@ import {
   scheduleDateNotification,
   sendImmediateNotification,
 } from "@/utils/notifications";
-import AsyncStorage from "expo-sqlite/kv-store";
+import { zustandStorage } from "@/stores/storage";
 import {
   dedupeTimelineEvents,
   getTimelineEventSignature,
@@ -45,7 +45,7 @@ const getReminderSignature = (
 ): string => `${getTimelineEventSignature(event)}:${minutesBefore}`;
 
 const migrateLegacyDashboardNotificationState = async (): Promise<void> => {
-  const legacyRaw = await AsyncStorage.getItem(
+  const legacyRaw = await zustandStorage.getItem(
     LEGACY_DASHBOARD_NOTIFICATION_STORAGE_KEY,
   );
 
@@ -67,7 +67,7 @@ const migrateLegacyDashboardNotificationState = async (): Promise<void> => {
   } catch {
     // Ignore malformed legacy state and fall through to removing it.
   } finally {
-    await AsyncStorage.removeItem(LEGACY_DASHBOARD_NOTIFICATION_STORAGE_KEY);
+    await zustandStorage.removeItem(LEGACY_DASHBOARD_NOTIFICATION_STORAGE_KEY);
   }
 };
 
@@ -84,7 +84,7 @@ const loadDashboardNotificationState =
   async (): Promise<DashboardNotificationState> => {
     await ensureLegacyDashboardNotificationStateMigrated();
 
-    const raw = await AsyncStorage.getItem(DASHBOARD_NOTIFICATION_STORAGE_KEY);
+    const raw = await zustandStorage.getItem(DASHBOARD_NOTIFICATION_STORAGE_KEY);
     if (!raw) {
       return EMPTY_NOTIFICATION_STATE;
     }
@@ -109,7 +109,7 @@ const loadDashboardNotificationState =
 const saveDashboardNotificationState = async (
   state: DashboardNotificationState,
 ): Promise<void> => {
-  await AsyncStorage.setItem(
+  await zustandStorage.setItem(
     DASHBOARD_NOTIFICATION_STORAGE_KEY,
     JSON.stringify(state),
   );
@@ -210,7 +210,7 @@ export const clearDashboardNotificationState = async (): Promise<void> => {
   const state = await loadDashboardNotificationState();
   await cancelReminderMap(state.scheduledReminderIds);
 
-  await AsyncStorage.removeItem(DASHBOARD_NOTIFICATION_STORAGE_KEY);
+  await zustandStorage.removeItem(DASHBOARD_NOTIFICATION_STORAGE_KEY);
 };
 
 const runDashboardNotificationsSync = async ({

@@ -51,7 +51,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       package: "com.codialo.Bunkialo2",
     },
     web: {
-      output: "static",
+      output: "single",
       bundler: "metro",
       favicon: "./src/assets/images/favicon.png",
     },

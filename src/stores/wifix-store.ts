@@ -1,8 +1,8 @@
 import { DEFAULT_MANUAL_PORTAL_URL } from "@/constants/wifix";
 import type { WifixPortalSource, WifixSettings } from "@/types";
-import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { zustandStorage } from "./storage";
 
 interface WifixStore extends WifixSettings {
   setAutoReconnectEnabled: (enabled: boolean) => void;
@@ -34,7 +34,7 @@ export const useWifixStore = create<WifixStore>()(
     }),
     {
       name: "wifix-settings-sqlite-v1",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => zustandStorage),
     },
   ),
 );

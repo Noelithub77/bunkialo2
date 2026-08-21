@@ -30,6 +30,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import type { ThemePreference } from "@/types";
 import { AccountSettingsSection } from "@/components/settings/account-settings-section";
 import { DeveloperSettingsSection } from "@/components/settings/developer-settings-section";
+import { usePwaInstallStore } from "@/stores/pwa-install-store";
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
@@ -66,6 +67,12 @@ export default function SettingsScreen() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
+  const pwaCanInstall = usePwaInstallStore((state) => state.canInstall);
+  const pwaIsIos = usePwaInstallStore((state) => state.isIos);
+  const pwaIsInstalled = usePwaInstallStore((state) => state.isInstalled);
+  const requestPwaInstall = usePwaInstallStore(
+    (state) => state.requestInstall,
+  );
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
@@ -320,6 +327,7 @@ export default function SettingsScreen() {
 
           <GeneralSettingsSection
             isCheckingUpdate={isCheckingUpdate}
+            onInstallPwa={requestPwaInstall}
             onCheckForUpdates={handleCheckForUpdates}
             onClearCache={handleClearCache}
             onLogout={handleLogout}
@@ -327,6 +335,11 @@ export default function SettingsScreen() {
             onSetTheme={handleSetTheme}
             theme={theme}
             themeLabel={themeLabelMap[themePreference]}
+            showPwaInstall={
+              process.env.EXPO_OS === "web" &&
+              !pwaIsInstalled &&
+              (pwaCanInstall || pwaIsIos)
+            }
           />
 
           <DeveloperSettingsSection

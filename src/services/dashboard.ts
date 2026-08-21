@@ -14,6 +14,39 @@ interface MoodleTimelineResponse {
   };
 }
 
+const isTimelineEvent = (value: unknown): value is TimelineEvent => {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.id === "number" &&
+    typeof item.name === "string" &&
+    typeof item.activityname === "string" &&
+    typeof item.activitystr === "string" &&
+    typeof item.modulename === "string" &&
+    typeof item.instance === "number" &&
+    typeof item.eventtype === "string" &&
+    typeof item.timestart === "number" &&
+    typeof item.timesort === "number" &&
+    typeof item.url === "string";
+};
+
+export const parseDashboardPayload = (
+  value: unknown,
+): { overdue: TimelineEvent[]; upcoming: TimelineEvent[] } => {
+  if (!Array.isArray(value)) throw new Error("Invalid dashboard response");
+  const readEvents = (entry: unknown): TimelineEvent[] => {
+    if (typeof entry !== "object" || entry === null) return [];
+    const data = (entry as Record<string, unknown>).data;
+    if (typeof data !== "object" || data === null) return [];
+    const events = (data as Record<string, unknown>).events;
+    return Array.isArray(events) ? events.filter(isTimelineEvent) : [];
+  };
+  const upcoming = dedupeTimelineEvents(readEvents(value[0]));
+  const overdue = dedupeTimelineEvents(
+    readEvents(value[1]).map((event) => ({ ...event, overdue: true })),
+  );
+  return { overdue, upcoming };
+};
+
 type ActionEventsByTimesortArgs = {
   limitnum: number;
   timesortfrom: number;
@@ -82,13 +115,12 @@ export const fetchDashboardEvents = async (
 
   const data = await postActionEventsByTimesort(sesskey, payload);
 
+  const { upcoming, overdue } = parseDashboardPayload(data);
   const rawUpcoming = data[0]?.data?.events || [];
   const rawOverdue = (data[1]?.data?.events || []).map((event) => ({
     ...event,
     overdue: true,
   }));
-  const upcoming = dedupeTimelineEvents(rawUpcoming);
-  const overdue = dedupeTimelineEvents(rawOverdue);
 
   if (rawUpcoming.length !== upcoming.length) {
     debug.scraper(

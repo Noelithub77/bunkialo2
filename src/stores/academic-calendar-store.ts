@@ -1,6 +1,6 @@
-import AsyncStorage from "expo-sqlite/kv-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { zustandStorage } from "./storage";
 import type { AcademicEvent, AcademicEventOverride } from "@/types";
 
 interface AcademicCalendarState {
@@ -95,7 +95,7 @@ export const useAcademicCalendarStore = create<AcademicCalendarState>()(
     }),
     {
       name: "academic-calendar-storage-sqlite-v1",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => zustandStorage),
     },
   ),
 );

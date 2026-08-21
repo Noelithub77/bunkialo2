@@ -10,9 +10,20 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
+  webId?: string;
+  webName?: string;
+  webRequired?: boolean;
 }
 
-export function Input({ label, error, style, ...props }: InputProps) {
+export function Input({
+  label,
+  error,
+  style,
+  webId,
+  webName,
+  webRequired,
+  ...props
+}: InputProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;

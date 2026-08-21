@@ -13,6 +13,11 @@ import {
   getPortalCourseSessions,
   getPortalTerms,
 } from "./attendance-api";
+import {
+  portalAttendanceSchema,
+  portalCourseSessionsSchema,
+  portalTermsSchema,
+} from "./attendance-schemas";
 import { matchCourses } from "./course-matcher";
 
 const statusLabels: Record<PortalAttendanceStatus, AttendanceStatus> = {
@@ -75,18 +80,22 @@ export interface AttendanceSyncResult {
   complete: CourseAttendance[];
 }
 
-export const syncAttendance = async (
+export interface AttendanceSyncPayload {
+  attendance: unknown;
+  sessions: Record<string, unknown>;
+  terms: unknown;
+  lmsCourses: import("@/types").Course[];
+}
+
+export const syncAttendanceFromPayload = (
   previousCourses: CourseAttendance[],
+  payload: AttendanceSyncPayload,
   onSummaries?: (courses: CourseAttendance[]) => void,
-): Promise<AttendanceSyncResult> => {
-  const [attendance, terms, lmsResult] = await Promise.all([
-    getPortalAttendance(),
-    getPortalTerms().catch(() => []),
-    fetchCourses().then(
-      (courses) => ({ status: "fulfilled" as const, courses }),
-      () => ({ status: "rejected" as const }),
-    ),
-  ]);
+): AttendanceSyncResult => {
+  const attendance = portalAttendanceSchema.parse(payload.attendance);
+  const terms = payload.terms === null
+    ? []
+    : portalTermsSchema.parse(payload.terms);
   const currentTerm =
     terms.find((term) => term.isCurrent) ?? terms.at(0) ?? null;
   const portalCourses = attendance.courses.map((course) => ({
@@ -97,10 +106,7 @@ export const syncAttendance = async (
         : course.termId,
   }));
   const linkState = useCourseLinkStore.getState();
-  const identities = matchCourses(
-    portalCourses,
-    lmsResult.status === "fulfilled" ? lmsResult.courses : [],
-  );
+  const identities = matchCourses(portalCourses, payload.lmsCourses);
   linkState.setIdentities(identities);
 
   const summaries = portalCourses.map((course): CourseAttendance => {
@@ -135,24 +141,52 @@ export const syncAttendance = async (
   );
   onSummaries?.([...retained, ...summaries]);
 
-  const details = await Promise.all(
-    summaries.map(async (summary) => {
+  const details = summaries.map((summary) => {
+    const rawDetail = payload.sessions[summary.attendanceCourseId];
+    if (rawDetail === undefined) return summary;
+    try {
+      const detail = portalCourseSessionsSchema.parse(rawDetail);
+      const records = detail.sessions.map((session) =>
+        toRecord(summary.termId, session),
+      );
+      return {
+        ...summary,
+        records: mergeRecords(summary.records, records),
+      };
+    } catch {
+      return summary;
+    }
+  });
+
+  return { summaries, complete: [...retained, ...details] };
+};
+
+export const syncAttendance = async (
+  previousCourses: CourseAttendance[],
+  onSummaries?: (courses: CourseAttendance[]) => void,
+): Promise<AttendanceSyncResult> => {
+  const [attendance, terms, lmsResult] = await Promise.all([
+    getPortalAttendance(),
+    getPortalTerms().catch(() => []),
+    fetchCourses().then(
+      (courses) => ({ status: "fulfilled" as const, courses }),
+      () => ({ status: "rejected" as const }),
+    ),
+  ]);
+  const sessions: Record<string, unknown> = {};
+  await Promise.all(
+    attendance.courses.map(async (course) => {
       try {
-        const detail = await getPortalCourseSessions(
-          summary.attendanceCourseId,
-        );
-        const records = detail.sessions.map((session) =>
-          toRecord(summary.termId, session),
-        );
-        return {
-          ...summary,
-          records: mergeRecords(summary.records, records),
-        };
+        sessions[course.courseId] = await getPortalCourseSessions(course.courseId);
       } catch {
-        return summary;
+        // Keep the summary when an individual course detail is unavailable.
       }
     }),
   );
-
-  return { summaries, complete: [...retained, ...details] };
+  return syncAttendanceFromPayload(previousCourses, {
+    attendance,
+    lmsCourses: lmsResult.status === "fulfilled" ? lmsResult.courses : [],
+    sessions,
+    terms,
+  }, onSummaries);
 };
