@@ -3,7 +3,7 @@
 ## Workflow
 
 1. Fork the repo.
-2. Create a branch from `master`.
+2. Create a branch from `main`.
 3. Make focused changes.
 4. Run checks locally.
 5. Open a pull request.
@@ -14,6 +14,10 @@
 bun install
 bunx expo start
 ```
+
+## Android development build
+
+Download the latest APK from the [Bunkialo2 GitHub Releases](https://github.com/Noelithub77/bunkialo2/releases) for device testing. Use the development build for EAS Update previews; Expo Go cannot load updates that use a custom runtime version.
 
 ## Quality Checks
 

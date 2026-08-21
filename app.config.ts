@@ -14,6 +14,7 @@ function requirePackageVersion(): string {
 
 export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
   const pkgVersion = requirePackageVersion();
+  const isExpoGoPreview = process.env.EXPO_GO_PREVIEW === "1";
 
   return {
     ...config,
@@ -88,7 +89,8 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
         projectId: "7cbe49d9-9827-4df3-b86e-849443804d63",
       },
     },
-    runtimeVersion: "1.2.0",
+    // Expo Go needs the SDK runtime; EAS builds use the app version contract.
+    runtimeVersion: isExpoGoPreview ? { policy: "sdkVersion" } : pkgVersion,
     updates: {
       url: "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
     },

@@ -1,7 +1,7 @@
 # Security Policy
 
 ## Supported Versions
-Security fixes are applied to the latest `master` branch.
+Security fixes are applied to the latest `main` branch.
 
 ## Reporting a Vulnerability
 Please use GitHub private vulnerability reporting (Security Advisories).

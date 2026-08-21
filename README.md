@@ -38,6 +38,10 @@ LMS test variables are optional and only needed if you run the test scripts:
 bunx expo start
 ```
 
+### Android development build
+
+Download the latest Android development APK from the [GitHub Releases page](https://github.com/Noelithub77/bunkialo2/releases), install it on an Android device, and use the EAS Update preview link from the matching pull request.
+
 ## Scripts
 
 - `bun test` (unit tests against app modules)
@@ -52,8 +56,8 @@ bunx expo start
 
 ## Contributing
 
-Please read `CONTRIBUTING.md` before opening pull requests.
+Please read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) before opening pull requests.
 
 ## Security
 
-Please report vulnerabilities through GitHub private vulnerability reporting. See `SECURITY.md`.
+Please report vulnerabilities through GitHub private vulnerability reporting. See [`.github/SECURITY.md`](.github/SECURITY.md).
