@@ -4,7 +4,10 @@ import type {
   AuthLoginResult,
 } from "@/types";
 import { z } from "zod";
-import { saveAttendanceCredentials } from "./secure-auth-storage";
+import {
+  getAttendanceCredentials,
+  saveAttendanceCredentials,
+} from "./secure-auth-storage";
 
 export const ATTENDANCE_PORTAL_URL = "https://attendance.iiitkottayam.ac.in";
 
@@ -89,10 +92,20 @@ export const checkAttendanceSession = async (): Promise<boolean> => {
     const response = await fetch("/api/attendance/api/auth/me", {
       credentials: "same-origin",
     });
-    return response.ok;
+    if (response.ok) return true;
   } catch {
-    return false;
+    // Try the saved credentials below when the Worker session is unavailable.
   }
+
+  const credentials = await getAttendanceCredentials();
+  if (!credentials) return false;
+  const result = await loginToAttendancePortal({
+    provider: "attendancePortal",
+    mode: "password",
+    email: credentials.email,
+    password: credentials.password,
+  });
+  return result.status === "success";
 };
 
 export const refreshAttendanceTokens = async (): Promise<AttendancePortalTokens> => {

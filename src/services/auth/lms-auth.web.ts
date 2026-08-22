@@ -1,31 +1,52 @@
 import type { Credentials } from "@/types";
+import { z } from "zod";
 import { getBaseUrl } from "../baseurl";
 import { offerWebCredential, preventAutomaticWebSignIn } from "./web-password-manager.web";
 
 let username: string | null = null;
-const USERNAME_KEY = "bunkialo_lms_username";
+const CREDENTIALS_KEY = "bunkialo_lms_credentials_v1";
+const LEGACY_USERNAME_KEY = "bunkialo_lms_username";
+const credentialsSchema = z.object({
+  username: z.string().trim().min(1),
+  password: z.string().min(1),
+});
 
 export const saveCredentials = async (
   nextUsername: string,
   password: string,
 ): Promise<void> => {
-  username = nextUsername;
-  localStorage.setItem(USERNAME_KEY, nextUsername);
-  await offerWebCredential({
-    identifier: nextUsername,
-    name: "Bunkialo LMS",
+  const credentials = credentialsSchema.parse({
+    username: nextUsername,
     password,
+  });
+  username = credentials.username;
+  localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
+  localStorage.removeItem(LEGACY_USERNAME_KEY);
+  await offerWebCredential({
+    identifier: credentials.username,
+    name: "Bunkialo LMS",
+    password: credentials.password,
   });
 };
 
 export const getCredentials = async (): Promise<Credentials | null> => {
-  const savedUsername = localStorage.getItem(USERNAME_KEY)?.trim();
-  return savedUsername ? { username: savedUsername, password: "" } : null;
+  const saved = localStorage.getItem(CREDENTIALS_KEY);
+  if (!saved) return null;
+
+  try {
+    const credentials = credentialsSchema.parse(JSON.parse(saved));
+    username = credentials.username;
+    return credentials;
+  } catch {
+    localStorage.removeItem(CREDENTIALS_KEY);
+    return null;
+  }
 };
 
 export const clearCredentials = async (): Promise<void> => {
   username = null;
-  localStorage.removeItem(USERNAME_KEY);
+  localStorage.removeItem(CREDENTIALS_KEY);
+  localStorage.removeItem(LEGACY_USERNAME_KEY);
   await preventAutomaticWebSignIn();
 };
 
@@ -58,8 +79,17 @@ export const checkSession = async (): Promise<boolean> => {
   return data.valid === true;
 };
 
-export const tryAutoLogin = async (): Promise<boolean> => checkSession();
-export const refreshAuthSession = async (): Promise<boolean> => checkSession();
+export const tryAutoLogin = async (): Promise<boolean> => {
+  const credentials = await getCredentials();
+  if (!credentials) return false;
+  if (await checkSession()) return true;
+  return login(credentials.username, credentials.password);
+};
+
+export const refreshAuthSession = async (): Promise<boolean> => {
+  const credentials = await getCredentials();
+  return credentials ? login(credentials.username, credentials.password) : false;
+};
 
 export const logout = async (clearSavedCredentials = true): Promise<void> => {
   await fetch("/api/auth/logout", {
@@ -78,5 +108,5 @@ export const getAuthDebugInfo = (): {
   baseUrl: getBaseUrl(username),
   cookieCount: 0,
   cookies: {},
-  hasCredentials: false,
+  hasCredentials: localStorage.getItem(CREDENTIALS_KEY) !== null,
 });

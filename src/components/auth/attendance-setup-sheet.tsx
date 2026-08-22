@@ -1,7 +1,7 @@
 import { LoginCredentialsStep } from "@/components/auth/login-credentials-step";
 import { PortalChallengeStep } from "@/components/auth/portal-challenge-step";
-import { checkAttendanceSession } from "@/services/auth/attendance-auth";
 import { login } from "@/services/auth/login";
+import { getAttendanceCredentials } from "@/services/auth/secure-auth-storage";
 import type { AuthLoginRequest } from "@/types";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
@@ -28,12 +28,12 @@ export function AttendanceSetupSheet({ enabled }: AttendanceSetupSheetProps) {
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    void checkAttendanceSession()
-      .then((connected) => {
-        if (active && !connected) setVisible(true);
+    void getAttendanceCredentials()
+      .then((credentials) => {
+        if (active) setVisible(credentials === null);
       })
       .catch(() => {
-        // A temporary session check failure should not hide account setup.
+        // Unreadable storage means the attendance account still needs setup.
         if (active) setVisible(true);
       });
     return () => {

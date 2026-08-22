@@ -2,7 +2,11 @@ import GrainyGradient from "@/components/shared/ui/organisms/grainy-gradient";
 import { LoginCredentialsStep } from "@/components/auth/login-credentials-step";
 import { PortalChallengeStep } from "@/components/auth/portal-challenge-step";
 import { login } from "@/services/auth/login";
-import { ATTENDANCE_PORTAL_URL } from "@/services/auth/attendance-auth";
+import {
+  ATTENDANCE_PORTAL_URL,
+  checkAttendanceSession,
+} from "@/services/auth/attendance-auth";
+import { getAttendanceCredentials } from "@/services/auth/secure-auth-storage";
 import { getWebCredential } from "@/services/auth/web-password-manager.web";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AuthLoginRequest } from "@/types";
@@ -53,6 +57,12 @@ export default function LoginScreen() {
     });
     setLoading(false);
     if (result.status === "success") {
+      const attendanceCredentials = await getAttendanceCredentials();
+      if (attendanceCredentials) {
+        void checkAttendanceSession();
+        completeLogin(rollNumber.trim());
+        return;
+      }
       setStep("attendance");
       return;
     }
@@ -208,7 +218,7 @@ export default function LoginScreen() {
             ) : null}
             <Text className="text-center text-xs text-zinc-500">
               {process.env.EXPO_OS === "web"
-                ? "Your browser password manager can securely save and autofill credentials."
+                ? "Credentials are saved in this browser so your session can be restored."
                 : "Credentials stay encrypted on this device."}
             </Text>
           </View>

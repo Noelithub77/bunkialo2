@@ -64,6 +64,7 @@ export default function RootLayout() {
   const splashHiddenRef = useRef(false);
   const fontsReady = fontsLoaded || Boolean(fontError);
   const appHydrated = dashboardHydrated;
+  const isLeavingLogin = !isCheckingAuth && isLoggedIn && pathname === "/login";
 
   useEffect(() => {
     checkAuth();
@@ -111,7 +112,7 @@ export default function RootLayout() {
     return () => clearTimeout(timeoutId);
   }, [fontsReady, isCheckingAuth]);
 
-  if (isCheckingAuth) {
+  if (isCheckingAuth || isLeavingLogin) {
     return (
       <View
         className="flex-1 items-center justify-center"
