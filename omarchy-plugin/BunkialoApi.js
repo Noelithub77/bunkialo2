@@ -109,6 +109,20 @@ function parseSnapshot(raw) {
   }
 }
 
+function parsePairingCode(raw) {
+  var data = JSON.parse(String(raw || ""))
+  if (!data || typeof data !== "object" || Array.isArray(data))
+    throw new Error("Invalid pairing code")
+  var keys = Object.keys(data)
+  if (keys.length !== 2)
+    throw new Error("Pairing code needs two credentials")
+  keys.forEach(function(key) {
+    if (!key || typeof data[key] !== "string" || !data[key])
+      throw new Error("Invalid pairing credential")
+  })
+  return data
+}
+
 function parseMess(raw) {
   var data = JSON.parse(String(raw || ""))
   return Array.isArray(data) ? data : []

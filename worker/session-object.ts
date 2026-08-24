@@ -10,7 +10,7 @@ import {
   isLmsLoginSuccessful,
 } from "./lms/login-check";
 import { sendReminderPush } from "./push/send-push";
-import type { DesktopSnapshot } from "../shared/desktop";
+import type { DesktopPairingCode, DesktopSnapshot } from "../shared/desktop";
 import { buildDesktopSnapshot } from "./desktop/timetable";
 
 type LmsSession = {
@@ -32,11 +32,6 @@ type ReminderRow = {
   sent_at: number | null;
   title: string;
   url: string;
-};
-
-type DesktopToken = {
-  hash: string;
-  createdAt: number;
 };
 
 export interface FullSyncPayload {
@@ -104,21 +99,6 @@ const readJsonIfPossible = async (response: Response): Promise<unknown> => {
   return contentType.includes("application/json") ? response.clone().json() : null;
 };
 
-const hashDesktopToken = async (secret: string): Promise<string> => {
-  const bytes = new TextEncoder().encode(secret);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-};
-
-const equalTokenHashes = (left: string, right: string): boolean => {
-  if (left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  }
-  return difference === 0;
-};
-
 export class UserSession extends DurableObject<CloudflareBindings> {
   constructor(ctx: DurableObjectState, env: CloudflareBindings) {
     super(ctx, env);
@@ -171,32 +151,6 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     for (const key of keys) {
       this.ctx.storage.sql.exec("DELETE FROM session_values WHERE key = ?", key);
     }
-  }
-
-  async createDesktopToken(): Promise<string> {
-    const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    const secret = btoa(String.fromCharCode(...bytes))
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "");
-    const hash = await hashDesktopToken(secret);
-    this.setValue("desktop-token", { createdAt: Date.now(), hash } satisfies DesktopToken);
-    return secret;
-  }
-
-  async validateDesktopToken(secret: string): Promise<boolean> {
-    const stored = this.getValue<DesktopToken>("desktop-token");
-    if (!stored || typeof stored.hash !== "string") return false;
-    return equalTokenHashes(stored.hash, await hashDesktopToken(secret));
-  }
-
-  async hasDesktopToken(): Promise<boolean> {
-    return this.getValue<DesktopToken>("desktop-token") !== null;
-  }
-
-  async revokeDesktopToken(): Promise<void> {
-    this.deleteValues("desktop-token");
   }
 
   private async keepAlive(): Promise<void> {
@@ -271,6 +225,40 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       return null;
     }
     return { password: session.password, username: session.username };
+  }
+
+  getAttendanceCredentials(): { email: string; password: string } | null {
+    const credentials = this.getValue<{ email: string; password: string }>("attendance-credentials");
+    if (!credentials || typeof credentials.email !== "string" || typeof credentials.password !== "string") {
+      return null;
+    }
+    return credentials;
+  }
+
+  saveAttendanceCredentials(credentials: { email: string; password: string }): void {
+    this.setValue("attendance-credentials", credentials);
+  }
+
+  async getDesktopPairingCode(): Promise<DesktopPairingCode | null> {
+    const lms = await this.getLmsCredentials();
+    const attendance = this.getAttendanceCredentials();
+    if (!lms || !attendance || lms.username === attendance.email) return null;
+    return {
+      [lms.username]: lms.password,
+      [attendance.email]: attendance.password,
+    };
+  }
+
+  enableDesktopPairing(): void {
+    this.setValue("desktop-pairing", true);
+  }
+
+  hasDesktopPairing(): boolean {
+    return this.getValue<boolean>("desktop-pairing") === true;
+  }
+
+  disableDesktopPairing(): void {
+    this.deleteValues("desktop-pairing");
   }
 
   async relayLms(input: {
@@ -504,14 +492,14 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     const newTokens = tokenValues(responseData);
     if (newTokens) this.setValue("attendance", newTokens);
     if (target.pathname === "/api/auth/logout" && response.ok) {
-      this.deleteValues("attendance");
+      this.deleteValues("attendance", "attendance-credentials", "desktop-pairing");
     }
     await this.keepAlive();
     return limitedResponse(response);
   }
 
   async logout(): Promise<void> {
-    this.deleteValues("attendance", "lms", "desktop-token");
+    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms");
     this.ctx.storage.sql.exec("DELETE FROM reminders");
     await this.ctx.storage.deleteAlarm();
   }
@@ -594,7 +582,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     const privateKey = this.env.VAPID_PRIVATE_KEY;
 
     if (due.length === 0) {
-      this.deleteValues("attendance", "lms", "push");
+    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms", "push");
       this.ctx.storage.sql.exec("DELETE FROM reminders");
       await this.ctx.storage.deleteAlarm();
       return;

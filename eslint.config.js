@@ -5,7 +5,12 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*", "worker-configuration.d.ts"],
+    ignores: [
+      "dist/*",
+      "worker-configuration.d.ts",
+      // Quickshell JavaScript modules use QML's top-level var export format.
+      "omarchy-plugin/**/*.js",
+    ],
   },
   {
     rules: {

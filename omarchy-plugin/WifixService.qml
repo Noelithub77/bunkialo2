@@ -7,8 +7,7 @@ Item {
   id: root
 
   property string cacheDir: ""
-  property string apiOrigin: ""
-  property string desktopToken: ""
+  property string pairingCode: ""
   readonly property string cachePath: root.cacheDir + "/wifix-ssid-cache.json"
   readonly property string cookiePath: root.cacheDir + "/wifix.cookies"
 
@@ -43,7 +42,6 @@ Item {
     root.wifixMessage = root.wifixAvailable
       ? "Campus portal detected on this WiFi"
       : "Campus portal not detected on this WiFi"
-    if (root.wifixAvailable) statusProc.running = true
     root.changed()
   }
 
@@ -79,32 +77,33 @@ Item {
   }
 
   function connect() {
-    if (!root.wifixAvailable || !root.desktopToken) {
-      root.wifixMessage = root.desktopToken
+    if (!root.wifixAvailable || !root.pairingCode) {
+      root.wifixMessage = root.pairingCode
         ? "Campus portal is not available"
-        : "Pair Bunkialo first"
+        : "Save the shared JSON in Settings first"
       root.changed()
       return
     }
-    root.wifixMessage = "Getting LMS session..."
-    credentialsProc.stdinEnabled = true
-    credentialsProc.running = true
+    if (!root.readLmsCredentials()) return
+    root.wifixMessage = "Opening campus portal..."
+    portalGetProc.stdinEnabled = true
+    portalGetProc.running = true
     root.changed()
   }
 
-  function handleDesktopCredentials(raw) {
+  function readLmsCredentials() {
     try {
-      var data = JSON.parse(String(raw || ""))
-      if (!data || typeof data.username !== "string" || typeof data.password !== "string")
+      var data = JSON.parse(String(root.pairingCode || ""))
+      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid JSON")
+      var keys = Object.keys(data)
+      if (keys.length !== 2 || !keys[0] || typeof data[keys[0]] !== "string" || !data[keys[0]])
         throw new Error("Missing LMS credentials")
-      root.portalCredentials = { username: data.username, password: data.password }
-      root.wifixMessage = "Opening campus portal..."
-      portalGetProc.stdinEnabled = true
-      portalGetProc.running = true
-      root.changed()
+      root.portalCredentials = { username: keys[0], password: data[keys[0]] }
+      return true
     } catch (error) {
-      root.wifixMessage = "Sign in to Bunkialo again before using WiFix"
+      root.wifixMessage = "Paste the two-credential JSON first"
       root.changed()
+      return false
     }
   }
 
@@ -138,28 +137,6 @@ Item {
   }
 
   Process {
-    id: credentialsProc
-    command: ["curl", "-sS", "--fail-with-body", "--max-time", "20", "-K", "-"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: root.handleDesktopCredentials(text)
-    }
-    onStarted: {
-      credentialsProc.write(Wifix.curlConfig({
-        url: root.apiOrigin + "/api/desktop/credentials",
-        header: "Authorization: Bearer " + root.desktopToken
-      }))
-      credentialsProc.stdinEnabled = false
-    }
-    onExited: function(exitCode) {
-      if (exitCode !== 0) {
-        root.wifixMessage = "Sign in to Bunkialo again before using WiFix"
-        root.changed()
-      }
-    }
-  }
-
-  Process {
     id: ssidProc
     command: ["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]
     stdout: StdioCollector {
@@ -175,18 +152,6 @@ Item {
     id: dnsProc
     command: ["getent", "ahosts", Wifix.AUTH_HOST]
     onExited: function(exitCode) { root.handleDns(exitCode) }
-  }
-
-  Process {
-    id: statusProc
-    command: ["curl", "-sS", "--max-time", "8", "-o", "/dev/null", "-w", "%{http_code}", "http://connectivitycheck.gstatic.com/generate_204"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        root.wifixConnected = String(text || "").trim() === "204"
-        root.changed()
-      }
-    }
   }
 
   Process {

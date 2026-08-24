@@ -15,6 +15,10 @@
       {
         "name": "USER_SESSION",
         "class_name": "UserSession"
+      },
+      {
+        "name": "DESKTOP_DIRECTORY",
+        "class_name": "DesktopDirectory"
       }
     ]
   },
@@ -22,6 +26,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["UserSession"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["DesktopDirectory"]
     }
   ],
   "vars": {

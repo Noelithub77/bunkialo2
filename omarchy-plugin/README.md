@@ -18,11 +18,11 @@ To install only the plugin from Git:
 omarchy plugin add https://github.com/Noelithub77/bunkialo2.git --enable
 ```
 
-The plugin uses the production Bunkialo desktop API. Open the Bunkialo pairing
-page, copy the one-line pairing code, and paste it into the plugin settings.
-That one code grants access to the connected LMS and attendance sessions: the
-timetable is built from both, and WiFix uses the paired LMS session. No second
-credential or WiFix input is needed.
+The plugin uses the production Bunkialo desktop API. Open the Bunkialo
+credentials page, copy the one-line two-entry JSON, and save it in the plugin
+settings. The plugin keeps it in Secret Service and WiFix uses the first entry
+locally; connecting to WiFi does not contact Bunkialo. Refreshing timetable or
+notifications still uses the production API.
 
 The plugin checks whether
 `auth.iiitkottayam.ac.in` resolves on the current WiFi SSID, caches that result

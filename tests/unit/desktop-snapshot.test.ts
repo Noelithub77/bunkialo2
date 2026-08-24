@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isDesktopPairingToken } from "../../src/services/desktop-pairing";
+import { isDesktopPairingCode } from "../../src/services/desktop-pairing";
 import { buildDesktopSnapshot } from "../../worker/desktop/timetable";
 import type { FullSyncPayload } from "../../worker/session-object";
 
@@ -27,17 +27,13 @@ const payload = (sessions: Record<string, unknown>): FullSyncPayload => ({
 });
 
 describe("desktop snapshot", () => {
-  test("accepts only complete desktop pairing tokens", () => {
+  test("accepts only two-entry desktop pairing JSON", () => {
     expect(
-      isDesktopPairingToken(
-        "v1.123e4567-e89b-12d3-a456-426614174000.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO12",
-      ),
+      isDesktopPairingCode('{"lms-user":"lms-password","attendance-user":"attendance-password"}'),
     ).toBe(true);
-    expect(isDesktopPairingToken("v1.session.secret")).toBe(false);
+    expect(isDesktopPairingCode('{"only-one":"password"}')).toBe(false);
     expect(
-      isDesktopPairingToken(
-        "v1.123e4567-e89b-12d3-a456-426614174000.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO1",
-      ),
+      isDesktopPairingCode('{"lms-user":"","attendance-user":"attendance-password"}'),
     ).toBe(false);
   });
 

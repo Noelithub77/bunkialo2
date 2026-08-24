@@ -59,8 +59,7 @@ Item {
   WifixService {
     id: wifix
     cacheDir: root.cacheDir
-    apiOrigin: root.apiOrigin
-    desktopToken: root.token
+    pairingCode: root.token
     onChanged: root.dataChanged()
   }
 
@@ -153,8 +152,10 @@ Item {
 
   function saveToken(value) {
     var next = String(value || "").trim()
-    if (!/^v1\.[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/.test(next)) {
-      root.setError("Paste the pairing code from Bunkialo")
+    try {
+      Api.parsePairingCode(next)
+    } catch (error) {
+      root.setError("Paste the shared credentials JSON from Bunkialo")
       return false
     }
     root.token = next
@@ -322,7 +323,14 @@ Item {
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
-        root.token = String(text || "").trim()
+        var saved = String(text || "").trim()
+        try {
+          Api.parsePairingCode(saved)
+          root.token = saved
+        } catch (error) {
+          root.token = ""
+          if (saved !== "") clearTokenProc.running = true
+        }
         cacheFile.reload()
         settingsFile.reload()
         messFile.reload()
@@ -333,7 +341,7 @@ Item {
 
   Process {
     id: storeTokenProc
-    command: ["secret-tool", "store", "--label", "Bunkialo pairing code", "service", root.secretService, "account", root.secretAccount]
+    command: ["secret-tool", "store", "--label", "Bunkialo credentials JSON", "service", root.secretService, "account", root.secretAccount]
     onStarted: {
       storeTokenProc.write(root.token + "\n")
       storeTokenProc.stdinEnabled = false
@@ -357,7 +365,7 @@ Item {
     }
     onStarted: {
       fetchProc.write("url = \"" + root.apiOrigin + "/api/desktop/snapshot\"\n"
-        + "header = \"Authorization: Bearer " + root.token + "\"\n")
+        + "header = \"Authorization: Pairing " + root.token + "\"\n")
       fetchProc.stdinEnabled = false
     }
     onExited: function(exitCode) {

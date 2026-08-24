@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
+import type { DesktopPairingCode } from "../shared/desktop";
+import type { DesktopDirectory } from "./desktop/desktop-directory";
 import { UserSession } from "./session-object";
 import { publicVapidKeyFromPrivateJwk } from "./push/send-push";
 import {
@@ -27,23 +29,51 @@ type AppEnv = {
 
 const SESSION_COOKIE = "__Host-bunkialo-session";
 
-type DesktopTokenParts = { secret: string; sessionId: string };
-
-const parseDesktopToken = (request: Request): DesktopTokenParts | null => {
-  const authorization = request.headers.get("authorization") ?? "";
-  const match = authorization.match(/^Bearer v1\.([0-9a-f-]{36})\.([A-Za-z0-9_-]{32,})$/i);
-  return match ? { secret: match[2], sessionId: match[1] } : null;
+const isDesktopPairingCode = (value: unknown): value is DesktopPairingCode => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const entries = Object.entries(value) as Array<[string, unknown]>;
+  return entries.length === 2 && entries.every(([username, password]) =>
+    username.length > 0 && typeof password === "string" && password.length > 0,
+  );
 };
+
+const parseDesktopPairing = (request: Request): DesktopPairingCode | null => {
+  const authorization = request.headers.get("authorization") ?? "";
+  if (!authorization.startsWith("Pairing ")) return null;
+  try {
+    const value: unknown = JSON.parse(authorization.slice("Pairing ".length));
+    return isDesktopPairingCode(value) ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+const pairingKey = async (code: DesktopPairingCode): Promise<string> => {
+  const bytes = new TextEncoder().encode(JSON.stringify(Object.entries(code)));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+const desktopDirectory = (
+  env: CloudflareBindings,
+  key: string,
+): DurableObjectStub<DesktopDirectory> => env.DESKTOP_DIRECTORY.getByName(key.slice(0, 2));
 
 const app = new Hono<AppEnv>();
 
 app.use("/api/*", async (context, next) => {
-  const desktopToken = parseDesktopToken(context.req.raw);
-  if (!isTrustedBrowserRequest(context.req.raw) && !desktopToken) {
+  const desktopPairing = parseDesktopPairing(context.req.raw);
+  if (!isTrustedBrowserRequest(context.req.raw) && !desktopPairing) {
     return context.json({ error: "Cross-site request rejected." }, 403);
   }
 
-  let sessionId = desktopToken?.sessionId ?? getCookie(context, SESSION_COOKIE);
+  const key = desktopPairing ? await pairingKey(desktopPairing) : null;
+  const resolvedSessionId = key
+    ? await desktopDirectory(context.env, key).resolve(key)
+    : null;
+  let sessionId = resolvedSessionId ?? getCookie(context, SESSION_COOKIE);
   if (!sessionId) {
     sessionId = crypto.randomUUID();
     setCookie(context, SESSION_COOKIE, sessionId, {
@@ -58,9 +88,7 @@ app.use("/api/*", async (context, next) => {
   context.set("sessionId", sessionId);
   context.set(
     "desktopAuthenticated",
-    desktopToken
-      ? await context.var.session.validateDesktopToken(desktopToken.secret)
-      : false,
+    desktopPairing !== null && resolvedSessionId !== null,
   );
   await next();
 });
@@ -87,24 +115,30 @@ app.post("/api/desktop/pair", async (context) => {
   if (context.var.desktopAuthenticated) {
     return context.json({ error: "Browser pairing is required." }, 400);
   }
-  if (!(await context.var.session.getLmsCredentials())) {
-    return context.json({ error: "Sign in to Bunkialo again before pairing." }, 409);
+  const code = await context.var.session.getDesktopPairingCode();
+  if (!code) {
+    return context.json({ error: "Sign in to both Bunkialo accounts before pairing." }, 409);
   }
-  const secret = await context.var.session.createDesktopToken();
-  return context.json({
-    token: `v1.${context.var.sessionId}.${secret}`,
-  });
+  const key = await pairingKey(code);
+  await desktopDirectory(context.env, key).link(key, context.var.sessionId);
+  await context.var.session.enableDesktopPairing();
+  return context.json({ code: JSON.stringify(code) });
 });
 
 app.get("/api/desktop/pair", async (context) =>
-  context.json({ paired: await context.var.session.hasDesktopToken() }),
+  context.json({ paired: await context.var.session.hasDesktopPairing() }),
 );
 
 app.delete("/api/desktop/pair", async (context) => {
   if (context.var.desktopAuthenticated) {
     return context.json({ error: "Use Bunkialo Settings to revoke pairing." }, 400);
   }
-  await context.var.session.revokeDesktopToken();
+  const code = await context.var.session.getDesktopPairingCode();
+  if (code) {
+    const key = await pairingKey(code);
+    await desktopDirectory(context.env, key).unlink(key, context.var.sessionId);
+  }
+  await context.var.session.disableDesktopPairing();
   return context.body(null, 204);
 });
 
@@ -117,17 +151,6 @@ app.get("/api/desktop/snapshot", async (context) => {
     return context.json({ error: "LMS or attendance connection is missing." }, 503);
   }
   return context.json(snapshot);
-});
-
-app.get("/api/desktop/credentials", async (context) => {
-  if (!context.var.desktopAuthenticated) {
-    return context.json({ error: "Desktop pairing is missing or invalid." }, 401);
-  }
-  const credentials = await context.var.session.getLmsCredentials();
-  if (!credentials) {
-    return context.json({ error: "Sign in to Bunkialo again before using WiFix." }, 409);
-  }
-  return context.json(credentials);
 });
 
 app.post("/api/sync", async (context) => {
@@ -191,7 +214,13 @@ app.post("/api/attendance/auth", async (context) => {
   });
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
-  const data: unknown = await response.json();
+  const data: unknown = await response.clone().json();
+  if (value.data.mode === "password" && response.ok) {
+    await context.var.session.saveAttendanceCredentials({
+      email: value.data.email.toLowerCase(),
+      password: value.data.password,
+    });
+  }
   if (typeof data !== "object" || data === null) {
     return Response.json(data, { status: response.status });
   }

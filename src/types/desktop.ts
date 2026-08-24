@@ -1,5 +1,6 @@
 export type {
   DesktopDayOfWeek,
+  DesktopPairingCode,
   DesktopNotification,
   DesktopSessionType,
   DesktopSnapshot,

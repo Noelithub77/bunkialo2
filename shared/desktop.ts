@@ -2,6 +2,9 @@ export type DesktopDayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type DesktopSessionType = "regular" | "lab" | "tutorial";
 
+// The first object entry is LMS; the second is attendance.
+export type DesktopPairingCode = Record<string, string>;
+
 export interface DesktopTimetableSlot {
   id: string;
   courseId: string;

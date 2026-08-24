@@ -1,13 +1,21 @@
+import type { DesktopPairingCode } from "@/types";
+
 export interface DesktopPairingStatus {
   paired: boolean;
 }
 
 export const DESKTOP_PAIRING_ROUTE = "/pair/desktop" as const;
 
-const desktopTokenPattern = /^v1\.[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/i;
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
+
+const isDesktopPairingObject = (value: unknown): value is DesktopPairingCode => {
+  if (!isRecord(value) || Array.isArray(value)) return false;
+  const entries = Object.entries(value) as [string, unknown][];
+  return entries.length === 2 && entries.every(([username, password]) =>
+    username.length > 0 && typeof password === "string" && password.length > 0,
+  );
+};
 
 const readJson = async (response: Response): Promise<Record<string, unknown>> => {
   const value: unknown = await response.json();
@@ -19,8 +27,13 @@ const responseError = async (response: Response, fallback: string): Promise<Erro
   return new Error(typeof data.error === "string" ? data.error : fallback);
 };
 
-export const isDesktopPairingToken = (value: string): boolean =>
-  desktopTokenPattern.test(value);
+export const isDesktopPairingCode = (value: string): boolean => {
+  try {
+    return isDesktopPairingObject(JSON.parse(value));
+  } catch {
+    return false;
+  }
+};
 
 export const getDesktopPairingStatus = async (): Promise<boolean> => {
   const response = await fetch("/api/desktop/pair", { credentials: "same-origin" });
@@ -36,10 +49,10 @@ export const createDesktopPairing = async (): Promise<string> => {
   });
   if (!response.ok) throw await responseError(response, "Could not create desktop pairing.");
   const data = await readJson(response);
-  if (typeof data.token !== "string" || !isDesktopPairingToken(data.token)) {
+  if (typeof data.code !== "string" || !isDesktopPairingCode(data.code)) {
     throw new Error("Bunkialo returned an invalid pairing code.");
   }
-  return data.token;
+  return data.code;
 };
 
 export const revokeDesktopPairing = async (): Promise<void> => {

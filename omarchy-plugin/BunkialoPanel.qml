@@ -404,7 +404,7 @@ Panel {
           SectionTitle { visible: !root.service || !root.service.wifixMode; text: "ACCOUNT"; foreground: Color.accent; fontFamily: root.fontFamily }
           Text {
             visible: (!root.service || !root.service.paired) && (!root.service || !root.service.wifixMode)
-            text: "Get one pairing code from Bunkialo"
+            text: "Save the shared credentials JSON once"
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
@@ -412,7 +412,7 @@ Panel {
           PanelActionButton {
             visible: (!root.service || !root.service.paired) && (!root.service || !root.service.wifixMode)
             iconText: "↗"
-            tooltipText: "Open Bunkialo pairing page"
+            tooltipText: "Open Bunkialo credentials page"
             foreground: Color.accent
             onClicked: root.openUrl("/pair/desktop")
           }
@@ -423,7 +423,7 @@ Panel {
             TextField {
               id: settingsToken
               Layout.fillWidth: true
-              placeholderText: "Paste pairing code"
+              placeholderText: "Paste credentials JSON"
               color: root.foreground
               foreground: root.foreground
               accent: Color.accent
@@ -460,21 +460,28 @@ Panel {
               elide: Text.ElideRight
               width: parent.width
             }
-            RowLayout {
+            Column {
               width: parent.width
-              spacing: Style.space(6)
-              PanelActionButton {
+              spacing: Style.space(8)
+              Button {
                 visible: !!root.service && !root.service.wifixConnected
-                iconText: ""
-                tooltipText: "Connect to campus WiFi"
-                foreground: Color.accent
+                width: parent.width
+                height: Style.space(48)
+                text: root.service && root.service.wifixChecking
+                  ? "Checking campus portal..." : "Connect to campus WiFi"
+                selected: true
+                accent: Color.accent
+                fontFamily: root.fontFamily
                 onClicked: if (root.service) root.service.startWifixConnect()
               }
-              PanelActionButton {
+              Button {
                 visible: !!root.service && root.service.wifixConnected
-                iconText: ""
-                tooltipText: "Disconnect from campus WiFi"
+                width: parent.width
+                height: Style.space(48)
+                text: "Disconnect from campus WiFi"
+                bordered: true
                 foreground: Color.urgent
+                fontFamily: root.fontFamily
                 onClicked: if (root.service) root.service.logoutWifix()
               }
               Text {
@@ -485,7 +492,7 @@ Panel {
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
                 elide: Text.ElideRight
-                Layout.fillWidth: true
+                width: parent.width
               }
             }
           }
