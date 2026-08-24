@@ -59,7 +59,7 @@ const CustomLightTheme = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
-  const { hasHydrated: dashboardHydrated } = useDashboardStore();
+  const dashboardHydrated = useDashboardStore((state) => state.hasHydrated);
   const pathname = usePathname();
   const params = useGlobalSearchParams<{ returnTo?: string }>();
   const isDark = colorScheme === "dark";
@@ -71,7 +71,6 @@ export default function RootLayout() {
   const splashHiddenRef = useRef(false);
   const fontsReady = fontsLoaded || Boolean(fontError);
   const appHydrated = dashboardHydrated;
-  const isLeavingLogin = !isCheckingAuth && isLoggedIn && pathname === "/login";
 
   useEffect(() => {
     checkAuth();
@@ -125,7 +124,7 @@ export default function RootLayout() {
     return () => clearTimeout(timeoutId);
   }, [fontsReady, isCheckingAuth]);
 
-  if (isCheckingAuth || isLeavingLogin) {
+  if (isCheckingAuth) {
     return (
       <View
         className="flex-1 items-center justify-center"

@@ -6,6 +6,15 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
+interface AppSyncControllerState {
+  attendanceHydrated: boolean;
+  attendanceSyncTime: number | null;
+  dashboardHydrated: boolean;
+  dashboardSyncTime: number | null;
+  intervalMinutes: number;
+  isLoggedIn: boolean;
+}
+
 export function AppSyncController() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const attendanceHydrated = useAttendanceStore((state) => state.hasHydrated);
@@ -16,20 +25,37 @@ export function AppSyncController() {
     (state) => state.refreshIntervalMinutes,
   );
   const running = useRef(false);
+  const latestState = useRef<AppSyncControllerState>({
+    attendanceHydrated,
+    attendanceSyncTime,
+    dashboardHydrated,
+    dashboardSyncTime,
+    intervalMinutes,
+    isLoggedIn,
+  });
+  latestState.current = {
+    attendanceHydrated,
+    attendanceSyncTime,
+    dashboardHydrated,
+    dashboardSyncTime,
+    intervalMinutes,
+    isLoggedIn,
+  };
 
   const syncIfStale = useCallback(async (): Promise<void> => {
+    const state = latestState.current;
     if (
-      !isLoggedIn ||
-      !attendanceHydrated ||
-      !dashboardHydrated ||
+      !state.isLoggedIn ||
+      !state.attendanceHydrated ||
+      !state.dashboardHydrated ||
       running.current
     ) {
       return;
     }
-    const staleAfter = Math.max(5, intervalMinutes) * 60 * 1000;
+    const staleAfter = Math.max(5, state.intervalMinutes) * 60 * 1000;
     const oldestSync = Math.min(
-      attendanceSyncTime ?? 0,
-      dashboardSyncTime ?? 0,
+      state.attendanceSyncTime ?? 0,
+      state.dashboardSyncTime ?? 0,
     );
     if (oldestSync > 0 && Date.now() - oldestSync < staleAfter) return;
 
@@ -39,18 +65,10 @@ export function AppSyncController() {
     } finally {
       running.current = false;
     }
-  }, [
-    attendanceHydrated,
-    attendanceSyncTime,
-    dashboardHydrated,
-    dashboardSyncTime,
-    intervalMinutes,
-    isLoggedIn,
-  ]);
+  }, []);
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    void syncIfStale();
     const interval = setInterval(
       () => void syncIfStale(),
       Math.max(5, intervalMinutes) * 60 * 1000,
