@@ -17,6 +17,8 @@ interface AttendanceActions {
   setHasHydrated: (hasHydrated: boolean) => void;
 }
 
+let activeAttendanceFetch: Promise<void> | null = null;
+
 export const useAttendanceStore = create<
   AttendanceStoreState & AttendanceActions
 >()(
@@ -30,49 +32,61 @@ export const useAttendanceStore = create<
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
-      fetchAttendance: async (options) => {
-        const background = options?.background ?? false;
-        const silent = options?.silent ?? false;
-        if (background) {
-          // Background refreshes should stay invisible to the UI.
-        } else if (silent) {
-          set((state) => ({ error: null, isLoading: state.isLoading }));
-        } else {
-          set({ isLoading: true, error: null });
-        }
-        try {
-          const result = await syncAttendance(
-            useAttendanceStore.getState().courses,
-            (courses) => set({ courses, lastSyncTime: Date.now() }),
-          );
-          const courses = result.complete;
+      fetchAttendance: (options) => {
+        if (activeAttendanceFetch) return activeAttendanceFetch;
+
+        const fetchPromise = (async (): Promise<void> => {
+          const background = options?.background ?? false;
+          const silent = options?.silent ?? false;
           if (background) {
-            set({
+            // Background refreshes should stay invisible to the UI.
+          } else if (silent) {
+            set((state) => ({ error: null, isLoading: state.isLoading }));
+          } else {
+            set({ isLoading: true, error: null });
+          }
+          try {
+            const result = await syncAttendance(
+              useAttendanceStore.getState().courses,
+              (courses) => set({ courses, lastSyncTime: Date.now() }),
+            );
+            const courses = result.complete;
+            if (background) {
+              set({
+                courses,
+                lastSyncTime: Date.now(),
+              });
+              return;
+            }
+
+            set((state) => ({
               courses,
               lastSyncTime: Date.now(),
-            });
-            return;
-          }
+              isLoading: silent ? state.isLoading : false,
+            }));
+          } catch (error) {
+            if (background) {
+              return;
+            }
 
-          set((state) => ({
-            courses,
-            lastSyncTime: Date.now(),
-            isLoading: silent ? state.isLoading : false,
-          }));
-        } catch (error) {
-          if (background) {
-            return;
+            const message =
+              error instanceof Error
+                ? error.message
+                : "Failed to fetch attendance";
+            set((state) => ({
+              error: message,
+              isLoading: silent ? state.isLoading : false,
+            }));
           }
+        })();
 
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch attendance";
-          set((state) => ({
-            error: message,
-            isLoading: silent ? state.isLoading : false,
-          }));
-        }
+        const trackedFetch = fetchPromise.finally(() => {
+          if (activeAttendanceFetch === trackedFetch) {
+            activeAttendanceFetch = null;
+          }
+        });
+        activeAttendanceFetch = trackedFetch;
+        return trackedFetch;
       },
 
       clearAttendance: () => {

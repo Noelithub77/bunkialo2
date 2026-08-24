@@ -50,6 +50,7 @@ export function AppSyncController() {
 
   useEffect(() => {
     if (!isLoggedIn) return;
+    void syncIfStale();
     const interval = setInterval(
       () => void syncIfStale(),
       Math.max(5, intervalMinutes) * 60 * 1000,

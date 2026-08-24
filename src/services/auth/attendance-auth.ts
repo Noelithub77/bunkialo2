@@ -7,7 +7,7 @@ import type {
   AuthLoginRequest,
   AuthLoginResult,
 } from "@/types";
-import axios, { AxiosError, isAxiosError } from "axios";
+import axios, { isAxiosError } from "axios";
 import {
   applyAuthTokenInterceptor,
   clearAuthTokens,
@@ -168,42 +168,54 @@ export const checkAttendanceSession = async (): Promise<boolean> => {
   return credentials !== null;
 };
 
-let credentialFallbackUsed = false;
+let tokenRefreshPromise: Promise<AttendancePortalTokens> | null = null;
+
+const isStaleRefreshError = (error: unknown): boolean =>
+  isAxiosError(error) &&
+  (error.response?.status === 401 || error.response?.status === 403);
+
+const loginWithSavedCredentials = async (
+  originalError: unknown,
+): Promise<AttendancePortalTokens> => {
+  const credentials = await getAttendanceCredentials();
+  if (!credentials) throw originalError;
+
+  try {
+    const response = await rawAuthClient.post("/api/auth/login", credentials);
+    const parsed = portalLoginSchema.parse(response.data);
+    const tokens = tokensFromResponse(parsed);
+    if (!tokens) throw originalError;
+    return tokens;
+  } catch {
+    await clearAttendanceCredentials();
+    throw originalError;
+  }
+};
 
 export const refreshAttendanceTokens = async (
   refreshToken: string,
 ): Promise<AttendancePortalTokens> => {
-  try {
-    const response = await rawAuthClient.post("/api/auth/refresh", {
-      refresh: refreshToken,
-    });
-    const parsed = portalRefreshSchema.parse(response.data);
-    const tokens = tokensFromResponse(parsed);
-    if (!tokens)
-      throw new Error("Refresh response did not include both tokens.");
-    credentialFallbackUsed = false;
-    pendingAttendanceCredentials = null;
-    return tokens;
-  } catch (error) {
-    const isStale =
-      error instanceof AxiosError &&
-      (error.response?.status === 401 || error.response?.status === 403);
-    if (!isStale || credentialFallbackUsed) throw error;
-
-    credentialFallbackUsed = true;
-    const credentials = await getAttendanceCredentials();
-    if (!credentials) throw error;
+  tokenRefreshPromise ??= (async () => {
     try {
-      const response = await rawAuthClient.post("/api/auth/login", credentials);
-      const parsed = portalLoginSchema.parse(response.data);
+      const response = await rawAuthClient.post("/api/auth/refresh", {
+        refresh: refreshToken,
+      });
+      const parsed = portalRefreshSchema.parse(response.data);
       const tokens = tokensFromResponse(parsed);
-      if (!tokens) throw error;
+      if (!tokens) {
+        throw new Error("Refresh response did not include both tokens.");
+      }
+      pendingAttendanceCredentials = null;
       return tokens;
-    } catch {
-      await clearAttendanceCredentials();
-      throw error;
+    } catch (error) {
+      if (!isStaleRefreshError(error)) throw error;
+      return loginWithSavedCredentials(error);
     }
-  }
+  })().finally(() => {
+    tokenRefreshPromise = null;
+  });
+
+  return tokenRefreshPromise;
 };
 
 export const logoutFromAttendancePortal = async (): Promise<void> => {
@@ -214,7 +226,6 @@ export const logoutFromAttendancePortal = async (): Promise<void> => {
   } catch {
     // Local logout must still finish when the portal is offline.
   } finally {
-    credentialFallbackUsed = false;
     await clearAuthTokens();
     await clearAttendanceCredentials();
   }

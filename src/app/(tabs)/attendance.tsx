@@ -9,15 +9,16 @@ import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { selectAllDutyLeaves, useBunkStore } from "@/stores/bunk-store";
+import { useSettingsStore } from "@/stores/settings-store";
 import {
-    computeUnknownCount,
-    formatSyncTime,
+  computeUnknownCount,
+  formatSyncTime,
 } from "@/utils/attendance-helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { InteractionManager, Pressable, Text, View } from "react-native";
 import { FAB, Portal } from "react-native-paper";
 
@@ -53,8 +54,10 @@ export default function AttendanceScreen() {
     activeModal,
     closeModal,
   } = useAttendanceUIStore();
-  const hasAutoRefreshed = useRef(false);
-  const attendanceStaleMs = 30 * 60 * 1000;
+  const refreshIntervalMinutes = useSettingsStore(
+    (state) => state.refreshIntervalMinutes,
+  );
+  const attendanceStaleMs = Math.max(5, refreshIntervalMinutes) * 60 * 1000;
 
   const { handleOpenCreateCourse, handleToggleEditMode } = useCourseActions();
 
@@ -81,31 +84,32 @@ export default function AttendanceScreen() {
     [visibleAttendanceCourses, visibleBunkCourses],
   );
 
-  // initial fetch on hydration
-  useEffect(() => {
-    if (!isAttendanceHydrated || hasAutoRefreshed.current) return;
-    if (isOffline && lastSyncTime === null) return;
-    hasAutoRefreshed.current = true;
-    if (isOffline) return;
+  // Refresh whenever the tab becomes active and the cached portal data is stale.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAttendanceHydrated) return undefined;
+      if (isOffline && lastSyncTime === null) return undefined;
+      if (isOffline) return undefined;
 
-    const shouldRefresh =
-      lastSyncTime === null || Date.now() - lastSyncTime > attendanceStaleMs;
-    if (!shouldRefresh) return;
-    const task = InteractionManager.runAfterInteractions(() => {
-      if (lastSyncTime === null) {
-        fetchAttendance();
-      } else {
-        fetchAttendance({ silent: true });
-      }
-    });
-    return () => task.cancel();
-  }, [
-    attendanceStaleMs,
-    fetchAttendance,
-    isAttendanceHydrated,
-    isOffline,
-    lastSyncTime,
-  ]);
+      const shouldRefresh =
+        lastSyncTime === null || Date.now() - lastSyncTime > attendanceStaleMs;
+      if (!shouldRefresh) return undefined;
+      const task = InteractionManager.runAfterInteractions(() => {
+        if (lastSyncTime === null) {
+          void fetchAttendance();
+        } else {
+          void fetchAttendance({ silent: true });
+        }
+      });
+      return () => task.cancel();
+    }, [
+      attendanceStaleMs,
+      fetchAttendance,
+      isAttendanceHydrated,
+      isOffline,
+      lastSyncTime,
+    ]),
+  );
 
   // sync bunk store from LMS data
   useEffect(() => {
