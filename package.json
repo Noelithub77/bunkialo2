@@ -7,6 +7,7 @@
     "reset-project": "node ./scripts/reset-project.js",
     "generate-icons": "node ./src/scripts/generate-icons.mjs",
     "fetch-faculty": "node ./scripts/fetch-faculty.mjs",
+    "desktop:export": "bun scripts/export-omarchy-data.ts",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "node ./scripts/dev-web.mjs",

@@ -8,11 +8,11 @@ import type {
 import { debug } from "@/utils/debug";
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
 import { wifixLogger } from "@/utils/wifix-logger";
-
 const CONNECTIVITY_CHECK_URL =
   "http://connectivitycheck.gstatic.com/generate_204";
-const DEFAULT_PORTAL_BASE_URL = "http://172.16.222.1:1000";
-const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
+const DEFAULT_PORTAL_BASE_URL = "https://auth.iiitkottayam.ac.in:1442";
+const LEGACY_LOGIN_PATH = "/login?0330598d1f22608a";
+const CAMPUS_LOGIN_PATH = "/fgtauth?06654743c24164e4";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
 
@@ -367,9 +367,14 @@ export const loginToCaptivePortal = async (params: {
     params.portalBaseUrl ?? getPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
 
-  const loginUrl = params.portalUrl?.includes("/login")
+  const isExplicitLoginUrl = params.portalUrl?.includes("/login") ||
+    params.portalUrl?.includes("/fgtauth");
+  const loginPath = baseUrl.includes("auth.iiitkottayam.ac.in")
+    ? CAMPUS_LOGIN_PATH
+    : LEGACY_LOGIN_PATH;
+  const loginUrl = isExplicitLoginUrl && params.portalUrl
     ? params.portalUrl
-    : `${baseUrl}${DEFAULT_LOGIN_PATH}`;
+    : `${baseUrl}${loginPath}`;
 
   debug.wifix("Step 2: Fetching login page", { loginUrl });
   wifixLogger.info(`Fetching login page: ${loginUrl}`);

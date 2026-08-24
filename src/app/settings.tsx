@@ -3,6 +3,7 @@ import { syncWifixBackgroundTask } from "@/background/wifix-background";
 import {
   CustomRemindersSection,
   DashboardSettingsSection,
+  DesktopPluginSection,
   GeneralSettingsSection,
   SettingsFooter,
 } from "@/components/settings";
@@ -303,6 +304,7 @@ export default function SettingsScreen() {
           </View>
 
           <AccountSettingsSection lmsUsername={username} theme={theme} />
+          <DesktopPluginSection theme={theme} />
           <DashboardSettingsSection
             backgroundActivity={backgroundActivity}
             backgroundSyncActivityEnabled={backgroundSyncActivityEnabled}

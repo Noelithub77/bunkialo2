@@ -18,19 +18,32 @@ import {
 
 type AppEnv = {
   Bindings: CloudflareBindings;
-  Variables: { session: DurableObjectStub<UserSession> };
+  Variables: {
+    desktopAuthenticated: boolean;
+    session: DurableObjectStub<UserSession>;
+    sessionId: string;
+  };
 };
 
 const SESSION_COOKIE = "__Host-bunkialo-session";
 
+type DesktopTokenParts = { secret: string; sessionId: string };
+
+const parseDesktopToken = (request: Request): DesktopTokenParts | null => {
+  const authorization = request.headers.get("authorization") ?? "";
+  const match = authorization.match(/^Bearer v1\.([0-9a-f-]{36})\.([A-Za-z0-9_-]{32,})$/i);
+  return match ? { secret: match[2], sessionId: match[1] } : null;
+};
+
 const app = new Hono<AppEnv>();
 
 app.use("/api/*", async (context, next) => {
-  if (!isTrustedBrowserRequest(context.req.raw)) {
+  const desktopToken = parseDesktopToken(context.req.raw);
+  if (!isTrustedBrowserRequest(context.req.raw) && !desktopToken) {
     return context.json({ error: "Cross-site request rejected." }, 403);
   }
 
-  let sessionId = getCookie(context, SESSION_COOKIE);
+  let sessionId = desktopToken?.sessionId ?? getCookie(context, SESSION_COOKIE);
   if (!sessionId) {
     sessionId = crypto.randomUUID();
     setCookie(context, SESSION_COOKIE, sessionId, {
@@ -42,6 +55,13 @@ app.use("/api/*", async (context, next) => {
     });
   }
   context.set("session", context.env.USER_SESSION.getByName(sessionId));
+  context.set("sessionId", sessionId);
+  context.set(
+    "desktopAuthenticated",
+    desktopToken
+      ? await context.var.session.validateDesktopToken(desktopToken.secret)
+      : false,
+  );
   await next();
 });
 
@@ -62,6 +82,53 @@ app.post("/api/auth/lms/login", async (context) => {
 app.get("/api/auth/lms/session", async (context) =>
   context.json({ valid: await context.var.session.checkLms() }),
 );
+
+app.post("/api/desktop/pair", async (context) => {
+  if (context.var.desktopAuthenticated) {
+    return context.json({ error: "Browser pairing is required." }, 400);
+  }
+  if (!(await context.var.session.getLmsCredentials())) {
+    return context.json({ error: "Sign in to Bunkialo again before pairing." }, 409);
+  }
+  const secret = await context.var.session.createDesktopToken();
+  return context.json({
+    token: `v1.${context.var.sessionId}.${secret}`,
+  });
+});
+
+app.get("/api/desktop/pair", async (context) =>
+  context.json({ paired: await context.var.session.hasDesktopToken() }),
+);
+
+app.delete("/api/desktop/pair", async (context) => {
+  if (context.var.desktopAuthenticated) {
+    return context.json({ error: "Use Bunkialo Settings to revoke pairing." }, 400);
+  }
+  await context.var.session.revokeDesktopToken();
+  return context.body(null, 204);
+});
+
+app.get("/api/desktop/snapshot", async (context) => {
+  if (!context.var.desktopAuthenticated) {
+    return context.json({ error: "Desktop pairing is missing or invalid." }, 401);
+  }
+  const snapshot = await context.var.session.syncDesktop();
+  if (!snapshot) {
+    return context.json({ error: "LMS or attendance connection is missing." }, 503);
+  }
+  return context.json(snapshot);
+});
+
+app.get("/api/desktop/credentials", async (context) => {
+  if (!context.var.desktopAuthenticated) {
+    return context.json({ error: "Desktop pairing is missing or invalid." }, 401);
+  }
+  const credentials = await context.var.session.getLmsCredentials();
+  if (!credentials) {
+    return context.json({ error: "Sign in to Bunkialo again before using WiFix." }, 409);
+  }
+  return context.json(credentials);
+});
 
 app.post("/api/sync", async (context) => {
   const payload = await context.var.session.syncAll();

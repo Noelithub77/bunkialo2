@@ -10,10 +10,13 @@ import {
   isLmsLoginSuccessful,
 } from "./lms/login-check";
 import { sendReminderPush } from "./push/send-push";
+import type { DesktopSnapshot } from "../shared/desktop";
+import { buildDesktopSnapshot } from "./desktop/timetable";
 
 type LmsSession = {
   cookies: StoredCookie[];
   origin: string;
+  password: string;
   username: string;
 };
 
@@ -29,6 +32,11 @@ type ReminderRow = {
   sent_at: number | null;
   title: string;
   url: string;
+};
+
+type DesktopToken = {
+  hash: string;
+  createdAt: number;
 };
 
 export interface FullSyncPayload {
@@ -96,6 +104,21 @@ const readJsonIfPossible = async (response: Response): Promise<unknown> => {
   return contentType.includes("application/json") ? response.clone().json() : null;
 };
 
+const hashDesktopToken = async (secret: string): Promise<string> => {
+  const bytes = new TextEncoder().encode(secret);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const equalTokenHashes = (left: string, right: string): boolean => {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+};
+
 export class UserSession extends DurableObject<CloudflareBindings> {
   constructor(ctx: DurableObjectState, env: CloudflareBindings) {
     super(ctx, env);
@@ -150,6 +173,32 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     }
   }
 
+  async createDesktopToken(): Promise<string> {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const secret = btoa(String.fromCharCode(...bytes))
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+    const hash = await hashDesktopToken(secret);
+    this.setValue("desktop-token", { createdAt: Date.now(), hash } satisfies DesktopToken);
+    return secret;
+  }
+
+  async validateDesktopToken(secret: string): Promise<boolean> {
+    const stored = this.getValue<DesktopToken>("desktop-token");
+    if (!stored || typeof stored.hash !== "string") return false;
+    return equalTokenHashes(stored.hash, await hashDesktopToken(secret));
+  }
+
+  async hasDesktopToken(): Promise<boolean> {
+    return this.getValue<DesktopToken>("desktop-token") !== null;
+  }
+
+  async revokeDesktopToken(): Promise<void> {
+    this.deleteValues("desktop-token");
+  }
+
   private async keepAlive(): Promise<void> {
     const current = await this.ctx.storage.getAlarm();
     if (current === null) await this.ctx.storage.setAlarm(Date.now() + SESSION_TTL_MS);
@@ -186,6 +235,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       this.setValue("lms", {
         cookies: loginResult.cookies,
         origin,
+        password,
         username,
       } satisfies LmsSession);
       await this.keepAlive();
@@ -213,6 +263,14 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     session.cookies = result.cookies;
     this.setValue("lms", session);
     return result.response.ok && !isLmsLoginPage(await result.response.text());
+  }
+
+  async getLmsCredentials(): Promise<{ password: string; username: string } | null> {
+    const session = this.getValue<LmsSession>("lms");
+    if (!session || typeof session.username !== "string" || typeof session.password !== "string") {
+      return null;
+    }
+    return { password: session.password, username: session.username };
   }
 
   async relayLms(input: {
@@ -318,6 +376,17 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     return { attendance, lms: lmsPayload };
   }
 
+  async syncDesktop(): Promise<DesktopSnapshot | null> {
+    const payload = await this.syncAll();
+    if (!payload.attendance) return null;
+    const normalized = buildDesktopSnapshot(payload);
+    return {
+      generatedAt: Date.now(),
+      timetable: normalized.timetable,
+      notifications: normalized.notifications,
+    };
+  }
+
   private async syncAttendance(): Promise<FullSyncPayload["attendance"]> {
     let tokens = this.getValue<AttendanceTokens>("attendance");
     if (!tokens) return null;
@@ -356,6 +425,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       const value = await fetchJson(`/api/students/me/courses/${encodeURIComponent(courseId)}/sessions`);
       if (value) sessions[courseId] = value;
     }));
+    if (courseIds.length > 0 && Object.keys(sessions).length === 0) return null;
     if (tokens) this.setValue("attendance", tokens);
     await this.keepAlive();
     return { notifications, sessions, summary, terms };
@@ -441,7 +511,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
   }
 
   async logout(): Promise<void> {
-    this.deleteValues("attendance", "lms");
+    this.deleteValues("attendance", "lms", "desktop-token");
     this.ctx.storage.sql.exec("DELETE FROM reminders");
     await this.ctx.storage.deleteAlarm();
   }

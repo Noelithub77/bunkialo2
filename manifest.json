@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "noel.bunkialo",
+  "name": "Bunkialo",
+  "version": "1.0.0",
+  "author": "Noel",
+  "license": "GPL-3.0-or-later",
+  "description": "Bunkialo timetable, mess menu, and notifications for Omarchy.",
+  "kinds": ["service", "bar-widget"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "omarchy-plugin/Service.qml",
+    "barWidget": "omarchy-plugin/BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Bunkialo",
+    "description": "Current class, next class, mess menu, and notifications.",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
