@@ -144,14 +144,35 @@
     {
       "label": "Start Landing Dev",
       "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-Command",
-        "Start-Process http://localhost:3000; bun run dev"
-      ],
+      "command": "bun",
+      "args": ["run", "dev"],
       "options": {
-        "cwd": "${workspaceFolder}\\bunkialo-landing"
+        "cwd": "${workspaceFolder}/bunkialo-landing"
+      },
+      "linux": {
+        "command": "sh",
+        "args": [
+          "-c",
+          "(xdg-open http://localhost:3000 >/dev/null 2>&1 || true) & exec bun run dev"
+        ]
+      },
+      "osx": {
+        "command": "sh",
+        "args": [
+          "-c",
+          "(open http://localhost:3000 >/dev/null 2>&1 || true) & exec bun run dev"
+        ]
+      },
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Start-Process http://localhost:3000; bun run dev"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder}\\bunkialo-landing"
+        }
       },
       "group": {
         "kind": "build"

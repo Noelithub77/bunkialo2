@@ -4,20 +4,11 @@ import {
 } from "@/components/landing/landing-shell";
 import { headers } from "next/headers";
 import { userAgent } from "next/server";
-import rootPackage from "../../../package.json";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
   "https://bunkialo.noel.is-a.dev";
-
-const expoRuntimeVersion = rootPackage.version;
-
-const EXPO_QR_URL = `https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&channel=production&runtimeVersion=${expoRuntimeVersion}`;
-
-const EXPO_URL_ENDPOINT = `${EXPO_QR_URL}&format=url`;
-
-const EXPO_URL_FALLBACK = `exp://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63?runtime-version=${expoRuntimeVersion}&channel-name=production`;
 
 function resolvePlatformTab(requestHeaders: Headers): PlatformTab {
   const parsedAgent = userAgent({ headers: requestHeaders });
@@ -40,27 +31,8 @@ function resolvePlatformTab(requestHeaders: Headers): PlatformTab {
   return "android";
 }
 
-async function getProductionExpUrl(): Promise<string> {
-  try {
-    const response = await fetch(EXPO_URL_ENDPOINT, {
-      next: { revalidate: 300 },
-    });
-
-    if (!response.ok) {
-      return EXPO_URL_FALLBACK;
-    }
-
-    const resolvedUrl = (await response.text()).trim();
-
-    return resolvedUrl.startsWith("exp://") ? resolvedUrl : EXPO_URL_FALLBACK;
-  } catch {
-    return EXPO_URL_FALLBACK;
-  }
-}
-
 export default async function Home() {
   const requestHeaders = new Headers(await headers());
-  const expUrl = await getProductionExpUrl();
 
   return (
     <>
@@ -100,9 +72,7 @@ export default async function Home() {
         }}
       />
       <LandingShell
-        expUrl={expUrl}
         initialTab={resolvePlatformTab(requestHeaders)}
-        qrUrl={EXPO_QR_URL}
       />
     </>
   );
