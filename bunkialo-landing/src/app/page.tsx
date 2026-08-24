@@ -2,29 +2,16 @@ import {
   LandingShell,
   type PlatformTab,
 } from "@/components/landing/landing-shell";
-import { readFileSync } from "fs";
 import { headers } from "next/headers";
 import { userAgent } from "next/server";
-import path from "path";
+import rootPackage from "../../../package.json";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
   "https://bunkialo.noel.is-a.dev";
 
-function loadExpoRuntimeVersion(): string {
-  const configPath = path.resolve(process.cwd(), "..", "app.config.ts");
-  const content = readFileSync(configPath, "utf8");
-  const match = content.match(/runtimeVersion:\s*"([^"]+)"/);
-
-  if (!match) {
-    throw new Error("runtimeVersion not found in app.config.ts");
-  }
-
-  return match[1];
-}
-
-const expoRuntimeVersion = loadExpoRuntimeVersion();
+const expoRuntimeVersion = rootPackage.version;
 
 const EXPO_QR_URL = `https://qr.expo.dev/eas-update?projectId=7cbe49d9-9827-4df3-b86e-849443804d63&channel=production&runtimeVersion=${expoRuntimeVersion}`;
 
