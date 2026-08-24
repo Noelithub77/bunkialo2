@@ -101,23 +101,33 @@ export default function LoginScreen() {
   const submitPortal = async (): Promise<void> => {
     setLoading(true);
     setError(null);
-    const result = await login({
-      provider: "attendancePortal",
-      mode: "password",
-      email: email.trim(),
-      password: portalPassword,
-    });
-    setLoading(false);
-    handlePortalResult(result);
+    try {
+      const result = await login({
+        provider: "attendancePortal",
+        mode: "password",
+        email: email.trim(),
+        password: portalPassword,
+      });
+      handlePortalResult(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not sign in.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitChallenge = async (): Promise<void> => {
     if (!challenge) return;
     setLoading(true);
     setError(null);
-    const result = await login({ ...challenge, code: code.trim() });
-    setLoading(false);
-    handlePortalResult(result);
+    try {
+      const result = await login({ ...challenge, code: code.trim() });
+      handlePortalResult(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not verify the code.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -8,7 +8,7 @@ import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Colors } from "@/constants/theme";
 import * as Clipboard from "expo-clipboard";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface DesktopPluginSectionProps {
@@ -93,7 +93,7 @@ export function DesktopPluginSection({ autoCreate = false, theme }: DesktopPlugi
           <View className="flex-1">
             <Text className="text-sm font-semibold" style={{ color: theme.text }}>Omarchy</Text>
             <Text className="text-xs" style={{ color: theme.textSecondary }}>
-              {paired ? "Paired" : "Not paired"}
+              {paired ? "Connected" : "Not connected"}
             </Text>
           </View>
           <Ionicons
@@ -103,30 +103,71 @@ export function DesktopPluginSection({ autoCreate = false, theme }: DesktopPlugi
           />
         </View>
         {token ? (
-          <View className="flex-row justify-end gap-2 border-t px-4 py-3" style={{ borderTopColor: theme.border }}>
-            <Pressable
-              accessibilityLabel="Copy pairing code"
-              accessibilityRole="button"
-              accessibilityHint="Copies the pairing code to the clipboard"
-              className="rounded-lg p-3"
-              style={{ backgroundColor: theme.backgroundSecondary ?? theme.background }}
-              onPress={() => void copyToken()}
+          <View className="gap-3 border-t px-4 py-4" style={{ borderTopColor: theme.border }}>
+            <View className="flex-row items-start gap-3">
+              <View className="flex-1 gap-1">
+                <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+                  Credentials JSON
+                </Text>
+                <Text className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+                  Paste this into the Omarchy Bunkialo plugin settings.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Copy credentials JSON"
+                accessibilityRole="button"
+                accessibilityHint="Copies the credentials JSON to the clipboard"
+                className="rounded-lg p-3"
+                style={{ backgroundColor: theme.backgroundSecondary ?? theme.background }}
+                onPress={() => void copyToken()}
+              >
+                <Ionicons name="copy-outline" size={20} color={theme.text} />
+              </Pressable>
+            </View>
+            <View
+              className="rounded-lg border px-3 py-3"
+              style={{
+                backgroundColor: theme.backgroundSecondary ?? theme.background,
+                borderColor: theme.border,
+              }}
             >
-              <Ionicons name="copy-outline" size={20} color={theme.text} />
-            </Pressable>
+              <Text
+                selectable
+                className="text-xs leading-5"
+                style={{ color: theme.text, fontFamily: "monospace" }}
+              >
+                {token}
+              </Text>
+            </View>
+          </View>
+        ) : paired ? (
+          <View className="gap-1 border-t px-4 py-4" style={{ borderTopColor: theme.border }}>
+            <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+              Desktop already connected
+            </Text>
+            <Text className="text-xs leading-5" style={{ color: theme.textSecondary }}>
+              Generate a replacement code if you need to connect another Omarchy plugin.
+            </Text>
           </View>
         ) : null}
-        <View className="flex-row gap-2 border-t px-4 py-3" style={{ borderTopColor: theme.border }}>
+        <View className="flex-row gap-3 border-t px-4 py-4" style={{ borderTopColor: theme.border }}>
           <Pressable
             accessibilityLabel={paired ? "Replace pairing" : "Create pairing"}
             accessibilityRole="button"
             accessibilityHint="Generates a pairing code and copies it to the clipboard"
             disabled={loading}
-            className="rounded-lg p-3"
+            className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-lg px-4 py-3"
             style={{ backgroundColor: theme.text, opacity: loading ? 0.5 : 1 }}
             onPress={() => void pair()}
           >
-            <Ionicons name={paired ? "refresh-outline" : "add-outline"} size={20} color={theme.background} />
+            {loading ? (
+              <ActivityIndicator color={theme.background} />
+            ) : (
+              <Ionicons name={paired ? "refresh-outline" : "add-outline"} size={20} color={theme.background} />
+            )}
+            <Text className="text-sm font-semibold" style={{ color: theme.background }}>
+              {paired ? "Replace code" : "Create pairing"}
+            </Text>
           </Pressable>
           {paired ? (
             <Pressable
@@ -134,11 +175,14 @@ export function DesktopPluginSection({ autoCreate = false, theme }: DesktopPlugi
               accessibilityRole="button"
               accessibilityHint="Disconnects the Omarchy plugin"
               disabled={loading}
-              className="rounded-lg border p-3"
+              className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-lg border px-4 py-3"
               style={{ borderColor: theme.border, opacity: loading ? 0.5 : 1 }}
               onPress={() => void revoke()}
             >
               <Ionicons name="trash-outline" size={20} color={theme.textSecondary} />
+              <Text className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
+                Revoke
+              </Text>
             </Pressable>
           ) : null}
         </View>
