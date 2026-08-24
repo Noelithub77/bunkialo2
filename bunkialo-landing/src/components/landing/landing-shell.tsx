@@ -4,7 +4,7 @@ import { ArrowUpRight, QrCode, Star } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { SiAndroid, SiApple, SiExpo, SiGoogleplay } from "react-icons/si";
+import { SiAndroid, SiApple, SiGoogleplay } from "react-icons/si";
 
 import { AnimatedLogo } from "@/components/landing/animated-logo";
 import { LandingSplash } from "@/components/landing/landing-splash";
@@ -33,8 +33,7 @@ export interface LandingShellProps {
 
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.codialo.Bunkialo2";
-const EXPO_GO_IOS_APP_STORE_URL =
-  "https://apps.apple.com/us/app/expo-go/id982107779";
+const IOS_WEB_APP_URL = "https://bunkialo.noelmcv7.workers.dev";
 const GITHUB_REPO_URL = "https://github.com/Noelithub77/bunkialo2";
 const BUY_ME_COFFEE_UPI_URL =
   "upi://pay?pa=noelmcv7@oksbi&pn=Noel%20Georgi&tn=Support%20Bunkialo&cu=INR";
@@ -216,43 +215,19 @@ export function LandingShell({ expUrl, initialTab, qrUrl }: LandingShellProps) {
                         iOS Install
                       </CardTitle>
                       <CardDescription className="text-white/65">
-                        As publishing on app store is like 10k/year, I can only
-                        afford serving over Expo Go
+                        Open Bunkialo directly in Safari on your iPhone or iPad.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 px-5 pb-5">
-                      <p className="text-sm text-white/75">
-                        Step 1: Install Expo Go from the App Store.
-                      </p>
                       <motion.div
                         whileHover={
                           shouldReduceMotion ? undefined : { y: -1.5 }
                         }
                       >
                         <Button asChild size="lg" className="w-full rounded-xl">
-                          <a
-                            href={EXPO_GO_IOS_APP_STORE_URL}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
+                          <a href={IOS_WEB_APP_URL}>
                             <SiApple className="size-4 text-neutral-900" />
-                            Install Expo Go
-                            <ArrowUpRight className="size-4 opacity-75" />
-                          </a>
-                        </Button>
-                      </motion.div>
-                      <p className="text-sm text-white/75">
-                        Step 2: Open the deep URL in Expo Go.
-                      </p>
-                      <motion.div
-                        whileHover={
-                          shouldReduceMotion ? undefined : { y: -1.5 }
-                        }
-                      >
-                        <Button asChild size="lg" className="w-full rounded-xl">
-                          <a href={expUrl}>
-                            <SiExpo className="size-4 text-neutral-900" />
-                            Open in Expo Go
+                            Open Bunkialo
                             <ArrowUpRight className="size-4 opacity-75" />
                           </a>
                         </Button>
