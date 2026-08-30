@@ -219,7 +219,7 @@ export function UnifiedCourseCard({
 }: UnifiedCourseCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [showFullSemMetric, setShowFullSemMetric] = useState(false);
+  const [showFullSemMetric, setShowFullSemMetric] = useState(true);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
