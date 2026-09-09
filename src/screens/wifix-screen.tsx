@@ -478,27 +478,13 @@ export default function WifixScreen() {
             <Ionicons name="arrow-back" size={20} color={theme.text} />
           </Pressable>
           <View className="flex-1">
-            <View className="flex-row items-center gap-2">
+            <View>
               <Text
                 className="text-[26px] font-bold tracking-[0.6px]"
                 style={{ color: theme.text }}
               >
                 WiFix
               </Text>
-              <View
-                className="px-2.5 py-1"
-                style={{
-                  backgroundColor: Colors.status.warning,
-                  borderRadius: 6,
-                }}
-              >
-                <Text
-                  className="text-[11px] font-bold tracking-[0.6px]"
-                  style={{ color: Colors.black }}
-                >
-                  BETA
-                </Text>
-              </View>
             </View>
           </View>
           <View className="flex-row items-center gap-3">
