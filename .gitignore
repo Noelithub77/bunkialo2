@@ -51,3 +51,5 @@ app-example
 # generated script artifacts
 /artifacts/
 src/scripts/lms-download-report.json
+.vercel
+.env*

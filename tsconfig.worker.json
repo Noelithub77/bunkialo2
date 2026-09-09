@@ -10,5 +10,5 @@
     "target": "ES2022",
     "types": []
   },
-  "include": ["worker/**/*.ts", "worker-configuration.d.ts"]
+  "include": ["worker/**/*.ts", "shared/**/*.ts", "worker-configuration.d.ts"]
 }

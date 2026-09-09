@@ -42,6 +42,36 @@ bunx expo start
 
 Download the latest Android development APK from the [GitHub Releases page](https://github.com/Noelithub77/bunkialo2/releases), install it on an Android device, and use the EAS Update preview link from the matching pull request.
 
+## Omarchy plugin
+
+Install only the plugin with Omarchy's plugin CLI:
+
+```bash
+omarchy plugin add https://github.com/Noelithub77/bunkialo2.git --enable --yes
+```
+
+This installs and enables Bunkialo, but does not change your Hyprland
+keybindings. For the complete setup, including `SUPER+B`, `SUPER+SHIFT+B`,
+shell reload, and config validation, run this from a clone:
+
+```bash
+git clone https://github.com/Noelithub77/bunkialo2.git
+cd bunkialo2
+./scripts/setup-omarchy.sh
+```
+
+If you do not want to clone the repository, the same setup is available as a
+single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Noelithub77/bunkialo2/main/scripts/setup-omarchy.sh | bash
+```
+
+The setup script is idempotent: it installs or enables the plugin, adds the
+shortcuts once, reloads Hyprland, and checks for config errors. For more
+details, see
+[`omarchy-plugin/README.md`](omarchy-plugin/README.md).
+
 ## Scripts
 
 - `bun test` (unit tests against app modules)

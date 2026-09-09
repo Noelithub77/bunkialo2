@@ -14,6 +14,7 @@ export * from "./bunk";
 export * from "./calendar";
 export * from "./common";
 export * from "./dashboard";
+export * from "./desktop";
 export * from "./faculty";
 export * from "./gpa";
 export * from "./lms";

@@ -15,7 +15,12 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Stack, router, usePathname } from "expo-router";
+import {
+  Stack,
+  router,
+  useGlobalSearchParams,
+  usePathname,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
@@ -26,6 +31,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
 import { AppSyncController } from "@/components/sync/app-sync-controller";
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
+import { DESKTOP_PAIRING_ROUTE } from "@/services/desktop-pairing";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -53,8 +59,9 @@ const CustomLightTheme = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
-  const { hasHydrated: dashboardHydrated } = useDashboardStore();
+  const dashboardHydrated = useDashboardStore((state) => state.hasHydrated);
   const pathname = usePathname();
+  const params = useGlobalSearchParams<{ returnTo?: string }>();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const [fontsLoaded, fontError] = useFonts({
@@ -64,7 +71,6 @@ export default function RootLayout() {
   const splashHiddenRef = useRef(false);
   const fontsReady = fontsLoaded || Boolean(fontError);
   const appHydrated = dashboardHydrated;
-  const isLeavingLogin = !isCheckingAuth && isLoggedIn && pathname === "/login";
 
   useEffect(() => {
     checkAuth();
@@ -86,13 +92,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!isCheckingAuth) {
+      const returnTo = params.returnTo === DESKTOP_PAIRING_ROUTE
+        ? DESKTOP_PAIRING_ROUTE
+        : "/(tabs)";
+      const publicPath = pathname === "/login" || pathname === DESKTOP_PAIRING_ROUTE;
       if (isLoggedIn && pathname === "/login") {
-        router.replace("/(tabs)");
-      } else if (!isLoggedIn && pathname !== "/login") {
-        router.replace("/login");
+        router.replace(returnTo as never);
+      } else if (!isLoggedIn && !publicPath) {
+        router.replace(`/login?returnTo=${encodeURIComponent(pathname)}`);
+      } else if (!isLoggedIn && pathname === DESKTOP_PAIRING_ROUTE) {
+        router.replace(`/login?returnTo=${encodeURIComponent(DESKTOP_PAIRING_ROUTE)}`);
       }
     }
-  }, [isCheckingAuth, isLoggedIn, pathname]);
+  }, [isCheckingAuth, isLoggedIn, params.returnTo, pathname]);
 
   useEffect(() => {
     if (!fontsReady || isCheckingAuth || !appHydrated) return;
@@ -112,7 +124,7 @@ export default function RootLayout() {
     return () => clearTimeout(timeoutId);
   }, [fontsReady, isCheckingAuth]);
 
-  if (isCheckingAuth || isLeavingLogin) {
+  if (isCheckingAuth) {
     return (
       <View
         className="flex-1 items-center justify-center"
@@ -143,6 +155,7 @@ export default function RootLayout() {
                 <Stack.Screen name="course/[courseid]/assignment/[assignmentid]" />
                 <Stack.Screen name="faculty/[id]" />
                 <Stack.Screen name="settings" />
+                <Stack.Screen name="pair/desktop" />
                 <Stack.Screen
                   name="(fab-group)/gpa"
                   options={{
@@ -201,7 +214,13 @@ export default function RootLayout() {
                 </View>
               )}
             </Portal>
-            <AttendanceSetupSheet enabled={isLoggedIn && pathname !== "/login"} />
+            <AttendanceSetupSheet
+              enabled={
+                isLoggedIn &&
+                pathname !== "/login" &&
+                pathname !== DESKTOP_PAIRING_ROUTE
+              }
+            />
             <AppSyncController />
             {process.env.EXPO_OS === "web" ? (
               <PwaInstallPrompt isLoggedIn={isLoggedIn} />

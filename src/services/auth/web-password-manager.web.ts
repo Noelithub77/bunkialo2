@@ -28,13 +28,15 @@ export const offerWebCredential = async (credentials: {
   if (!PasswordCredential || !navigator.credentials?.store) return;
 
   try {
-    await navigator.credentials.store(
+    const storeRequest = navigator.credentials.store(
       new PasswordCredential({
         id: credentials.identifier,
         name: credentials.name,
         password: credentials.password,
       }),
     );
+    // Password-manager UI must never block the app's authentication flow.
+    void storeRequest.catch(() => undefined);
   } catch {
     // Browser autofill remains available when the programmatic API is blocked.
   }

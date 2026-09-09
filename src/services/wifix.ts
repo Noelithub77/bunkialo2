@@ -8,11 +8,11 @@ import type {
 import { debug } from "@/utils/debug";
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
 import { wifixLogger } from "@/utils/wifix-logger";
-
 const CONNECTIVITY_CHECK_URL =
   "http://connectivitycheck.gstatic.com/generate_204";
-const DEFAULT_PORTAL_BASE_URL = "http://172.16.222.1:1000";
-const DEFAULT_LOGIN_PATH = "/login?0330598d1f22608a";
+const DEFAULT_PORTAL_BASE_URL = "https://auth.iiitkottayam.ac.in:1442";
+const LEGACY_LOGIN_PATH = "/login?0330598d1f22608a";
+const CAMPUS_LOGIN_PATH = "/login?0330598d1f22608a";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
 
@@ -71,6 +71,21 @@ const normalizePortalCandidate = (
   const resolved = resolveAbsoluteUrl(candidate, baseUrl);
   if (!resolved) return null;
   return isConnectivityCheckUrl(resolved) ? null : resolved;
+};
+
+const describeResponse = (response: Response, bodyBytes?: number): string => {
+  const location = response.headers.get("location") ?? "none";
+  const contentType = response.headers.get("content-type") ?? "unknown";
+  const size = bodyBytes === undefined ? "unknown" : String(bodyBytes);
+  return `status=${response.status} url=${response.url || "none"} location=${location} contentType=${contentType} bodyBytes=${size}`;
+};
+
+const describeError = (error: unknown): string => {
+  if (error instanceof Error) {
+    const detail = `${error.name}: ${error.message}`.replace(/\s+/g, " ");
+    return detail.length > 240 ? `${detail.slice(0, 240)}...` : detail;
+  }
+  return "Unknown network error";
 };
 
 export const normalizePortalUrlInput = (input: string | null): string | null => {
@@ -250,8 +265,13 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
       redirect: "manual",
     });
 
-    debug.wifix("Step 2: Response received", { status: response.status });
-    wifixLogger.info(`Response received: ${response.status}`);
+    debug.wifix("Step 2: Response received", {
+      status: response.status,
+      url: response.url,
+      location: response.headers.get("location"),
+      contentType: response.headers.get("content-type"),
+    });
+    wifixLogger.info(`Connectivity response: ${describeResponse(response)}`);
 
     if (response.status === 204) {
       debug.wifix("Step 3: Online - no captive portal");
@@ -306,7 +326,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     } else {
       const body = await response.text();
       wifixLogger.info(
-        `HTML body length: ${body.length} characters (extracting portal URL)`,
+        `Connectivity body received: bytes=${body.length} (extracting portal URL)`,
       );
       const portalFromHtml = normalizePortalCandidate(
         extractPortalUrlFromHtml(body),
@@ -367,9 +387,14 @@ export const loginToCaptivePortal = async (params: {
     params.portalBaseUrl ?? getPortalBaseUrl(params.portalUrl);
   const baseUrl = portalBaseUrl ?? DEFAULT_PORTAL_BASE_URL;
 
-  const loginUrl = params.portalUrl?.includes("/login")
+  const isCampusPortal = baseUrl.includes("auth.iiitkottayam.ac.in");
+  const isExplicitLoginUrl = params.portalUrl?.includes("/login");
+  const loginPath = isCampusPortal ? CAMPUS_LOGIN_PATH : LEGACY_LOGIN_PATH;
+  const loginUrl = isCampusPortal
+    ? `${baseUrl}${loginPath}`
+    : isExplicitLoginUrl && params.portalUrl
     ? params.portalUrl
-    : `${baseUrl}${DEFAULT_LOGIN_PATH}`;
+    : `${baseUrl}${loginPath}`;
 
   debug.wifix("Step 2: Fetching login page", { loginUrl });
   wifixLogger.info(`Fetching login page: ${loginUrl}`);
@@ -381,6 +406,19 @@ export const loginToCaptivePortal = async (params: {
     });
 
     const loginHtml = await loginPageResponse.text();
+    wifixLogger.info(
+      `Login page response: ${describeResponse(loginPageResponse, loginHtml.length)}`,
+    );
+    if (!loginPageResponse.ok) {
+      const message = `Login page failed (HTTP ${loginPageResponse.status})`;
+      wifixLogger.error(message);
+      return {
+        success: false,
+        portalBaseUrl: baseUrl,
+        statusCode: loginPageResponse.status,
+        message,
+      };
+    }
     const { redirect, magic } = extractLoginFields(loginHtml);
     debug.wifix("Step 3: Extracted login fields", { redirect, magic });
     wifixLogger.info(
@@ -406,6 +444,9 @@ export const loginToCaptivePortal = async (params: {
       body: formData.toString(),
     });
 
+    wifixLogger.info(
+      `Login form response: ${describeResponse(loginResponse)}`,
+    );
     const success = loginResponse.status >= 200 && loginResponse.status < 400;
     const result = {
       success,
@@ -425,7 +466,7 @@ export const loginToCaptivePortal = async (params: {
 
     return result;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Login failed";
+    const message = describeError(error);
     debug.wifix("Step 4: Login failed", { message });
     wifixLogger.error(`Login error: ${message}`);
     return {
@@ -460,6 +501,10 @@ export const logoutFromCaptivePortal = async (params: {
       cache: "no-store",
     });
 
+    const logoutBody = await response.text();
+    wifixLogger.info(
+      `Logout response: ${describeResponse(response, logoutBody.length)}`,
+    );
     const success = response.status >= 200 && response.status < 400;
     const result = {
       success,
@@ -479,7 +524,7 @@ export const logoutFromCaptivePortal = async (params: {
 
     return result;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Logout failed";
+    const message = describeError(error);
     debug.wifix("Step 2: Logout failed", { message });
     wifixLogger.error(`Logout error: ${message}`);
     return {

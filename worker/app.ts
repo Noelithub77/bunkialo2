@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
+import type { DesktopCredentials, DesktopPairingCode } from "../shared/desktop";
+import type { DesktopDirectory } from "./desktop/desktop-directory";
 import { UserSession } from "./session-object";
 import { publicVapidKeyFromPrivateJwk } from "./push/send-push";
 import {
@@ -18,19 +20,58 @@ import {
 
 type AppEnv = {
   Bindings: CloudflareBindings;
-  Variables: { session: DurableObjectStub<UserSession> };
+  Variables: {
+    desktopAuthenticated: boolean;
+    desktopCredentials: DesktopCredentials | null;
+    session: DurableObjectStub<UserSession>;
+    sessionId: string;
+  };
 };
 
 const SESSION_COOKIE = "__Host-bunkialo-session";
 
+const isDesktopPairingCode = (value: unknown): value is DesktopPairingCode => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const entries = Object.entries(value) as Array<[string, unknown]>;
+  return entries.length === 2 && entries.every(([username, password]) =>
+    username.length > 0 && typeof password === "string" && password.length > 0,
+  );
+};
+
+const parseDesktopCredentials = (request: Request): DesktopCredentials | null => {
+  const authorization = request.headers.get("authorization") ?? "";
+  if (!authorization.startsWith("Credentials ")) return null;
+  try {
+    const value: unknown = JSON.parse(authorization.slice("Credentials ".length));
+    return isDesktopPairingCode(value) ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+const pairingKey = async (code: DesktopPairingCode): Promise<string> => {
+  const bytes = new TextEncoder().encode(JSON.stringify(Object.entries(code)));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+const desktopDirectory = (
+  env: CloudflareBindings,
+  key: string,
+): DurableObjectStub<DesktopDirectory> => env.DESKTOP_DIRECTORY.getByName(key.slice(0, 2));
+
 const app = new Hono<AppEnv>();
 
 app.use("/api/*", async (context, next) => {
-  if (!isTrustedBrowserRequest(context.req.raw)) {
+  const desktopCredentials = parseDesktopCredentials(context.req.raw);
+  if (!isTrustedBrowserRequest(context.req.raw) && !desktopCredentials) {
     return context.json({ error: "Cross-site request rejected." }, 403);
   }
 
-  let sessionId = getCookie(context, SESSION_COOKIE);
+  const desktopKey = desktopCredentials ? await pairingKey(desktopCredentials) : null;
+  let sessionId = desktopKey ?? getCookie(context, SESSION_COOKIE);
   if (!sessionId) {
     sessionId = crypto.randomUUID();
     setCookie(context, SESSION_COOKIE, sessionId, {
@@ -42,6 +83,12 @@ app.use("/api/*", async (context, next) => {
     });
   }
   context.set("session", context.env.USER_SESSION.getByName(sessionId));
+  context.set("sessionId", sessionId);
+  context.set(
+    "desktopAuthenticated",
+    desktopCredentials !== null,
+  );
+  context.set("desktopCredentials", desktopCredentials);
   await next();
 });
 
@@ -62,6 +109,49 @@ app.post("/api/auth/lms/login", async (context) => {
 app.get("/api/auth/lms/session", async (context) =>
   context.json({ valid: await context.var.session.checkLms() }),
 );
+
+app.post("/api/desktop/pair", async (context) => {
+  if (context.var.desktopAuthenticated) {
+    return context.json({ error: "Browser pairing is required." }, 400);
+  }
+  const code = await context.var.session.getDesktopPairingCode();
+  if (!code) {
+    return context.json({ error: "Sign in to both Bunkialo accounts before pairing." }, 409);
+  }
+  const key = await pairingKey(code);
+  await desktopDirectory(context.env, key).link(key, context.var.sessionId);
+  await context.var.session.enableDesktopPairing();
+  return context.json({ code: JSON.stringify(code) });
+});
+
+app.get("/api/desktop/pair", async (context) =>
+  context.json({ paired: await context.var.session.hasDesktopPairing() }),
+);
+
+app.delete("/api/desktop/pair", async (context) => {
+  if (context.var.desktopAuthenticated) {
+    return context.json({ error: "Use Bunkialo Settings to revoke pairing." }, 400);
+  }
+  const code = await context.var.session.getDesktopPairingCode();
+  if (code) {
+    const key = await pairingKey(code);
+    await desktopDirectory(context.env, key).unlink(key, context.var.sessionId);
+  }
+  await context.var.session.disableDesktopPairing();
+  return context.body(null, 204);
+});
+
+app.get("/api/desktop/snapshot", async (context) => {
+  const credentials = context.var.desktopCredentials;
+  if (!credentials) {
+    return context.json({ error: "Desktop credentials are missing or invalid." }, 401);
+  }
+  const result = await context.var.session.syncDesktop(credentials);
+  if (result.status === "failure") {
+    return context.json({ error: result.message }, result.code === "credentials" ? 401 : 503);
+  }
+  return context.json(result.snapshot);
+});
 
 app.post("/api/sync", async (context) => {
   const payload = await context.var.session.syncAll();
@@ -124,7 +214,13 @@ app.post("/api/attendance/auth", async (context) => {
   });
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
-  const data: unknown = await response.json();
+  const data: unknown = await response.clone().json();
+  if (value.data.mode === "password" && response.ok) {
+    await context.var.session.saveAttendanceCredentials({
+      email: value.data.email.toLowerCase(),
+      password: value.data.password,
+    });
+  }
   if (typeof data !== "object" || data === null) {
     return Response.json(data, { status: response.status });
   }
