@@ -11,6 +11,7 @@ import { useAttendanceStore } from "@/stores/attendance-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { CourseAttendance, PortalNotificationPage } from "@/types";
+import { getErrorMessage } from "@/utils/error-details";
 
 interface FullSyncPayload {
   attendance: {
@@ -37,10 +38,15 @@ const requestFullSync = async (): Promise<FullSyncPayload> => {
     headers: { Accept: "application/json" },
     method: "POST",
   });
+  const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(`Full sync failed (${response.status})`);
+    const message =
+      typeof payload === "object" && payload !== null && "error" in payload &&
+      typeof payload.error === "string"
+        ? payload.error
+        : `Full sync failed (HTTP ${response.status}).`;
+    throw new Error(message);
   }
-  const payload: unknown = await response.json();
   if (!isFullSyncPayload(payload)) throw new Error("Invalid full sync response");
   return payload;
 };
@@ -102,12 +108,18 @@ export const syncAppData = async (options?: {
       const previousCourses = useAttendanceStore.getState().courses;
       const result = syncAttendanceFromPayload(previousCourses, attendancePayload);
       const courses: CourseAttendance[] = result.complete;
+      for (const warning of result.warnings) {
+        useDashboardStore.getState().addLog(warning, "error");
+      }
       useAttendanceStore.setState({
         courses,
         error: null,
         isLoading: silent ? useAttendanceStore.getState().isLoading : false,
         lastSyncTime: Date.now(),
       });
+      useDashboardStore
+        .getState()
+        .addLog(`Attendance sync complete (${courses.length} courses)`, "success");
 
       if (payload.attendance.notifications !== null) {
         const page: PortalNotificationPage = portalNotificationsSchema.parse(
@@ -128,11 +140,16 @@ export const syncAppData = async (options?: {
       notifications: fulfilled(),
     };
   } catch (error) {
+    const message = getErrorMessage(error, "Full sync failed");
     const failure = rejected(error);
     useDashboardStore.setState({
-      error: error instanceof Error ? error.message : "Full sync failed",
+      error: message,
       isLoading: false,
     });
+    useDashboardStore.getState().addLog(`Full sync failed: ${message}`, "error");
+    if (message.toLowerCase().includes("attendance")) {
+      useAttendanceStore.setState({ error: message, isLoading: false });
+    }
     return { attendance: failure, lms: failure, notifications: failure };
   }
 };

@@ -19,6 +19,7 @@ import {
   portalTermsSchema,
 } from "./attendance-schemas";
 import { matchCourses } from "./course-matcher";
+import { getErrorMessage } from "@/utils/error-details";
 
 const statusLabels: Record<PortalAttendanceStatus, AttendanceStatus> = {
   PRESENT: "Present",
@@ -78,6 +79,7 @@ const mergeRecords = (
 export interface AttendanceSyncResult {
   summaries: CourseAttendance[];
   complete: CourseAttendance[];
+  warnings: string[];
 }
 
 export interface AttendanceSyncPayload {
@@ -141,6 +143,7 @@ export const syncAttendanceFromPayload = (
   );
   onSummaries?.([...retained, ...summaries]);
 
+  const warnings: string[] = [];
   const details = summaries.map((summary) => {
     const rawDetail = payload.sessions[summary.attendanceCourseId];
     if (rawDetail === undefined) return summary;
@@ -153,40 +156,65 @@ export const syncAttendanceFromPayload = (
         ...summary,
         records: mergeRecords(summary.records, records),
       };
-    } catch {
+    } catch (error) {
+      warnings.push(
+        `Could not parse sessions for ${summary.courseName}: ${getErrorMessage(error)}`,
+      );
       return summary;
     }
   });
 
-  return { summaries, complete: [...retained, ...details] };
+  return { summaries, complete: [...retained, ...details], warnings };
 };
 
 export const syncAttendance = async (
   previousCourses: CourseAttendance[],
   onSummaries?: (courses: CourseAttendance[]) => void,
 ): Promise<AttendanceSyncResult> => {
+  const warnings: string[] = [];
   const [attendance, terms, lmsResult] = await Promise.all([
     getPortalAttendance(),
-    getPortalTerms().catch(() => []),
+    getPortalTerms().catch((error: unknown) => {
+      warnings.push(`Could not load attendance terms: ${getErrorMessage(error)}`);
+      return [];
+    }),
     fetchCourses().then(
       (courses) => ({ status: "fulfilled" as const, courses }),
-      () => ({ status: "rejected" as const }),
+      (error: unknown) => {
+        warnings.push(`Could not map LMS courses: ${getErrorMessage(error)}`);
+        return { status: "rejected" as const };
+      },
     ),
   ]);
   const sessions: Record<string, unknown> = {};
-  await Promise.all(
+  const sessionResults = await Promise.all(
     attendance.courses.map(async (course) => {
       try {
-        sessions[course.courseId] = await getPortalCourseSessions(course.courseId);
-      } catch {
-        // Keep the summary when an individual course detail is unavailable.
+        sessions[course.courseId] = await getPortalCourseSessions(
+          course.courseId,
+        );
+        return true;
+      } catch (error) {
+        warnings.push(
+          `Could not load sessions for ${course.name}: ${getErrorMessage(error)}`,
+        );
+        return false;
       }
     }),
   );
-  return syncAttendanceFromPayload(previousCourses, {
+  if (attendance.courses.length > 0 && sessionResults.every((loaded) => !loaded)) {
+    throw new Error(
+      "Attendance sync failed: course sessions could not be loaded.",
+    );
+  }
+  const result = syncAttendanceFromPayload(previousCourses, {
     attendance,
     lmsCourses: lmsResult.status === "fulfilled" ? lmsResult.courses : [],
     sessions,
     terms,
   }, onSummaries);
+  return {
+    ...result,
+    warnings: [...warnings, ...result.warnings],
+  };
 };
