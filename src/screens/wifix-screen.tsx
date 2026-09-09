@@ -3,6 +3,7 @@ import { ExternalLink } from "@/components/shared/external-link";
 import { Container } from "@/components/ui/container";
 import { Input } from "@/components/ui/input";
 import { WifixLogModal } from "@/components/wifix";
+import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Colors, Radius } from "@/constants/theme";
 import {
   DEFAULT_MANUAL_PORTAL_URL,
@@ -119,11 +120,11 @@ export default function WifixScreen() {
   const [manualError, setManualError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const inFlightRef = useRef(false);
-  const lastAttemptRef = useRef(0);
 
   useEffect(() => {
     if (!manualPortalUrl) {
@@ -232,12 +233,10 @@ export default function WifixScreen() {
 
   const runConnectivityCheck = useCallback(
     async (shouldLogin: boolean) => {
-      const nowMs = Date.now();
       if (inFlightRef.current) return;
-      if (shouldLogin && nowMs - lastAttemptRef.current < 15000) return;
       inFlightRef.current = true;
       if (shouldLogin) {
-        lastAttemptRef.current = nowMs;
+        setIsLoggingIn(true);
       }
       setIsConnecting(true);
       setStatus("checking");
@@ -272,6 +271,10 @@ export default function WifixScreen() {
           syncPortalBaseUrl(loginResult.portalBaseUrl);
 
           if (loginResult.success) {
+            Toast.show("Logged in to campus WiFi", {
+              type: "success",
+              position: "top",
+            });
             const updated = await checkConnectivity();
             setStatus(updated.state);
             setPortalUrl(updated.portalUrl);
@@ -295,6 +298,9 @@ export default function WifixScreen() {
         wifixLogger.error(`WiFix screen error: ${errorMessage}`);
       } finally {
         setIsConnecting(false);
+        if (shouldLogin) {
+          setIsLoggingIn(false);
+        }
         inFlightRef.current = false;
       }
     },
@@ -323,6 +329,7 @@ export default function WifixScreen() {
     isWeb || (campusPortalAvailable && isCampusPortal && status === "online");
   const canShowLogin =
     !isWeb && campusPortalAvailable && status === "captive";
+  const showLoginAction = !canShowLogout && (canShowLogin || isLoggingIn);
   const compactStatus = status === "checking"
     ? "Checking connection..."
     : isWeb
@@ -529,7 +536,7 @@ export default function WifixScreen() {
               </Text>
             </Pressable>
           )}
-          {canShowLogin && (
+          {showLoginAction && (
             <Pressable
               onPress={() => runConnectivityCheck(true)}
               disabled={isBusy}
