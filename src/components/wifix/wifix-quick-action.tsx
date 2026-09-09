@@ -264,7 +264,7 @@ export function WifixQuickAction({ theme }: WifixQuickActionProps) {
         <Pressable
           onPress={() => void runAction(action)}
           disabled={isBusy}
-          className="min-w-[88px] items-center justify-center rounded-xl px-4 py-2"
+          className="min-w-[88px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-2"
           style={{
             backgroundColor:
               action === "logout"
@@ -278,9 +278,14 @@ export function WifixQuickAction({ theme }: WifixQuickActionProps) {
           {isBusy ? (
             <ActivityIndicator size="small" color={Colors.black} />
           ) : (
-            <Text className="text-sm font-bold" style={{ color: Colors.black }}>
-              {actionLabel}
-            </Text>
+            <>
+              {action === "logout" && (
+                <Ionicons name="log-out" size={17} color={Colors.black} />
+              )}
+              <Text className="text-sm font-bold" style={{ color: Colors.black }}>
+                {actionLabel}
+              </Text>
+            </>
           )}
         </Pressable>
       )}
