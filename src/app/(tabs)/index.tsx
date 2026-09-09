@@ -276,6 +276,18 @@ export default function DashboardScreen() {
 
   const fabActions = [
     {
+      icon: "wifi",
+      label: "WiFix",
+      color: theme.text,
+      style: { backgroundColor: theme.backgroundSecondary },
+      labelStyle: actionLabelStyle,
+      containerStyle: actionContainerStyle,
+      onPress: () => {
+        setShowFabMenu(false);
+        router.push("/wifix");
+      },
+    },
+    {
       icon: "calculator-variant",
       label: "GPA Calculator",
       color: theme.text,

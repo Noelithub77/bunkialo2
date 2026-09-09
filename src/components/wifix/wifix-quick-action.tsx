@@ -13,6 +13,7 @@ import { useWifixStore } from "@/stores/wifix-store";
 import type { WifixConnectionState, WifixConnectivityResult } from "@/types";
 import { wifixLogger } from "@/utils/wifix-logger";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -246,7 +247,12 @@ export function WifixQuickAction({ theme }: WifixQuickActionProps) {
         borderColor: theme.border,
       }}
     >
-      <View className="min-w-0 flex-1 flex-row items-center gap-2">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open WiFix"
+        onPress={() => router.push("/wifix")}
+        className="min-w-0 flex-1 flex-row items-center gap-2"
+      >
         <Ionicons
           name={status === "online" ? "checkmark-circle" : "wifi-outline"}
           size={18}
@@ -259,7 +265,7 @@ export function WifixQuickAction({ theme }: WifixQuickActionProps) {
         >
           {getStatusLabel(status, campusPortalAvailable)}
         </Text>
-      </View>
+      </Pressable>
       {actionLabel && (
         <Pressable
           onPress={() => void runAction(action)}
