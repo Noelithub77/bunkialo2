@@ -178,7 +178,7 @@ export default function RootLayout() {
                   name="(fab-group)/wifix"
                   options={{
                     presentation: "modal",
-                    animation: "slide_from_bottom",
+                    animation: "fade",
                     gestureEnabled: true,
                     fullScreenGestureEnabled: true,
                   }}

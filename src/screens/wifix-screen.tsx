@@ -103,7 +103,12 @@ const getStatusMeta = (
   }
 };
 
-const readActiveWifiSsid = async (): Promise<string | null> => {
+interface WifiSsidReadResult {
+  ssid: string | null;
+  error: string | null;
+}
+
+const readActiveWifiSsid = async (): Promise<WifiSsidReadResult> => {
   try {
     if (Platform.OS === "android") {
       const hasLocationPermission = await PermissionsAndroid.check(
@@ -113,16 +118,28 @@ const readActiveWifiSsid = async (): Promise<string | null> => {
         const permission = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         );
-        if (permission !== PermissionsAndroid.RESULTS.GRANTED) return null;
+        if (permission !== PermissionsAndroid.RESULTS.GRANTED) {
+          return {
+            ssid: null,
+            error: "Location permission is required to read the WiFi name",
+          };
+        }
       }
     }
 
     const network = await NetInfo.fetch("wifi");
-    if (network.type !== NetInfoStateType.wifi) return null;
+    if (network.type !== NetInfoStateType.wifi) {
+      return { ssid: null, error: "Not connected to WiFi" };
+    }
     const ssid = network.details.ssid?.trim();
-    return ssid || null;
+    return ssid
+      ? { ssid, error: null }
+      : {
+          ssid: null,
+          error: "WiFi name unavailable; enable Location services",
+        };
   } catch {
-    return null;
+    return { ssid: null, error: "Could not read the active WiFi network" };
   }
 };
 
@@ -299,15 +316,14 @@ export default function WifixScreen() {
       setStatus("checking");
       setMessage(null);
       try {
-        const activeSsid = await readActiveWifiSsid();
+        const wifiIdentity = await readActiveWifiSsid();
+        const activeSsid = wifiIdentity.ssid;
         setCurrentSsid(activeSsid);
         if (!isWeb && !isCampusSsid(activeSsid)) {
           setStatus("offline");
           setPortalUrl(null);
           setMessage(
-            activeSsid
-              ? "Not connected to IIIT Kottayam WiFi"
-              : "WiFi SSID unavailable",
+            wifiIdentity.error ?? "Not connected to IIIT Kottayam WiFi",
           );
           return;
         }
@@ -428,7 +444,8 @@ export default function WifixScreen() {
     setMessage(null);
 
     try {
-      const activeSsid = await readActiveWifiSsid();
+      const wifiIdentity = await readActiveWifiSsid();
+      const activeSsid = wifiIdentity.ssid;
       setCurrentSsid(activeSsid);
       const selection = resolveSelectionFor(
         portalUrl,
