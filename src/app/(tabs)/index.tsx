@@ -32,6 +32,7 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 
 import { FAB, Portal } from "react-native-paper";
@@ -54,6 +55,7 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const { width: windowWidth } = useWindowDimensions();
 
   const {
     upcomingEvents,
@@ -274,20 +276,6 @@ export default function DashboardScreen() {
     username?.startsWith("2022") || username?.startsWith("2023");
 
   const fabActions = [
-    ...(process.env.EXPO_OS !== "web"
-      ? [{
-          icon: "wifi",
-          label: "WiFix",
-          color: theme.text,
-          style: { backgroundColor: theme.backgroundSecondary },
-          labelStyle: actionLabelStyle,
-          containerStyle: actionContainerStyle,
-          onPress: () => {
-            setShowFabMenu(false);
-            router.push("/wifix");
-          },
-        }]
-      : []),
     {
       icon: "calculator-variant",
       label: "GPA Calculator",
@@ -551,6 +539,34 @@ export default function DashboardScreen() {
 
       {isFocused && (
         <Portal>
+          {process.env.EXPO_OS !== "web" && (
+            <Pressable
+              accessibilityLabel="Open WiFix"
+              accessibilityRole="button"
+              onPress={() => {
+                setShowFabMenu(false);
+                router.push("/wifix");
+              }}
+              style={({ pressed }) => ({
+                position: "absolute",
+                left: Math.max(16, windowWidth * 0.128 - 28),
+                bottom: 80,
+                width: 56,
+                height: 56,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 28,
+                backgroundColor: theme.backgroundSecondary,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Ionicons
+                name="wifi-outline"
+                size={27}
+                color={isDark ? Colors.gray[200] : Colors.gray[700]}
+              />
+            </Pressable>
+          )}
           <FAB.Group
             open={showFabMenu}
             visible={true}
