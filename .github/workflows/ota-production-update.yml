@@ -1,9 +1,6 @@
 name: OTA Update (production)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       update_message:
@@ -68,12 +65,7 @@ jobs:
       - name: Resolve update message
         id: update-message
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            message="${{ inputs.update_message }}"
-          else
-            message="Auto OTA: ${{ github.event.head_commit.message }}"
-          fi
-
+          message="${{ inputs.update_message }}"
           message="${message//$'\n'/ }"
           echo "message=${message}" >> "$GITHUB_OUTPUT"
 
