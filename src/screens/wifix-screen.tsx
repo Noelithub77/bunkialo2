@@ -528,14 +528,12 @@ export default function WifixScreen() {
         </View>
 
         <View className="mb-7 items-center">
-          {(canShowLogout || isLoggingOut) && (
-            <View className="mb-4">{statusSummary}</View>
-          )}
+          <View className="mb-4">{statusSummary}</View>
           {(canShowLogout || isLoggingOut) && (
             <Pressable
               onPress={handleLogoutInternet}
               disabled={isBusy}
-              className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
+              className="h-14 w-full flex-row items-center justify-center gap-2"
               style={{
                 backgroundColor: Colors.status.danger,
                 borderColor: Colors.status.danger,
@@ -558,7 +556,7 @@ export default function WifixScreen() {
             <Pressable
               onPress={() => runConnectivityCheck(true)}
               disabled={isBusy}
-              className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
+              className="h-14 w-full flex-row items-center justify-center gap-2"
               style={{
                 backgroundColor: Colors.status.success,
                 borderColor: Colors.status.success,
@@ -578,11 +576,6 @@ export default function WifixScreen() {
                 </>
               )}
             </Pressable>
-          )}
-          {!canShowLogout && !isLoggingOut && (
-            <View className={showLoginAction ? "mt-4" : ""}>
-              {statusSummary}
-            </View>
           )}
         </View>
 
