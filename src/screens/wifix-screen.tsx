@@ -327,8 +327,7 @@ export default function WifixScreen() {
   const isCampusPortal = selectedPortalBaseUrl.includes(
     "auth.iiitkottayam.ac.in",
   );
-  const canShowLogout =
-    isWeb || (campusPortalAvailable && isCampusPortal && status === "online");
+  const canShowLogout = isWeb || (isCampusPortal && status === "online");
   const canShowLogin =
     !isWeb && campusPortalAvailable && status === "captive";
   const showLoginAction = !canShowLogout && (canShowLogin || isLoggingIn);
@@ -343,7 +342,7 @@ export default function WifixScreen() {
           ? "Connected"
           : campusPortalAvailable && status === "captive"
             ? "Campus WiFi"
-              : status === "captive"
+            : status === "captive"
               ? "Captive portal detected"
               : "Not connected";
 
