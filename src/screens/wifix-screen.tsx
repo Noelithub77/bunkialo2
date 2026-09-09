@@ -255,6 +255,7 @@ export default function WifixScreen() {
         if (shouldLogin && result.state === "captive") {
           const credentials = await getCredentials();
           if (!credentials) {
+            setStatus("error");
             setMessage("Login to Bunkialo first to save WiFi credentials.");
             return;
           }
@@ -288,6 +289,8 @@ export default function WifixScreen() {
                 position: "top",
               });
             }
+          } else {
+            setStatus("error");
           }
         } else if (shouldLogin && result.state === "offline") {
           setMessage("No captive portal detected.");
@@ -331,6 +334,11 @@ export default function WifixScreen() {
   const canShowLogin =
     !isWeb && campusPortalAvailable && status === "captive";
   const showLoginAction = !canShowLogout && (canShowLogin || isLoggingIn);
+  const showRetryAction =
+    !isWeb &&
+    !canShowLogout &&
+    !showLoginAction &&
+    (status === "error" || status === "offline");
   const compactStatus =
     status === "checking"
       ? "Checking connection..."
@@ -354,15 +362,17 @@ export default function WifixScreen() {
           {compactStatus}
         </Text>
       </View>
-      {message && message !== compactStatus && (
-        <Text
-          className="mt-1 text-xs"
-          style={{ color: theme.textSecondary }}
-          numberOfLines={1}
-        >
-          {message}
-        </Text>
-      )}
+      {(status === "error" || status === "offline") &&
+        message &&
+        message !== compactStatus && (
+          <Text
+            className="mt-1 text-xs"
+            style={{ color: `${Colors.status.danger}B3` }}
+            numberOfLines={2}
+          >
+            {message}
+          </Text>
+        )}
     </View>
   );
 
@@ -451,6 +461,7 @@ export default function WifixScreen() {
       />
       <KeyboardAwareScrollView
         contentContainerClassName="px-6 pb-12 pt-6"
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         bottomOffset={24}
       >
@@ -577,9 +588,34 @@ export default function WifixScreen() {
               )}
             </Pressable>
           )}
+          {showRetryAction && (
+            <Pressable
+              onPress={() => runConnectivityCheck(true)}
+              disabled={isBusy}
+              className="h-14 w-full flex-row items-center justify-center gap-2"
+              style={{
+                backgroundColor: Colors.status.warning,
+                borderColor: Colors.status.warning,
+                borderRadius: Radius.md,
+                borderWidth: 1,
+                opacity: isBusy ? 0.5 : 1,
+              }}
+            >
+              {isLoggingIn ? (
+                <ActivityIndicator size="small" color={Colors.black} />
+              ) : (
+                <>
+                  <Ionicons name="refresh" size={22} color={Colors.black} />
+                  <Text className="text-base font-semibold" style={{ color: Colors.black }}>
+                    Retry
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          )}
         </View>
 
-        <View className="items-center gap-1">
+        <View className="mt-auto items-center gap-1">
           <Text className="text-xs" style={{ color: theme.textSecondary }}>
             Keep WiFix enabled for automatic reconnects
           </Text>
