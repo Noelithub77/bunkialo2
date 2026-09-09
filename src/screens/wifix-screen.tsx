@@ -36,6 +36,7 @@ import {
   Switch,
   Text,
   View,
+  Platform,
 } from "react-native";
 
 const formatTimestamp = (date: Date): string => {
@@ -97,6 +98,7 @@ const getStatusMeta = (
 };
 
 export default function WifixScreen() {
+  const isWeb = Platform.OS === "web";
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
@@ -612,24 +614,26 @@ export default function WifixScreen() {
 
         <View className="mb-7 gap-2">
           <View className="mb-2 flex-row justify-center gap-5">
-            <Pressable
-              onPress={() => runConnectivityCheck(true)}
-              disabled={isBusy}
-              className="h-[72px] w-[72px] items-center justify-center"
-              style={({ pressed }) => ({
-                backgroundColor: theme.backgroundSecondary,
-                borderRadius: Radius.full,
-                opacity: isBusy ? 0.5 : 1,
-                transform: pressed ? [{ scale: 0.9 }] : undefined,
-              })}
-              hitSlop={16}
-            >
-              {isConnecting ? (
-                <ActivityIndicator size="small" color={theme.text} />
-              ) : (
-                <Ionicons name="refresh" size={30} color={theme.text} />
-              )}
-            </Pressable>
+            {!isWeb && (
+              <Pressable
+                onPress={() => runConnectivityCheck(true)}
+                disabled={isBusy}
+                className="h-[72px] w-[72px] items-center justify-center"
+                style={({ pressed }) => ({
+                  backgroundColor: theme.backgroundSecondary,
+                  borderRadius: Radius.full,
+                  opacity: isBusy ? 0.5 : 1,
+                  transform: pressed ? [{ scale: 0.9 }] : undefined,
+                })}
+                hitSlop={16}
+              >
+                {isConnecting ? (
+                  <ActivityIndicator size="small" color={theme.text} />
+                ) : (
+                  <Ionicons name="refresh" size={30} color={theme.text} />
+                )}
+              </Pressable>
+            )}
             <Pressable
               onPress={handleLogoutInternet}
               disabled={isBusy}
