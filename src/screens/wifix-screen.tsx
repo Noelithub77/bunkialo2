@@ -536,14 +536,13 @@ export default function WifixScreen() {
               onPress={handleLogoutInternet}
               disabled={isBusy}
               className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
-              style={({ pressed }) => ({
+              style={{
                 backgroundColor: Colors.status.danger,
                 borderColor: Colors.status.danger,
                 borderRadius: Radius.md,
                 borderWidth: 1,
                 opacity: isBusy ? 0.5 : 1,
-                transform: pressed ? [{ scale: 0.98 }] : undefined,
-              })}
+              }}
             >
               {isLoggingOut ? (
                 <ActivityIndicator size="small" color={Colors.black} />
@@ -560,14 +559,13 @@ export default function WifixScreen() {
               onPress={() => runConnectivityCheck(true)}
               disabled={isBusy}
               className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
-              style={({ pressed }) => ({
+              style={{
                 backgroundColor: Colors.status.success,
                 borderColor: Colors.status.success,
                 borderRadius: Radius.md,
                 borderWidth: 1,
                 opacity: isBusy ? 0.5 : 1,
-                transform: pressed ? [{ scale: 0.98 }] : undefined,
-              })}
+              }}
             >
               {isLoggingIn ? (
                 <ActivityIndicator size="small" color={Colors.black} />
