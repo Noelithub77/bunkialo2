@@ -204,8 +204,6 @@ export default function WifixScreen() {
           } else {
             setStatus("error");
           }
-        } else if (shouldLogin && result.state === "offline") {
-          setMessage("No captive portal detected.");
         }
       } catch (error) {
         const errorMessage =
@@ -255,12 +253,12 @@ export default function WifixScreen() {
         ? status === "online"
           ? "Connected"
           : "Connection status unavailable"
-        : campusPortalAvailable && status === "online"
-          ? "Connected"
-          : campusPortalAvailable && status === "captive"
-            ? "Campus WiFi"
+        : !campusPortalAvailable
+          ? "Not in IIIT Kottayam WiFi"
+          : status === "online"
+            ? "Connected"
             : status === "captive"
-              ? "Captive portal detected"
+              ? "Campus WiFi"
               : "Not connected";
 
   const statusSummary = (
