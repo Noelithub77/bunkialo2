@@ -106,6 +106,7 @@ const getStatusMeta = (
 interface WifiSsidReadResult {
   ssid: string | null;
   error: string | null;
+  requiresSettings: boolean;
 }
 
 const readActiveWifiSsid = async (): Promise<WifiSsidReadResult> => {
@@ -117,11 +118,23 @@ const readActiveWifiSsid = async (): Promise<WifiSsidReadResult> => {
       if (!hasLocationPermission) {
         const permission = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: "Allow WiFix to read WiFi details",
+            message:
+              "WiFix uses your WiFi name only to verify that you are connected to IIIT Kottayam WiFi before checking the campus portal.",
+            buttonPositive: "Allow",
+            buttonNegative: "Not now",
+          },
         );
         if (permission !== PermissionsAndroid.RESULTS.GRANTED) {
           return {
             ssid: null,
-            error: "Location permission is required to read the WiFi name",
+            error:
+              permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+                ? "WiFi access is blocked; allow Location permission in Android Settings"
+                : "Location permission is required to read the WiFi name",
+            requiresSettings:
+              permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN,
           };
         }
       }
@@ -129,17 +142,26 @@ const readActiveWifiSsid = async (): Promise<WifiSsidReadResult> => {
 
     const network = await NetInfo.fetch("wifi");
     if (network.type !== NetInfoStateType.wifi) {
-      return { ssid: null, error: "Not connected to WiFi" };
+      return {
+        ssid: null,
+        error: "Not connected to WiFi",
+        requiresSettings: false,
+      };
     }
     const ssid = network.details.ssid?.trim();
     return ssid
-      ? { ssid, error: null }
+      ? { ssid, error: null, requiresSettings: false }
       : {
           ssid: null,
           error: "WiFi name unavailable; enable Location services",
+          requiresSettings: false,
         };
   } catch {
-    return { ssid: null, error: "Could not read the active WiFi network" };
+    return {
+      ssid: null,
+      error: "Could not read the active WiFi network",
+      requiresSettings: false,
+    };
   }
 };
 
@@ -165,6 +187,8 @@ export default function WifixScreen() {
   const [now, setNow] = useState(() => new Date());
   const [status, setStatus] = useState<WifixConnectionState>("idle");
   const [currentSsid, setCurrentSsid] = useState<string | null>(null);
+  const [ssidPermissionNeedsSettings, setSsidPermissionNeedsSettings] =
+    useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [portalBaseUrl, setPortalBaseUrlLocal] = useState<string | null>(
     storedPortalBaseUrl,
@@ -319,6 +343,7 @@ export default function WifixScreen() {
         const wifiIdentity = await readActiveWifiSsid();
         const activeSsid = wifiIdentity.ssid;
         setCurrentSsid(activeSsid);
+        setSsidPermissionNeedsSettings(wifiIdentity.requiresSettings);
         if (!isWeb && !isCampusSsid(activeSsid)) {
           setStatus("offline");
           setPortalUrl(null);
@@ -447,6 +472,7 @@ export default function WifixScreen() {
       const wifiIdentity = await readActiveWifiSsid();
       const activeSsid = wifiIdentity.ssid;
       setCurrentSsid(activeSsid);
+      setSsidPermissionNeedsSettings(wifiIdentity.requiresSettings);
       const selection = resolveSelectionFor(
         portalUrl,
         getPortalBaseUrl(portalUrl),
@@ -655,6 +681,19 @@ export default function WifixScreen() {
             >
               {message}
             </Text>
+          )}
+          {ssidPermissionNeedsSettings && !isWeb && (
+            <Pressable
+              onPress={() => Linking.openSettings()}
+              className="mt-2"
+            >
+              <Text
+                className="text-xs underline"
+                style={{ color: theme.textSecondary }}
+              >
+                Open Android Settings
+              </Text>
+            </Pressable>
           )}
           {(canShowLogout || isLoggingOut) && (
             <Pressable
