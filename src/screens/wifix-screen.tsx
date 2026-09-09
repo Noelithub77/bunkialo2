@@ -332,19 +332,20 @@ export default function WifixScreen() {
   const canShowLogin =
     !isWeb && campusPortalAvailable && status === "captive";
   const showLoginAction = !canShowLogout && (canShowLogin || isLoggingIn);
-  const compactStatus = status === "checking"
-    ? "Checking connection..."
-    : isWeb
-      ? status === "online"
-      ? "Connected"
-      : "Connection status unavailable"
-      : campusPortalAvailable && status === "online"
-        ? "Connected"
-        : campusPortalAvailable && status === "captive"
-          ? "Campus WiFi · login required"
-          : status === "captive"
-            ? "Captive portal detected"
-            : "Not connected";
+  const compactStatus =
+    status === "checking"
+      ? "Checking connection..."
+      : isWeb
+        ? status === "online"
+          ? "Connected"
+          : "Connection status unavailable"
+        : campusPortalAvailable && status === "online"
+          ? "Connected"
+          : campusPortalAvailable && status === "captive"
+            ? "Campus WiFi"
+            : status === "captive"
+              ? "Captive portal detected"
+              : "Not connected";
 
   const handleLogoutInternet = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -499,21 +500,6 @@ export default function WifixScreen() {
         </View>
 
         <View className="mb-7 items-center">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name={statusMeta.icon} size={16} color={statusMeta.color} />
-            <Text className="text-sm" style={{ color: theme.textSecondary }}>
-              {compactStatus}
-            </Text>
-          </View>
-          {message && message !== compactStatus && (
-            <Text
-              className="mt-1 text-xs"
-              style={{ color: theme.textSecondary }}
-              numberOfLines={1}
-            >
-              {message}
-            </Text>
-          )}
           {(canShowLogout || isLoggingOut) && (
             <Pressable
               onPress={handleLogoutInternet}
@@ -544,24 +530,43 @@ export default function WifixScreen() {
               disabled={isBusy}
               className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
               style={({ pressed }) => ({
-                backgroundColor: `${Colors.status.warning}22`,
-                borderColor: `${Colors.status.warning}88`,
+                backgroundColor: Colors.status.warning,
+                borderColor: Colors.status.warning,
                 borderRadius: Radius.md,
                 borderWidth: 1,
                 opacity: isBusy ? 0.5 : 1,
                 transform: pressed ? [{ scale: 0.98 }] : undefined,
               })}
             >
-              {isConnecting ? (
-                <ActivityIndicator size="small" color={Colors.status.warning} />
+              {isLoggingIn ? (
+                <ActivityIndicator size="small" color={Colors.black} />
               ) : (
-                <Ionicons name="log-in" size={22} color={Colors.status.warning} />
+                <>
+                  <Ionicons name="log-in" size={22} color={Colors.black} />
+                  <Text className="text-base font-semibold" style={{ color: Colors.black }}>
+                    Login
+                  </Text>
+                </>
               )}
-              <Text className="text-base font-semibold" style={{ color: Colors.status.warning }}>
-                Login
-              </Text>
             </Pressable>
           )}
+          <View className={showLoginAction || canShowLogout ? "mt-4" : ""}>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name={statusMeta.icon} size={16} color={statusMeta.color} />
+              <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                {compactStatus}
+              </Text>
+            </View>
+            {message && message !== compactStatus && (
+              <Text
+                className="mt-1 text-xs"
+                style={{ color: theme.textSecondary }}
+                numberOfLines={1}
+              >
+                {message}
+              </Text>
+            )}
+          </View>
         </View>
 
         <View className="items-center gap-1">
