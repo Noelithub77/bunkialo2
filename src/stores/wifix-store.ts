@@ -2,7 +2,6 @@ import { DEFAULT_MANUAL_PORTAL_URL } from "@/constants/wifix";
 import type {
   WifixPortalSource,
   WifixSettings,
-  WifixSsidCacheEntry,
 } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -14,7 +13,6 @@ interface WifixStore extends WifixSettings {
   setPortalBaseUrl: (url: string | null) => void;
   setManualPortalUrl: (url: string | null) => void;
   setPortalSource: (source: WifixPortalSource) => void;
-  setSsidCacheEntry: (ssid: string, entry: WifixSsidCacheEntry) => void;
 }
 
 const DEFAULT_SETTINGS: WifixSettings = {
@@ -23,7 +21,6 @@ const DEFAULT_SETTINGS: WifixSettings = {
   portalBaseUrl: null,
   manualPortalUrl: DEFAULT_MANUAL_PORTAL_URL,
   portalSource: "auto",
-  ssidCache: {},
 };
 
 export const useWifixStore = create<WifixStore>()(
@@ -37,13 +34,6 @@ export const useWifixStore = create<WifixStore>()(
       setPortalBaseUrl: (url) => set({ portalBaseUrl: url }),
       setManualPortalUrl: (url) => set({ manualPortalUrl: url }),
       setPortalSource: (source) => set({ portalSource: source }),
-      setSsidCacheEntry: (ssid, entry) =>
-        set((state) => ({
-          ssidCache: {
-            ...state.ssidCache,
-            [ssid]: entry,
-          },
-        })),
     }),
     {
       name: "wifix-settings-sqlite-v1",

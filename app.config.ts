@@ -43,7 +43,6 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       permissions: [
         "RECEIVE_BOOT_COMPLETED",
         "ACCESS_NETWORK_STATE",
-        "ACCESS_FINE_LOCATION",
       ],
       adaptiveIcon: {
         backgroundColor: "#FFAB00",

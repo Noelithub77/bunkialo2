@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { WifixLogModal } from "@/components/wifix";
 import { Colors, Radius } from "@/constants/theme";
 import {
-  isCampusSsid,
   DEFAULT_MANUAL_PORTAL_URL,
   WIFIX_PORTAL_PRESETS,
 } from "@/constants/wifix";
@@ -24,10 +23,10 @@ import { useWifixStore } from "@/stores/wifix-store";
 import type {
   WifixConnectionState,
   WifixPortalSource,
-  WifixSsidCacheEntry,
 } from "@/types";
+import { wifixLogger } from "@/utils/wifix-logger";
 import { Ionicons } from "@expo/vector-icons";
-import NetInfo, { NetInfoStateType } from "@react-native-community/netinfo";
+import NetInfo from "@react-native-community/netinfo";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -37,22 +36,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
-  PermissionsAndroid,
   Pressable,
   Switch,
   Text,
   View,
   Platform,
 } from "react-native";
-
-const formatTimestamp = (date: Date): string => {
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const seconds = date.getSeconds().toString().padStart(2, "0");
-  return `${day}/${month}, ${hours}:${minutes}:${seconds}`;
-};
 
 type StatusIconName =
   | "checkmark-circle"
@@ -103,68 +92,6 @@ const getStatusMeta = (
   }
 };
 
-interface WifiSsidReadResult {
-  ssid: string | null;
-  error: string | null;
-  requiresSettings: boolean;
-}
-
-const readActiveWifiSsid = async (): Promise<WifiSsidReadResult> => {
-  try {
-    if (Platform.OS === "android") {
-      const hasLocationPermission = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
-      if (!hasLocationPermission) {
-        const permission = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: "Allow WiFix to read WiFi details",
-            message:
-              "WiFix uses your WiFi name only to verify that you are connected to IIIT Kottayam WiFi before checking the campus portal.",
-            buttonPositive: "Allow",
-            buttonNegative: "Not now",
-          },
-        );
-        if (permission !== PermissionsAndroid.RESULTS.GRANTED) {
-          return {
-            ssid: null,
-            error:
-              permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
-                ? "WiFi access is blocked; allow Location permission in Android Settings"
-                : "Location permission is required to read the WiFi name",
-            requiresSettings:
-              permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN,
-          };
-        }
-      }
-    }
-
-    const network = await NetInfo.fetch("wifi");
-    if (network.type !== NetInfoStateType.wifi) {
-      return {
-        ssid: null,
-        error: "Not connected to WiFi",
-        requiresSettings: false,
-      };
-    }
-    const ssid = network.details.ssid?.trim();
-    return ssid
-      ? { ssid, error: null, requiresSettings: false }
-      : {
-          ssid: null,
-          error: "WiFi name unavailable; enable Location services",
-          requiresSettings: false,
-        };
-  } catch {
-    return {
-      ssid: null,
-      error: "Could not read the active WiFi network",
-      requiresSettings: false,
-    };
-  }
-};
-
 export default function WifixScreen() {
   const isWeb = Platform.OS === "web";
   const colorScheme = useColorScheme();
@@ -180,15 +107,10 @@ export default function WifixScreen() {
     setPortalBaseUrl,
     setManualPortalUrl,
     setPortalSource,
-    ssidCache,
-    setSsidCacheEntry,
   } = useWifixStore();
 
-  const [now, setNow] = useState(() => new Date());
   const [status, setStatus] = useState<WifixConnectionState>("idle");
-  const [currentSsid, setCurrentSsid] = useState<string | null>(null);
-  const [ssidPermissionNeedsSettings, setSsidPermissionNeedsSettings] =
-    useState(false);
+  const [campusPortalAvailable, setCampusPortalAvailable] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [portalBaseUrl, setPortalBaseUrlLocal] = useState<string | null>(
     storedPortalBaseUrl,
@@ -205,11 +127,6 @@ export default function WifixScreen() {
   const [showLogModal, setShowLogModal] = useState(false);
   const inFlightRef = useRef(false);
   const lastAttemptRef = useRef(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     if (!manualPortalUrl) {
@@ -316,53 +233,23 @@ export default function WifixScreen() {
     ],
   );
 
-  const recordSsidResult = useCallback(
-    (ssid: string | null, nextStatus: WifixConnectionState): void => {
-      if (typeof ssid !== "string" || !isCampusSsid(ssid)) return;
-      const entry: WifixSsidCacheEntry = {
-        resolves: nextStatus !== "offline",
-        online: nextStatus === "online",
-        checkedAt: Date.now(),
-      };
-      setSsidCacheEntry(ssid, entry);
-    },
-    [setSsidCacheEntry],
-  );
-
   const runConnectivityCheck = useCallback(
     async (shouldLogin: boolean) => {
       const nowMs = Date.now();
       if (inFlightRef.current) return;
       if (shouldLogin && nowMs - lastAttemptRef.current < 15000) return;
       inFlightRef.current = true;
-      lastAttemptRef.current = nowMs;
+      if (shouldLogin) {
+        lastAttemptRef.current = nowMs;
+      }
       setIsConnecting(true);
       setStatus("checking");
       setMessage(null);
       try {
-        const wifiIdentity = await readActiveWifiSsid();
-        const activeSsid = wifiIdentity.ssid;
-        setCurrentSsid(activeSsid);
-        setSsidPermissionNeedsSettings(wifiIdentity.requiresSettings);
-        if (!isWeb && !isCampusSsid(activeSsid)) {
-          setStatus("offline");
-          setPortalUrl(null);
-          setMessage(
-            wifiIdentity.error ?? "Not connected to IIIT Kottayam WiFi",
-          );
-          return;
-        }
-
-        const cached = activeSsid ? ssidCache[activeSsid] : undefined;
-        if (cached?.resolves && !shouldLogin) {
-          setStatus(cached.online ? "online" : "captive");
-          setMessage(cached.online ? "Connected" : "Campus WiFi · login required");
-        }
-
         const result = await checkConnectivity();
         setStatus(result.state);
         setPortalUrl(result.portalUrl);
-        recordSsidResult(activeSsid, result.state);
+        setCampusPortalAvailable(result.campusPortalAvailable);
         const selection = resolveSelectionFor(
           result.portalUrl,
           result.portalBaseUrl,
@@ -401,7 +288,7 @@ export default function WifixScreen() {
             const updated = await checkConnectivity();
             setStatus(updated.state);
             setPortalUrl(updated.portalUrl);
-            recordSsidResult(activeSsid, updated.state);
+            setCampusPortalAvailable(updated.campusPortalAvailable);
             const updatedSelection = resolveSelectionFor(
               updated.portalUrl,
               updated.portalBaseUrl,
@@ -413,17 +300,20 @@ export default function WifixScreen() {
         } else if (shouldLogin && result.state === "offline") {
           setMessage("No captive portal detected.");
         }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "WiFix request failed";
+        setStatus("error");
+        setMessage(errorMessage);
+        wifixLogger.error(`WiFix screen error: ${errorMessage}`);
       } finally {
         setIsConnecting(false);
         inFlightRef.current = false;
       }
     },
     [
-      isWeb,
       portalBaseUrl,
-      recordSsidResult,
       resolveSelectionFor,
-      ssidCache,
       storedPortalBaseUrl,
       syncPortalBaseUrl,
     ],
@@ -439,27 +329,26 @@ export default function WifixScreen() {
   const isBusy = isConnecting || isLoggingOut;
   const effectiveSourceLabel =
     effectivePortalSource === "auto" ? "Auto-detected" : "Manual";
-  const isCampusWifi = isCampusSsid(currentSsid);
   const isCampusPortal = selectedPortalBaseUrl.includes(
     "auth.iiitkottayam.ac.in",
   );
   const canShowLogout =
-    isWeb || (isCampusWifi && isCampusPortal && status === "online");
+    isWeb || (campusPortalAvailable && isCampusPortal && status === "online");
+  const canShowLogin =
+    !isWeb && campusPortalAvailable && status === "captive";
   const compactStatus = status === "checking"
     ? "Checking connection..."
     : isWeb
       ? status === "online"
       ? "Connected"
       : "Connection status unavailable"
-      : !currentSsid
-        ? "WiFi SSID unavailable"
-        : !isCampusWifi
-          ? "Not connected to IIIT Kottayam WiFi"
-          : status === "online"
-            ? "Connected"
-            : status === "captive"
-              ? "Campus WiFi · login required"
-              : "Not connected";
+      : campusPortalAvailable && status === "online"
+        ? "Connected"
+        : campusPortalAvailable && status === "captive"
+          ? "Campus WiFi · login required"
+          : status === "captive"
+            ? "Captive portal detected"
+            : "Not connected";
 
   const handleLogoutInternet = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -469,20 +358,23 @@ export default function WifixScreen() {
     setMessage(null);
 
     try {
-      const wifiIdentity = await readActiveWifiSsid();
-      const activeSsid = wifiIdentity.ssid;
-      setCurrentSsid(activeSsid);
-      setSsidPermissionNeedsSettings(wifiIdentity.requiresSettings);
+      const verification = isWeb ? null : await checkConnectivity();
+      if (verification) {
+        setStatus(verification.state);
+        setPortalUrl(verification.portalUrl);
+        setCampusPortalAvailable(verification.campusPortalAvailable);
+      }
       const selection = resolveSelectionFor(
-        portalUrl,
-        getPortalBaseUrl(portalUrl),
+        verification?.portalUrl ?? portalUrl,
+        verification?.portalBaseUrl ?? getPortalBaseUrl(portalUrl),
       );
       const logoutBaseUrl =
         selection.portalBaseUrl ?? storedPortalBaseUrl ?? portalBaseUrl;
       if (
         !isWeb &&
         (!logoutBaseUrl ||
-          !isCampusSsid(activeSsid) ||
+          !verification?.campusPortalAvailable ||
+          verification.state !== "online" ||
           !logoutBaseUrl.includes("auth.iiitkottayam.ac.in"))
       ) {
         setStatus("offline");
@@ -499,7 +391,7 @@ export default function WifixScreen() {
       const updated = await checkConnectivity();
       setStatus(updated.state);
       setPortalUrl(updated.portalUrl);
-      recordSsidResult(activeSsid, updated.state);
+      setCampusPortalAvailable(updated.campusPortalAvailable);
       const updatedSelection = resolveSelectionFor(
         updated.portalUrl,
         updated.portalBaseUrl,
@@ -515,7 +407,6 @@ export default function WifixScreen() {
     isWeb,
     portalBaseUrl,
     portalUrl,
-    recordSsidResult,
     resolveSelectionFor,
     storedPortalBaseUrl,
     syncPortalBaseUrl,
@@ -573,9 +464,6 @@ export default function WifixScreen() {
                 </Text>
               </View>
             </View>
-            <Text className="mt-1 text-[13px]" style={{ color: theme.textSecondary }}>
-              WiFixing {formatTimestamp(now)}
-            </Text>
           </View>
           <View className="flex-row items-center gap-3">
             <Pressable
@@ -682,19 +570,6 @@ export default function WifixScreen() {
               {message}
             </Text>
           )}
-          {ssidPermissionNeedsSettings && !isWeb && (
-            <Pressable
-              onPress={() => Linking.openSettings()}
-              className="mt-2"
-            >
-              <Text
-                className="text-xs underline"
-                style={{ color: theme.textSecondary }}
-              >
-                Open Android Settings
-              </Text>
-            </Pressable>
-          )}
           {(canShowLogout || isLoggingOut) && (
             <Pressable
               onPress={handleLogoutInternet}
@@ -716,6 +591,30 @@ export default function WifixScreen() {
               )}
               <Text className="text-base font-semibold" style={{ color: Colors.status.danger }}>
                 Logout
+              </Text>
+            </Pressable>
+          )}
+          {canShowLogin && (
+            <Pressable
+              onPress={() => runConnectivityCheck(true)}
+              disabled={isBusy}
+              className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
+              style={({ pressed }) => ({
+                backgroundColor: `${Colors.status.warning}22`,
+                borderColor: `${Colors.status.warning}88`,
+                borderRadius: Radius.md,
+                borderWidth: 1,
+                opacity: isBusy ? 0.5 : 1,
+                transform: pressed ? [{ scale: 0.98 }] : undefined,
+              })}
+            >
+              {isConnecting ? (
+                <ActivityIndicator size="small" color={Colors.status.warning} />
+              ) : (
+                <Ionicons name="log-in" size={22} color={Colors.status.warning} />
+              )}
+              <Text className="text-base font-semibold" style={{ color: Colors.status.warning }}>
+                Login
               </Text>
             </Pressable>
           )}

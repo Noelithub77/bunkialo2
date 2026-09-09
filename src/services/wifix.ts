@@ -21,6 +21,7 @@ const LEGACY_LOGIN_PATH = "/login?0330598d1f22608a";
 const CAMPUS_LOGIN_PATH = "/login?0330598d1f22608a";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
+const CAMPUS_PORTAL_HOST = new URL(DEFAULT_PORTAL_BASE_URL).hostname;
 
 interface WifixHeaders {
   get(name: string): string | null;
@@ -122,6 +123,33 @@ const getAndroidWifiNetworkState = async (): Promise<WifixNetworkState | null> =
       `Android network fallback unavailable: ${error instanceof Error ? error.message : "unknown error"}`,
     );
     return null;
+  }
+};
+
+const resolveCampusPortalOnWifi = async (): Promise<boolean> => {
+  if (Platform.OS !== "android" || !WifixNetwork) return false;
+
+  try {
+    const result = await WifixNetwork.resolveOnWifi(CAMPUS_PORTAL_HOST);
+    const resolved = result.resolvedAddresses.length > 0;
+    wifixLogger.info(
+      `Campus portal DNS: host=${CAMPUS_PORTAL_HOST} resolved=${resolved} addresses=${result.resolvedAddresses.join(",") || "none"} interface=${result.interfaceName ?? "unknown"} dns=${result.dnsServers.join(",") || "none"} dhcp=${result.dhcpServer ?? "unknown"}`,
+    );
+    return resolved;
+  } catch (error) {
+    wifixLogger.info(
+      `Campus portal DNS unavailable: ${describeError(error)}`,
+    );
+    return false;
+  }
+};
+
+const isCampusPortalUrl = (url: string | null): boolean => {
+  if (!url) return false;
+  try {
+    return new URL(url).hostname === CAMPUS_PORTAL_HOST;
+  } catch {
+    return false;
   }
 };
 
@@ -367,6 +395,8 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     });
     wifixLogger.info(`Connectivity response: ${describeResponse(response)}`);
 
+    const campusPortalAvailable = await resolveCampusPortalOnWifi();
+
     if (response.status === 204) {
       debug.wifix("Step 3: Online - no captive portal");
       wifixLogger.success("Connection successful: Online (no captive portal)");
@@ -374,6 +404,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
         state: "online",
         portalUrl: null,
         portalBaseUrl: null,
+        campusPortalAvailable,
         statusCode: response.status,
         message: "Online",
       };
@@ -434,6 +465,8 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
       }
     }
 
+    const campusPortalDetected =
+      campusPortalAvailable || isCampusPortalUrl(portalUrl);
     const androidState = await getAndroidWifiNetworkState();
     if (!portalUrl && androidState?.validated) {
       wifixLogger.info(
@@ -443,6 +476,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
         state: "online",
         portalUrl: null,
         portalBaseUrl: null,
+        campusPortalAvailable: campusPortalDetected,
         statusCode: response.status,
         message: "Online (Android network validated)",
       };
@@ -463,6 +497,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
       state,
       portalUrl,
       portalBaseUrl: getPortalBaseUrl(portalUrl),
+      campusPortalAvailable: campusPortalDetected,
       statusCode: response.status,
       message: portalUrl
         ? "Captive portal detected"
@@ -470,6 +505,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network error";
+    const campusPortalAvailable = await resolveCampusPortalOnWifi();
     const androidState = await getAndroidWifiNetworkState();
     if (androidState?.captivePortal) {
       wifixLogger.info(
@@ -479,6 +515,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
         state: "captive",
         portalUrl: null,
         portalBaseUrl: null,
+        campusPortalAvailable,
         statusCode: null,
         message: "Captive portal detected by Android",
       };
@@ -491,6 +528,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
         state: "online",
         portalUrl: null,
         portalBaseUrl: null,
+        campusPortalAvailable,
         statusCode: null,
         message: "Online (Android network validated)",
       };
@@ -501,6 +539,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
       state: "offline",
       portalUrl: null,
       portalBaseUrl: null,
+      campusPortalAvailable,
       statusCode: null,
       message,
     };
