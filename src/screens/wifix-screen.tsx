@@ -547,11 +547,11 @@ export default function WifixScreen() {
               })}
             >
               {isLoggingOut ? (
-                <ActivityIndicator size="small" color={Colors.white} />
+                <ActivityIndicator size="small" color={Colors.black} />
               ) : (
-                <Ionicons name="log-out" size={22} color={Colors.white} />
+                <Ionicons name="log-out" size={22} color={Colors.black} />
               )}
-              <Text className="text-base font-semibold" style={{ color: Colors.white }}>
+              <Text className="text-base font-semibold" style={{ color: Colors.black }}>
                 Logout
               </Text>
             </Pressable>
@@ -562,8 +562,8 @@ export default function WifixScreen() {
               disabled={isBusy}
               className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
               style={({ pressed }) => ({
-                backgroundColor: Colors.status.warning,
-                borderColor: Colors.status.warning,
+                backgroundColor: Colors.status.success,
+                borderColor: Colors.status.success,
                 borderRadius: Radius.md,
                 borderWidth: 1,
                 opacity: isBusy ? 0.5 : 1,
