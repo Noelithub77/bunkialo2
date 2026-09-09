@@ -19,7 +19,18 @@ const responseSchema = z
     needsEmailOtp: z.boolean().optional(),
   })
   .passthrough();
+const AUTH_REQUEST_TIMEOUT_MS = 30_000;
 let pendingCredentials: { email: string; password: string } | null = null;
+
+const fetchAuthRequest = async (request: RequestInit): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch("/api/attendance/auth", { ...request, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const failure = (status: number): Extract<AuthLoginResult, { status: "failure" }> => ({
   status: "failure",
@@ -41,7 +52,7 @@ export const loginToAttendancePortal = async (
         password: request.password,
       };
     }
-    const response = await fetch("/api/attendance/auth", {
+    const response = await fetchAuthRequest({
       body: JSON.stringify(request),
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },

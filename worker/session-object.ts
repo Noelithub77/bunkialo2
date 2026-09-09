@@ -10,10 +10,18 @@ import {
   isLmsLoginSuccessful,
 } from "./lms/login-check";
 import { sendReminderPush } from "./push/send-push";
+import type {
+  DesktopCredentials,
+  DesktopPairingCode,
+  DesktopSnapshot,
+  DesktopSyncResult,
+} from "../shared/desktop";
+import { buildDesktopSnapshot } from "./desktop/timetable";
 
 type LmsSession = {
   cookies: StoredCookie[];
   origin: string;
+  password: string;
   username: string;
 };
 
@@ -21,6 +29,10 @@ type AttendanceTokens = {
   accessToken: string;
   refreshToken: string;
 };
+
+type DesktopAuthResult =
+  | { ok: true }
+  | { ok: false; message: string };
 
 type ReminderRow = {
   body: string;
@@ -186,6 +198,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       this.setValue("lms", {
         cookies: loginResult.cookies,
         origin,
+        password,
         username,
       } satisfies LmsSession);
       await this.keepAlive();
@@ -213,6 +226,48 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     session.cookies = result.cookies;
     this.setValue("lms", session);
     return result.response.ok && !isLmsLoginPage(await result.response.text());
+  }
+
+  async getLmsCredentials(): Promise<{ password: string; username: string } | null> {
+    const session = this.getValue<LmsSession>("lms");
+    if (!session || typeof session.username !== "string" || typeof session.password !== "string") {
+      return null;
+    }
+    return { password: session.password, username: session.username };
+  }
+
+  getAttendanceCredentials(): { email: string; password: string } | null {
+    const credentials = this.getValue<{ email: string; password: string }>("attendance-credentials");
+    if (!credentials || typeof credentials.email !== "string" || typeof credentials.password !== "string") {
+      return null;
+    }
+    return credentials;
+  }
+
+  saveAttendanceCredentials(credentials: { email: string; password: string }): void {
+    this.setValue("attendance-credentials", credentials);
+  }
+
+  async getDesktopPairingCode(): Promise<DesktopPairingCode | null> {
+    const lms = await this.getLmsCredentials();
+    const attendance = this.getAttendanceCredentials();
+    if (!lms || !attendance || lms.username === attendance.email) return null;
+    return {
+      [lms.username]: lms.password,
+      [attendance.email]: attendance.password,
+    };
+  }
+
+  enableDesktopPairing(): void {
+    this.setValue("desktop-pairing", true);
+  }
+
+  hasDesktopPairing(): boolean {
+    return this.getValue<boolean>("desktop-pairing") === true;
+  }
+
+  disableDesktopPairing(): void {
+    this.deleteValues("desktop-pairing");
   }
 
   async relayLms(input: {
@@ -245,7 +300,81 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     return limitedResponse(result.response);
   }
 
-  async syncAll(): Promise<FullSyncPayload> {
+  private async loginAttendance(
+    credentials: { email: string; password: string },
+  ): Promise<DesktopAuthResult> {
+    try {
+      const response = await fetch(new URL("/api/auth/login", this.env.ATTENDANCE_PORTAL_URL), {
+        body: JSON.stringify(credentials),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const data = await readJsonIfPossible(response);
+      const tokens = tokenValues(data);
+      if (tokens) {
+        this.setValue("attendance", tokens);
+        this.setValue("attendance-credentials", credentials);
+        await this.keepAlive();
+        return { ok: true };
+      }
+      return {
+        message: response.status === 401 || response.status === 403
+          ? "Attendance credentials were rejected."
+          : "Attendance login requires verification or returned an invalid response.",
+        ok: false,
+      };
+    } catch {
+      return { message: "Could not reach the attendance portal.", ok: false };
+    }
+  }
+
+  private async ensureDesktopCredentials(
+    credentials: DesktopCredentials,
+  ): Promise<DesktopAuthResult> {
+    const entries = Object.entries(credentials);
+    const lms = entries[0];
+    const attendance = entries[1];
+    if (!lms || !attendance || lms[0] === attendance[0]) {
+      return { message: "Desktop credentials must contain LMS and attendance accounts.", ok: false };
+    }
+
+    const existingLms = this.getValue<LmsSession>("lms");
+    if (
+      !existingLms
+      || existingLms.username !== lms[0]
+      || existingLms.password !== lms[1]
+    ) {
+      if (!(await this.loginLms(lms[0], lms[1]))) {
+        return { message: "LMS credentials were rejected.", ok: false };
+      }
+    }
+
+    const attendanceCredentials = { email: attendance[0], password: attendance[1] };
+    const existingAttendanceCredentials = this.getAttendanceCredentials();
+    if (
+      existingAttendanceCredentials
+      && (
+        existingAttendanceCredentials.email !== attendanceCredentials.email
+        || existingAttendanceCredentials.password !== attendanceCredentials.password
+      )
+    ) {
+      this.deleteValues("attendance", "attendance-credentials");
+    }
+    this.setValue("attendance-credentials", attendanceCredentials);
+    if (!this.getValue<AttendanceTokens>("attendance")) {
+      return this.loginAttendance(attendanceCredentials);
+    }
+    return { ok: true };
+  }
+
+  async syncAll(desktopCredentials?: DesktopCredentials, retryLms = true): Promise<FullSyncPayload> {
+    if (desktopCredentials) {
+      const authentication = await this.ensureDesktopCredentials(desktopCredentials);
+      if (!authentication.ok) return { attendance: null, lms: null };
+    }
     const lms = this.getValue<LmsSession>("lms");
     if (!lms) return { attendance: null, lms: null };
 
@@ -258,6 +387,12 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     lms.cookies = page.cookies;
     const pageHtml = await page.response.text();
     if (!page.response.ok || isLmsLoginPage(pageHtml)) {
+      if (desktopCredentials && retryLms) {
+        const [lmsUsername, lmsPassword] = Object.entries(desktopCredentials)[0] ?? [];
+        if (lmsUsername && lmsPassword && await this.loginLms(lmsUsername, lmsPassword)) {
+          return this.syncAll(desktopCredentials, false);
+        }
+      }
       this.deleteValues("lms");
       return { attendance: null, lms: null };
     }
@@ -318,9 +453,38 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     return { attendance, lms: lmsPayload };
   }
 
+  async syncDesktop(credentials: DesktopCredentials): Promise<DesktopSyncResult> {
+    const authentication = await this.ensureDesktopCredentials(credentials);
+    if (!authentication.ok) {
+      return { code: "credentials", message: authentication.message, status: "failure" };
+    }
+    const payload = await this.syncAll(credentials);
+    if (!payload.lms || !payload.attendance) {
+      return {
+        code: "upstream",
+        message: "LMS or attendance data could not be synchronized.",
+        status: "failure",
+      };
+    }
+    const normalized = buildDesktopSnapshot(payload);
+    return {
+      snapshot: {
+        generatedAt: Date.now(),
+        timetable: normalized.timetable,
+        notifications: normalized.notifications,
+      },
+      status: "success",
+    };
+  }
+
   private async syncAttendance(): Promise<FullSyncPayload["attendance"]> {
     let tokens = this.getValue<AttendanceTokens>("attendance");
-    if (!tokens) return null;
+    if (!tokens) {
+      const credentials = this.getAttendanceCredentials();
+      if (!credentials || !(await this.loginAttendance(credentials)).ok) return null;
+      tokens = this.getValue<AttendanceTokens>("attendance");
+      if (!tokens) return null;
+    }
 
     const fetchJson = async (path: string): Promise<unknown> => {
       const request = (): Promise<Response> => fetch(
@@ -330,6 +494,12 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       let response = await request();
       if (response.status === 401 && tokens) {
         tokens = await this.refreshAttendanceTokens(tokens);
+        if (!tokens) {
+          const credentials = this.getAttendanceCredentials();
+          if (credentials && (await this.loginAttendance(credentials)).ok) {
+            tokens = this.getValue<AttendanceTokens>("attendance");
+          }
+        }
         if (!tokens) return null;
         response = await request();
       }
@@ -356,6 +526,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       const value = await fetchJson(`/api/students/me/courses/${encodeURIComponent(courseId)}/sessions`);
       if (value) sessions[courseId] = value;
     }));
+    if (courseIds.length > 0 && Object.keys(sessions).length === 0) return null;
     if (tokens) this.setValue("attendance", tokens);
     await this.keepAlive();
     return { notifications, sessions, summary, terms };
@@ -434,14 +605,14 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     const newTokens = tokenValues(responseData);
     if (newTokens) this.setValue("attendance", newTokens);
     if (target.pathname === "/api/auth/logout" && response.ok) {
-      this.deleteValues("attendance");
+      this.deleteValues("attendance", "attendance-credentials", "desktop-pairing");
     }
     await this.keepAlive();
     return limitedResponse(response);
   }
 
   async logout(): Promise<void> {
-    this.deleteValues("attendance", "lms");
+    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms");
     this.ctx.storage.sql.exec("DELETE FROM reminders");
     await this.ctx.storage.deleteAlarm();
   }
@@ -524,7 +695,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     const privateKey = this.env.VAPID_PRIVATE_KEY;
 
     if (due.length === 0) {
-      this.deleteValues("attendance", "lms", "push");
+    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms", "push");
       this.ctx.storage.sql.exec("DELETE FROM reminders");
       await this.ctx.storage.deleteAlarm();
       return;

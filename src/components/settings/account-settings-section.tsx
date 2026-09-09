@@ -1,6 +1,7 @@
 import { LoginCredentialsStep } from "@/components/auth/login-credentials-step";
 import { PortalChallengeStep } from "@/components/auth/portal-challenge-step";
 import { Toast } from "@/components/shared/ui/molecules/toast";
+import { checkAttendanceSession } from "@/services/auth/attendance-auth";
 import { login } from "@/services/auth/login";
 import { getAttendanceCredentials } from "@/services/auth/secure-auth-storage";
 import { useAuthStore } from "@/stores/auth-store";
@@ -31,6 +32,9 @@ export function AccountSettingsSection({
   theme,
 }: AccountSettingsSectionProps) {
   const [attendanceEmail, setAttendanceEmail] = useState<string | null>(null);
+  const [attendanceConnected, setAttendanceConnected] = useState<boolean | null>(
+    null,
+  );
   const [editing, setEditing] = useState<AccountKind | null>(null);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -44,6 +48,7 @@ export function AccountSettingsSection({
     void getAttendanceCredentials().then((saved) =>
       setAttendanceEmail(saved?.email ?? null),
     );
+    void checkAttendanceSession().then(setAttendanceConnected);
   }, []);
 
   const openEditor = (account: AccountKind): void => {
@@ -65,6 +70,7 @@ export function AccountSettingsSection({
     if (result.status === "success") {
       if (editing === "attendancePortal") {
         setAttendanceEmail(identifier.trim().toLowerCase());
+        setAttendanceConnected(true);
       } else {
         completeLogin(identifier.trim());
       }
@@ -126,7 +132,11 @@ export function AccountSettingsSection({
             [
               "attendancePortal",
               "Attendance",
-              attendanceEmail,
+              attendanceConnected === true
+                ? attendanceEmail ?? "Connected"
+                : attendanceConnected === false
+                  ? attendanceEmail
+                  : attendanceEmail ?? "Checking...",
               "calendar-outline",
             ],
           ] as const

@@ -8,9 +8,11 @@ import {
 } from "@/services/auth/attendance-auth";
 import { getAttendanceCredentials } from "@/services/auth/secure-auth-storage";
 import { getWebCredential } from "@/services/auth/web-password-manager.web";
+import { DESKTOP_PAIRING_ROUTE } from "@/services/desktop-pairing";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AuthLoginRequest } from "@/types";
 import { StatusBar } from "expo-status-bar";
+import { router, useGlobalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -32,6 +34,14 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const completeLogin = useAuthStore((state) => state.completeLogin);
+  const params = useGlobalSearchParams<{ returnTo?: string }>();
+
+  const finishLogin = (username: string): void => {
+    completeLogin(username);
+    if (params.returnTo === DESKTOP_PAIRING_ROUTE) {
+      router.replace(DESKTOP_PAIRING_ROUTE as never);
+    }
+  };
 
   useEffect(() => {
     if (process.env.EXPO_OS !== "web") return;
@@ -73,7 +83,7 @@ export default function LoginScreen() {
     result: Awaited<ReturnType<typeof login>>,
   ): void => {
     if (result.status === "success") {
-      completeLogin(rollNumber.trim());
+      finishLogin(rollNumber.trim());
       return;
     }
     if (result.status === "challenge") {
@@ -91,23 +101,33 @@ export default function LoginScreen() {
   const submitPortal = async (): Promise<void> => {
     setLoading(true);
     setError(null);
-    const result = await login({
-      provider: "attendancePortal",
-      mode: "password",
-      email: email.trim(),
-      password: portalPassword,
-    });
-    setLoading(false);
-    handlePortalResult(result);
+    try {
+      const result = await login({
+        provider: "attendancePortal",
+        mode: "password",
+        email: email.trim(),
+        password: portalPassword,
+      });
+      handlePortalResult(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not sign in.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitChallenge = async (): Promise<void> => {
     if (!challenge) return;
     setLoading(true);
     setError(null);
-    const result = await login({ ...challenge, code: code.trim() });
-    setLoading(false);
-    handlePortalResult(result);
+    try {
+      const result = await login({ ...challenge, code: code.trim() });
+      handlePortalResult(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not verify the code.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

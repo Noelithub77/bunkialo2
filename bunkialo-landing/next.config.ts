@@ -1,8 +1,12 @@
+import path from "node:path";
 import type { NextConfig } from "next";
+
+const repoRoot = path.resolve(__dirname, "..");
 
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  outputFileTracingRoot: repoRoot,
   images: {
     remotePatterns: [
       {
@@ -12,7 +16,7 @@ const nextConfig: NextConfig = {
     ],
   },
   turbopack: {
-    root: __dirname,
+    root: repoRoot,
   },
 };
 

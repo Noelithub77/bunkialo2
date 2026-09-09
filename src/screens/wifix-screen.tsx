@@ -27,12 +27,12 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
   Pressable,
-  ScrollView,
   Switch,
   Text,
   View,
@@ -379,7 +379,11 @@ export default function WifixScreen() {
           left: 0,
         }}
       />
-      <ScrollView contentContainerClassName="px-6 pb-12 pt-6">
+      <KeyboardAwareScrollView
+        contentContainerClassName="px-6 pb-12 pt-6"
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
+      >
         <View className="mb-6 flex-row items-center justify-between gap-3">
           <Pressable
             onPress={() => router.back()}
@@ -659,7 +663,7 @@ export default function WifixScreen() {
             </ExternalLink>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <WifixLogModal
         visible={showLogModal}

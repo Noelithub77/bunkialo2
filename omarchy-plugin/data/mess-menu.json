@@ -1,0 +1,505 @@
+[
+  {
+    "day": 0,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Puri Masala",
+          "Pongal",
+          "Groundnut chutney",
+          "Banana",
+          "Boiled Egg",
+          "Sprouts",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Kerala rice",
+          "Rice",
+          "Roti",
+          "Aloo Tomato gravy",
+          "Bottle gourd stir fry",
+          "Palak Dal tadka",
+          "Rasam",
+          "Curd",
+          "Salad",
+          "Drink: Sweet Lassi"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Roasted/Boiled Peanuts",
+          "Banana",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Hyderabadi/Malabar Chicken Biryani",
+          "Paneer Biryani",
+          "Veg Gravy",
+          "Chicken Gravy",
+          "Onion Chilli Raita",
+          "Papad",
+          "Salad",
+          "Drink: Tang"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "day": 1,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Onion",
+          "Uttapam",
+          "Medu vada",
+          "Sambar",
+          "Coconut Chutney",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Butter",
+          "Tea",
+          "Milk",
+          "Corn Flakes"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Kerala rice",
+          "Rice",
+          "Roti",
+          "Veg Kolhapuri",
+          "Beans Poriyal",
+          "Olan",
+          "Sambar",
+          "Chips",
+          "Salad",
+          "Puliyinchi",
+          "Curd"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Masala Puri chaat",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Coffee",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Rice",
+          "Roti",
+          "Egg roast",
+          "Beetroot thoran",
+          "Vegetable Kurma",
+          "Papad",
+          "Curd",
+          "Salad"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "day": 2,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Vada Pav",
+          "Puttu",
+          "Channa Curry",
+          "Fried Chillies",
+          "Onions",
+          "Green Chutney",
+          "Red Powdered Chutney",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Butter",
+          "Coffee",
+          "Milk",
+          "Banana"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Tawa Pulao",
+          "Roti",
+          "Chettinad Chicken",
+          "Chilli Paneer",
+          "Vegetable",
+          "Raita",
+          "Salad",
+          "Drink: Lemon juice/Litchi"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Cream bun",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Rice",
+          "Roti",
+          "Chole curry",
+          "Onion Dal Tadka",
+          "Carrot Beans Thoran",
+          "Rasam",
+          "Chips",
+          "Salad",
+          "Curd"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "day": 3,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Idli",
+          "Masala Idli",
+          "Punugulu",
+          "Sambar",
+          "Groundnut Chutney",
+          "Tomato chutney",
+          "Puliyinchi",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Butter",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Rice",
+          "Roti",
+          "Mudda Pappu",
+          "Pachi Pulusu",
+          "Cabbage fry",
+          "Curd",
+          "Kootu curry",
+          "Salad",
+          "Drink: Sweet Lassi"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Sweetcorn (boiled)",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Vegetable Fried rice",
+          "Roti",
+          "Paneer Butter masala",
+          "Chilli chicken",
+          "Onion chilli Raita",
+          "Drink: Passion Fruit drink"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "day": 4,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Pav Bhaji",
+          "Lemons",
+          "Onions",
+          "Uggani (Puffed rice)",
+          "Roasted chana Podi",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Butter",
+          "Banana",
+          "Coffee",
+          "Milk"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Rice",
+          "Roti",
+          "Egg Bhurji",
+          "Sambar",
+          "Green Peas curry",
+          "Papad",
+          "Curd",
+          "Salad",
+          "Drink: Sweet Lassi"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Dil Pasand",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Coffee",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Roti",
+          "Rice",
+          "Sambar",
+          "Potato fry",
+          "Kanji",
+          "Chammanthi",
+          "Curd",
+          "Brinjal Curry",
+          "Salad",
+          "Sweet: Rava Kesari"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "day": 5,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Vermicelli upma",
+          "Poha",
+          "Lemons",
+          "Groundnut Chutney",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Butter",
+          "Banana",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Ghee Rice",
+          "Chicken Roast",
+          "Kadai Paneer",
+          "Vegetable raita",
+          "Salad",
+          "Drink: Lemon juice / Litchi"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Bhel puri",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Tea",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Rice",
+          "Roti",
+          "Rajma curry",
+          "Spicy Dal Tadka",
+          "Rasam",
+          "Ivy Gourd Fry",
+          "Pulisherry",
+          "Salad",
+          "Sweet: Ada Payasam"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "day": 6,
+    "meals": [
+      {
+        "type": "breakfast",
+        "name": "Breakfast",
+        "items": [
+          "Idli",
+          "Podi Idly",
+          "Kichidhi Sprouts",
+          "Groundnut Chutney",
+          "Tomato chutney",
+          "Sambar",
+          "Bread (Normal/Brown)",
+          "Jam",
+          "Butter",
+          "Coffee",
+          "Milk",
+          "Corn Flakes"
+        ],
+        "startTime": "07:00",
+        "endTime": "09:45"
+      },
+      {
+        "type": "lunch",
+        "name": "Lunch",
+        "items": [
+          "Rice",
+          "Roti",
+          "Mudda pappu",
+          "Pachi pulusu",
+          "Cabbage carrot thoran",
+          "Chips",
+          "Curd",
+          "Salad",
+          "Drink: Buttermilk"
+        ],
+        "startTime": "12:00",
+        "endTime": "14:30"
+      },
+      {
+        "type": "snacks",
+        "name": "Snacks",
+        "items": [
+          "Onion Vada",
+          "Bread",
+          "Jam",
+          "Butter",
+          "Coffee",
+          "Milk"
+        ],
+        "startTime": "16:00",
+        "endTime": "18:00"
+      },
+      {
+        "type": "dinner",
+        "name": "Dinner",
+        "items": [
+          "Jeera Rice",
+          "Rice",
+          "Roti",
+          "Small Soya curry",
+          "Sambar",
+          "Puliseery",
+          "Chips",
+          "Curd",
+          "Salad",
+          "Sweet: Vermicelli Payasam"
+        ],
+        "startTime": "19:00",
+        "endTime": "21:00"
+      }
+    ]
+  }
+]

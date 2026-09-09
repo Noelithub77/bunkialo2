@@ -1,12 +1,13 @@
 {
   "name": "bunkialo",
   "main": "expo-router/entry",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "generate-icons": "node ./src/scripts/generate-icons.mjs",
     "fetch-faculty": "node ./scripts/fetch-faculty.mjs",
+    "desktop:export": "bun scripts/export-omarchy-data.ts",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "node ./scripts/dev-web.mjs",
@@ -18,6 +19,7 @@
     "lint": "expo lint",
     "test": "bun test tests/unit",
     "test:attendance-live": "bun tests/integration/attendance-portal/test-attendance-portal.ts",
+    "test:wifix:atomic": "bun tests/integration/wifix/test-wifix-atomic.ts",
     "test:lms-scraper": "bun tests/integration/lms/test-scraper.ts",
     "test:dashboard": "bun tests/integration/lms/test-dashboard.ts",
     "test:resources": "bun tests/integration/lms/test-resources-scraper.ts",

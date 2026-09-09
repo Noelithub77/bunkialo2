@@ -3,11 +3,14 @@ export const WIFIX_KEEPALIVE_PATH = `/keepalive?${WIFIX_KEEPALIVE_QUERY}`;
 export const WIFIX_DEFAULT_PORT = "1000";
 export const WIFIX_DEFAULT_SCHEME = "http://";
 
+export const CAMPUS_PORTAL_URL =
+  "https://auth.iiitkottayam.ac.in:1442/login?0330598d1f22608a";
+
 export const WIFIX_PORTAL_PRESETS = [
   {
     id: "campus",
     label: "Campus",
-    url: `http://172.16.222.1:1000${WIFIX_KEEPALIVE_PATH}`,
+    url: CAMPUS_PORTAL_URL,
   },
   {
     id: "nila",

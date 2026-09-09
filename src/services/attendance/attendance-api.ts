@@ -31,7 +31,11 @@ import {
 const attendanceClient = axios.create({
   baseURL: ATTENDANCE_PORTAL_URL,
   timeout: 15_000,
-  headers: { Accept: "application/json" },
+  headers: {
+    Accept: "application/json",
+    "Cache-Control": "no-cache, no-store, max-age=0",
+    Pragma: "no-cache",
+  },
 });
 
 applyAuthTokenInterceptor(attendanceClient, {

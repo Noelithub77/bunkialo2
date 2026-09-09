@@ -1,0 +1,14 @@
+# Local dependency and build artifacts are not part of the landing deployment.
+node_modules
+**/node_modules
+.next
+**/.next
+.expo
+**/.expo
+android
+ios
+artifacts
+
+# Local tooling state.
+.vercel
+.env*
