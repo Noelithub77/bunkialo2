@@ -8,6 +8,12 @@ export type WifixConnectionState =
 
 export type WifixPortalSource = "auto" | "manual";
 
+export interface WifixSsidCacheEntry {
+  resolves: boolean;
+  online: boolean;
+  checkedAt: number;
+}
+
 export interface WifixConnectivityResult {
   state: WifixConnectionState;
   portalUrl: string | null;
@@ -36,4 +42,5 @@ export interface WifixSettings {
   portalBaseUrl: string | null;
   manualPortalUrl: string | null;
   portalSource: WifixPortalSource;
+  ssidCache: Record<string, WifixSsidCacheEntry>;
 }

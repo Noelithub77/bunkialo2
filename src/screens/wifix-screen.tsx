@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { WifixLogModal } from "@/components/wifix";
 import { Colors, Radius } from "@/constants/theme";
 import {
+  isCampusSsid,
   DEFAULT_MANUAL_PORTAL_URL,
   WIFIX_PORTAL_PRESETS,
 } from "@/constants/wifix";
@@ -20,9 +21,13 @@ import {
   resolvePortalSelection,
 } from "@/services/wifix";
 import { useWifixStore } from "@/stores/wifix-store";
-import type { WifixConnectionState, WifixPortalSource } from "@/types";
+import type {
+  WifixConnectionState,
+  WifixPortalSource,
+  WifixSsidCacheEntry,
+} from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import NetInfo from "@react-native-community/netinfo";
+import NetInfo, { NetInfoStateType } from "@react-native-community/netinfo";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -32,6 +37,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
+  PermissionsAndroid,
   Pressable,
   Switch,
   Text,
@@ -97,6 +103,29 @@ const getStatusMeta = (
   }
 };
 
+const readActiveWifiSsid = async (): Promise<string | null> => {
+  try {
+    if (Platform.OS === "android") {
+      const hasLocationPermission = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+      if (!hasLocationPermission) {
+        const permission = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        if (permission !== PermissionsAndroid.RESULTS.GRANTED) return null;
+      }
+    }
+
+    const network = await NetInfo.fetch("wifi");
+    if (network.type !== NetInfoStateType.wifi) return null;
+    const ssid = network.details.ssid?.trim();
+    return ssid || null;
+  } catch {
+    return null;
+  }
+};
+
 export default function WifixScreen() {
   const isWeb = Platform.OS === "web";
   const colorScheme = useColorScheme();
@@ -112,10 +141,13 @@ export default function WifixScreen() {
     setPortalBaseUrl,
     setManualPortalUrl,
     setPortalSource,
+    ssidCache,
+    setSsidCacheEntry,
   } = useWifixStore();
 
   const [now, setNow] = useState(() => new Date());
   const [status, setStatus] = useState<WifixConnectionState>("idle");
+  const [currentSsid, setCurrentSsid] = useState<string | null>(null);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [portalBaseUrl, setPortalBaseUrlLocal] = useState<string | null>(
     storedPortalBaseUrl,
@@ -243,6 +275,19 @@ export default function WifixScreen() {
     ],
   );
 
+  const recordSsidResult = useCallback(
+    (ssid: string | null, nextStatus: WifixConnectionState): void => {
+      if (typeof ssid !== "string" || !isCampusSsid(ssid)) return;
+      const entry: WifixSsidCacheEntry = {
+        resolves: nextStatus !== "offline",
+        online: nextStatus === "online",
+        checkedAt: Date.now(),
+      };
+      setSsidCacheEntry(ssid, entry);
+    },
+    [setSsidCacheEntry],
+  );
+
   const runConnectivityCheck = useCallback(
     async (shouldLogin: boolean) => {
       const nowMs = Date.now();
@@ -254,9 +299,29 @@ export default function WifixScreen() {
       setStatus("checking");
       setMessage(null);
       try {
+        const activeSsid = await readActiveWifiSsid();
+        setCurrentSsid(activeSsid);
+        if (!isWeb && !isCampusSsid(activeSsid)) {
+          setStatus("offline");
+          setPortalUrl(null);
+          setMessage(
+            activeSsid
+              ? "Not connected to IIIT Kottayam WiFi"
+              : "WiFi SSID unavailable",
+          );
+          return;
+        }
+
+        const cached = activeSsid ? ssidCache[activeSsid] : undefined;
+        if (cached?.resolves && !shouldLogin) {
+          setStatus(cached.online ? "online" : "captive");
+          setMessage(cached.online ? "Connected" : "Campus WiFi · login required");
+        }
+
         const result = await checkConnectivity();
         setStatus(result.state);
         setPortalUrl(result.portalUrl);
+        recordSsidResult(activeSsid, result.state);
         const selection = resolveSelectionFor(
           result.portalUrl,
           result.portalBaseUrl,
@@ -295,6 +360,7 @@ export default function WifixScreen() {
             const updated = await checkConnectivity();
             setStatus(updated.state);
             setPortalUrl(updated.portalUrl);
+            recordSsidResult(activeSsid, updated.state);
             const updatedSelection = resolveSelectionFor(
               updated.portalUrl,
               updated.portalBaseUrl,
@@ -312,8 +378,11 @@ export default function WifixScreen() {
       }
     },
     [
+      isWeb,
       portalBaseUrl,
+      recordSsidResult,
       resolveSelectionFor,
+      ssidCache,
       storedPortalBaseUrl,
       syncPortalBaseUrl,
     ],
@@ -326,12 +395,30 @@ export default function WifixScreen() {
   // Background task handles auto reconnect; avoid polling on this screen.
 
   const portalDisplayUrl = selectedPortalUrl ?? "Not available";
-  const baseDisplayUrl = selectedPortalBaseUrl;
   const isBusy = isConnecting || isLoggingOut;
-  const selectedSourceLabel =
-    portalSource === "auto" ? "Auto-detected" : "Manual";
   const effectiveSourceLabel =
     effectivePortalSource === "auto" ? "Auto-detected" : "Manual";
+  const isCampusWifi = isCampusSsid(currentSsid);
+  const isCampusPortal = selectedPortalBaseUrl.includes(
+    "auth.iiitkottayam.ac.in",
+  );
+  const canShowLogout =
+    isWeb || (isCampusWifi && isCampusPortal && status === "online");
+  const compactStatus = status === "checking"
+    ? "Checking connection..."
+    : isWeb
+      ? status === "online"
+      ? "Connected"
+      : "Connection status unavailable"
+      : !currentSsid
+        ? "WiFi SSID unavailable"
+        : !isCampusWifi
+          ? "Not connected to IIIT Kottayam WiFi"
+          : status === "online"
+            ? "Connected"
+            : status === "captive"
+              ? "Campus WiFi · login required"
+              : "Not connected";
 
   const handleLogoutInternet = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -341,14 +428,27 @@ export default function WifixScreen() {
     setMessage(null);
 
     try {
+      const activeSsid = await readActiveWifiSsid();
+      setCurrentSsid(activeSsid);
       const selection = resolveSelectionFor(
         portalUrl,
         getPortalBaseUrl(portalUrl),
       );
+      const logoutBaseUrl =
+        selection.portalBaseUrl ?? storedPortalBaseUrl ?? portalBaseUrl;
+      if (
+        !isWeb &&
+        (!logoutBaseUrl ||
+          !isCampusSsid(activeSsid) ||
+          !logoutBaseUrl.includes("auth.iiitkottayam.ac.in"))
+      ) {
+        setStatus("offline");
+        setMessage("Logout unavailable on this WiFi");
+        return;
+      }
       const logoutResult = await logoutFromCaptivePortal({
         portalUrl: selection.portalUrl,
-        portalBaseUrl:
-          selection.portalBaseUrl ?? storedPortalBaseUrl ?? portalBaseUrl,
+        portalBaseUrl: logoutBaseUrl,
       });
       setMessage(logoutResult.message);
       syncPortalBaseUrl(logoutResult.portalBaseUrl);
@@ -356,6 +456,7 @@ export default function WifixScreen() {
       const updated = await checkConnectivity();
       setStatus(updated.state);
       setPortalUrl(updated.portalUrl);
+      recordSsidResult(activeSsid, updated.state);
       const updatedSelection = resolveSelectionFor(
         updated.portalUrl,
         updated.portalBaseUrl,
@@ -367,7 +468,15 @@ export default function WifixScreen() {
       setIsLoggingOut(false);
       inFlightRef.current = false;
     }
-  }, [portalUrl, storedPortalBaseUrl, resolveSelectionFor, syncPortalBaseUrl]);
+  }, [
+    isWeb,
+    portalBaseUrl,
+    portalUrl,
+    recordSsidResult,
+    resolveSelectionFor,
+    storedPortalBaseUrl,
+    syncPortalBaseUrl,
+  ]);
 
   return (
     <Container>
@@ -514,145 +623,46 @@ export default function WifixScreen() {
           </View>
         )}
 
-        <View
-          className="mb-6 rounded-2xl border p-6"
-          style={{
-            borderColor: `${statusMeta.color}55`,
-            backgroundColor: "rgba(8, 8, 8, 0.9)",
-          }}
-        >
-          <View className="gap-4">
-            <View className="flex-row items-center gap-4">
-              <Ionicons name={statusMeta.icon} size={24} color={statusMeta.color} />
-              <View>
-                <Text className="text-xl font-semibold" style={{ color: theme.text }}>
-                  {statusMeta.label}
-                </Text>
-                <Text className="mt-[3px] text-[13px]" style={{ color: theme.textSecondary }}>
-                  {statusMeta.detail}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="my-5 h-px" style={{ backgroundColor: Colors.gray[800] }} />
-
-          <View className="mb-3">
-            <Text
-              className="mb-1 text-xs uppercase tracking-[1.2px]"
-              style={{ color: theme.textSecondary }}
-            >
-              Selected portal URL
-            </Text>
-            <View className="flex-1 flex-row items-center gap-2">
-              <Text className="flex-1 text-[15px]" style={{ color: theme.text }} numberOfLines={2}>
-                {portalDisplayUrl}
-              </Text>
-              <Pressable
-                onPress={() => runConnectivityCheck(false)}
-                disabled={isBusy}
-                className="h-9 w-9 items-center justify-center"
-                style={{ borderRadius: Radius.full }}
-                hitSlop={8}
-              >
-                {isConnecting ? (
-                  <ActivityIndicator size="small" color={theme.textSecondary} />
-                ) : (
-                  <Ionicons
-                    name="refresh"
-                    size={18}
-                    color={isBusy ? Colors.gray[500] : theme.textSecondary}
-                  />
-                )}
-              </Pressable>
-            </View>
-          </View>
-          <View className="mb-3">
-            <Text
-              className="mb-1 text-xs uppercase tracking-[1.2px]"
-              style={{ color: theme.textSecondary }}
-            >
-              Selected source
-            </Text>
-            <Text className="text-[15px]" style={{ color: theme.text }}>
-              {effectiveSourceLabel}
+        <View className="mb-7 items-center">
+          <View className="flex-row items-center gap-2">
+            <Ionicons name={statusMeta.icon} size={16} color={statusMeta.color} />
+            <Text className="text-sm" style={{ color: theme.textSecondary }}>
+              {compactStatus}
             </Text>
           </View>
-          <View className="mb-3">
+          {message && message !== compactStatus && (
             <Text
-              className="mb-1 text-xs uppercase tracking-[1.2px]"
+              className="mt-1 text-xs"
               style={{ color: theme.textSecondary }}
-            >
-              Portal base
-            </Text>
-            <Text
-              className="text-[15px]"
-              style={{ color: theme.text }}
               numberOfLines={1}
             >
-              {baseDisplayUrl}
+              {message}
             </Text>
-          </View>
-          {message && (
-            <View className="mb-2">
-              <Text
-                className="mb-1 text-xs uppercase tracking-[1.2px]"
-                style={{ color: theme.textSecondary }}
-              >
-                Status
-              </Text>
-              <Text
-                className="text-[15px]"
-                style={{ color: theme.text }}
-                numberOfLines={2}
-              >
-                {message}
-              </Text>
-            </View>
           )}
-        </View>
-
-        <View className="mb-7 gap-2">
-          <View className="mb-2 flex-row justify-center gap-5">
-            {!isWeb && (
-              <Pressable
-                onPress={() => runConnectivityCheck(true)}
-                disabled={isBusy}
-                className="h-[72px] w-[72px] items-center justify-center"
-                style={({ pressed }) => ({
-                  backgroundColor: theme.backgroundSecondary,
-                  borderRadius: Radius.full,
-                  opacity: isBusy ? 0.5 : 1,
-                  transform: pressed ? [{ scale: 0.9 }] : undefined,
-                })}
-                hitSlop={16}
-              >
-                {isConnecting ? (
-                  <ActivityIndicator size="small" color={theme.text} />
-                ) : (
-                  <Ionicons name="refresh" size={30} color={theme.text} />
-                )}
-              </Pressable>
-            )}
+          {(canShowLogout || isLoggingOut) && (
             <Pressable
               onPress={handleLogoutInternet}
               disabled={isBusy}
-              className="h-[72px] w-[72px] items-center justify-center"
+              className="mt-4 h-14 w-full flex-row items-center justify-center gap-2"
               style={({ pressed }) => ({
                 backgroundColor: `${Colors.status.danger}22`,
-                borderRadius: Radius.full,
+                borderColor: `${Colors.status.danger}88`,
+                borderRadius: Radius.md,
+                borderWidth: 1,
                 opacity: isBusy ? 0.5 : 1,
-                transform: pressed ? [{ scale: 0.9 }] : undefined,
+                transform: pressed ? [{ scale: 0.98 }] : undefined,
               })}
-              hitSlop={16}
             >
               {isLoggingOut ? (
                 <ActivityIndicator size="small" color={Colors.status.danger} />
               ) : (
-                <Ionicons name="log-out" size={30} color={Colors.status.danger} />
+                <Ionicons name="log-out" size={22} color={Colors.status.danger} />
               )}
+              <Text className="text-base font-semibold" style={{ color: Colors.status.danger }}>
+                Logout
+              </Text>
             </Pressable>
-          </View>
+          )}
         </View>
 
         <View className="items-center gap-1">

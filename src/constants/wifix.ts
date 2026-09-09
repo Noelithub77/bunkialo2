@@ -3,6 +3,13 @@ export const WIFIX_KEEPALIVE_PATH = `/keepalive?${WIFIX_KEEPALIVE_QUERY}`;
 export const WIFIX_DEFAULT_PORT = "1000";
 export const WIFIX_DEFAULT_SCHEME = "http://";
 
+export const CAMPUS_SSIDS = ["IIITKottayam", "IIITKottayam_5G"] as const;
+
+export const isCampusSsid = (ssid: string | null): boolean => {
+  const normalized = ssid?.trim();
+  return CAMPUS_SSIDS.some((campusSsid) => campusSsid === normalized);
+};
+
 export const CAMPUS_PORTAL_URL =
   "https://auth.iiitkottayam.ac.in:1442/login?0330598d1f22608a";
 
