@@ -6,7 +6,6 @@ import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { UpNextSection } from "@/components/dashboard/up-next-section";
 import { DevInfoModal } from "@/components/modals/dev-info-modal";
 import { Container } from "@/components/ui/container";
-import { WifixQuickAction } from "@/components/wifix/wifix-quick-action";
 import { Colors } from "@/constants/theme";
 import { POPUP_NOTICES } from "@/data/popups";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -468,8 +467,6 @@ export default function DashboardScreen() {
         {/* Up Next Section */}
         <UpNextSection />
 
-        <WifixQuickAction theme={theme} />
-
         {/* Loading */}
         {(isHydratingFromCache || (isLoading && isEmpty)) && (
           <View className="items-center gap-4 py-12">
@@ -566,7 +563,7 @@ export default function DashboardScreen() {
             setShowFabMenu(false);
             router.push("/wifix");
           }}
-          className="absolute bottom-20 left-20 h-14 w-14 items-center justify-center rounded-2xl"
+          className="absolute bottom-20 right-20 h-14 w-14 items-center justify-center rounded-2xl"
           style={({ pressed }) => ({
             backgroundColor: theme.backgroundSecondary,
             opacity: showFabMenu ? 0 : pressed ? 0.7 : 1,
