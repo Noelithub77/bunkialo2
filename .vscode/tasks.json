@@ -37,7 +37,7 @@
       }
     },
     {
-      "label": "Build AAB",
+      "label": "Full Update (Build + Publish)",
       "type": "shell",
       "command": "gh",
       "args": ["workflow", "run", "android-production-release.yml"],
