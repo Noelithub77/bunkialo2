@@ -556,22 +556,26 @@ export default function DashboardScreen() {
       )}
 
       {isFocused && process.env.EXPO_OS !== "web" && (
-        <FAB
+        <Pressable
           accessibilityLabel="Open WiFix"
-          visible={!showFabMenu}
-          icon="wifi"
-          color={isDark ? Colors.gray[200] : Colors.gray[700]}
+          accessibilityRole="button"
           onPress={() => {
             setShowFabMenu(false);
             router.push("/wifix");
           }}
-          style={{
-            position: "absolute",
-            right: 72,
-            bottom: 80,
+          className="absolute bottom-20 right-20 h-14 w-14 items-center justify-center rounded-2xl"
+          style={({ pressed }) => ({
             backgroundColor: theme.backgroundSecondary,
-          }}
-        />
+            opacity: showFabMenu ? 0 : pressed ? 0.7 : 1,
+          })}
+          pointerEvents={showFabMenu ? "none" : "auto"}
+        >
+          <Ionicons
+            name="wifi-outline"
+            size={27}
+            color={isDark ? Colors.gray[200] : Colors.gray[700]}
+          />
+        </Pressable>
       )}
 
       <DevInfoModal
