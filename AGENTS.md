@@ -362,7 +362,9 @@ debug.scraper("Dashboard refresh triggered", data);
 
 ## Constraints
 
-1. **No native modules** - Must work in Expo Go
+1. **Native WiFix transport** - WiFix's Android DHCP-bound transport lives in the local
+   `modules/wifix-network` Expo module. WiFix therefore requires an Android development
+   or production build; the rest of the app should remain Expo Go-compatible where possible.
 2. **No Node.js imports** - Use htmlparser2
 3. **No `any` types**
 4. **Initial Route** - `index` (dashboard) is the default tab

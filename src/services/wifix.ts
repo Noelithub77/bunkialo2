@@ -1,4 +1,9 @@
 import { WIFIX_DEFAULT_PORT, WIFIX_KEEPALIVE_PATH } from "@/constants/wifix";
+import WifixNetwork, {
+  type WifixNetworkResponse,
+  type WifixNetworkRequest,
+  type WifixNetworkState,
+} from "../../modules/wifix-network";
 import type {
   WifixConnectivityResult,
   WifixLoginResult,
@@ -8,6 +13,7 @@ import type {
 import { debug } from "@/utils/debug";
 import { getAttr, parseHtml, querySelector } from "@/utils/html-parser";
 import { wifixLogger } from "@/utils/wifix-logger";
+import { Platform } from "react-native";
 const CONNECTIVITY_CHECK_URL =
   "http://connectivitycheck.gstatic.com/generate_204";
 const DEFAULT_PORTAL_BASE_URL = "https://auth.iiitkottayam.ac.in:1442";
@@ -15,6 +21,109 @@ const LEGACY_LOGIN_PATH = "/login?0330598d1f22608a";
 const CAMPUS_LOGIN_PATH = "/login?0330598d1f22608a";
 const DEFAULT_LOGOUT_PATH = "/logout?0307020009020400";
 const REQUEST_TIMEOUT_MS = 8000;
+
+interface WifixHeaders {
+  get(name: string): string | null;
+}
+
+interface WifixResponse {
+  status: number;
+  url: string;
+  headers: WifixHeaders;
+  ok: boolean;
+  setCookies: string[];
+  text(): Promise<string>;
+}
+
+const nativeHeaders = (headers: Record<string, string[]>): WifixHeaders => ({
+  get(name: string): string | null {
+    const key = Object.keys(headers).find(
+      (candidate) => candidate.toLowerCase() === name.toLowerCase(),
+    );
+    const values = key ? headers[key] : undefined;
+    return values && values.length > 0 ? values.join(", ") : null;
+  },
+});
+
+const createNativeResponse = (response: WifixNetworkResponse): WifixResponse => ({
+  status: response.status,
+  url: response.url,
+  headers: nativeHeaders(response.headers),
+  ok: response.status >= 200 && response.status < 300,
+  setCookies: response.setCookies,
+  text: async () => response.body,
+});
+
+const getRequestHeaders = (options: RequestInit): Record<string, string> => {
+  const headers = new Headers(options.headers);
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+};
+
+const requestOnWifixNetwork = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<WifixResponse> => {
+  if (Platform.OS !== "android") {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      return {
+        status: response.status,
+        url: response.url,
+        headers: response.headers,
+        ok: response.ok,
+        setCookies: [],
+        text: () => response.text(),
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  if (!WifixNetwork) {
+    throw new Error(
+      "WiFix Android transport is unavailable. Build the Android development app before using WiFix.",
+    );
+  }
+
+  const request: WifixNetworkRequest = {
+    url,
+    method: options.method,
+    headers: getRequestHeaders(options),
+    body: typeof options.body === "string" ? options.body : undefined,
+    timeoutMs,
+  };
+  const response = await WifixNetwork.requestOnWifi(request);
+  wifixLogger.info(
+    `Wi-Fi transport: interface=${response.interfaceName ?? "unknown"} dns=${response.dnsServers.join(",") || "none"} dhcp=${response.dhcpServer ?? "unknown"} resolved=${response.resolvedAddresses.join(",") || "none"}`,
+  );
+  return createNativeResponse(response);
+};
+
+const getAndroidWifiNetworkState = async (): Promise<WifixNetworkState | null> => {
+  if (Platform.OS !== "android" || !WifixNetwork) return null;
+  try {
+    const state = await WifixNetwork.getWifiNetworkState();
+    wifixLogger.info(
+      `Android network fallback: available=${state.available} validated=${state.validated} captivePortal=${state.captivePortal} interface=${state.interfaceName ?? "unknown"} dns=${state.dnsServers.join(",") || "none"} dhcp=${state.dhcpServer ?? "unknown"}`,
+    );
+    return state;
+  } catch (error) {
+    wifixLogger.info(
+      `Android network fallback unavailable: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+    return null;
+  }
+};
 
 export const getPortalBaseUrl = (portalUrl: string | null): string | null => {
   if (!portalUrl) return null;
@@ -73,7 +182,7 @@ const normalizePortalCandidate = (
   return isConnectivityCheckUrl(resolved) ? null : resolved;
 };
 
-const describeResponse = (response: Response, bodyBytes?: number): string => {
+const describeResponse = (response: WifixResponse, bodyBytes?: number): string => {
   const location = response.headers.get("location") ?? "none";
   const contentType = response.headers.get("content-type") ?? "unknown";
   const size = bodyBytes === undefined ? "unknown" : String(bodyBytes);
@@ -187,21 +296,6 @@ export const resolvePortalSelection = (params: {
   };
 };
 
-const fetchWithTimeout = async (
-  url: string,
-  options: RequestInit = {},
-  timeoutMs: number = REQUEST_TIMEOUT_MS,
-): Promise<Response> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
 const extractPortalUrlFromHtml = (html: string): string | null => {
   const windowMatch = html.match(/window\.location\s*=\s*["']([^"']+)["']/i);
   if (windowMatch?.[1]) return windowMatch[1];
@@ -259,7 +353,7 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
 
   try {
     wifixLogger.info(`Connectivity check URL: ${CONNECTIVITY_CHECK_URL}`);
-    const response = await fetchWithTimeout(CONNECTIVITY_CHECK_URL, {
+    const response = await requestOnWifixNetwork(CONNECTIVITY_CHECK_URL, {
       method: "GET",
       cache: "no-store",
       redirect: "manual",
@@ -340,6 +434,20 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
       }
     }
 
+    const androidState = await getAndroidWifiNetworkState();
+    if (!portalUrl && androidState?.validated) {
+      wifixLogger.info(
+        "Android network validation passed without a portal URL; treating the connection as online",
+      );
+      return {
+        state: "online",
+        portalUrl: null,
+        portalBaseUrl: null,
+        statusCode: response.status,
+        message: "Online (Android network validated)",
+      };
+    }
+
     const state = "captive";
     debug.wifix("Step 4: Connectivity check complete", {
       state,
@@ -362,6 +470,31 @@ export const checkConnectivity = async (): Promise<WifixConnectivityResult> => {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network error";
+    const androidState = await getAndroidWifiNetworkState();
+    if (androidState?.captivePortal) {
+      wifixLogger.info(
+        "Explicit connectivity probe failed, but Android reports a captive portal",
+      );
+      return {
+        state: "captive",
+        portalUrl: null,
+        portalBaseUrl: null,
+        statusCode: null,
+        message: "Captive portal detected by Android",
+      };
+    }
+    if (androidState?.validated) {
+      wifixLogger.info(
+        "Explicit connectivity probe failed, but Android reports a validated network",
+      );
+      return {
+        state: "online",
+        portalUrl: null,
+        portalBaseUrl: null,
+        statusCode: null,
+        message: "Online (Android network validated)",
+      };
+    }
     debug.wifix("Step 3: Connectivity check failed", { message });
     wifixLogger.error(`Connectivity check failed: ${message}`);
     return {
@@ -400,7 +533,7 @@ export const loginToCaptivePortal = async (params: {
   wifixLogger.info(`Fetching login page: ${loginUrl}`);
 
   try {
-    const loginPageResponse = await fetchWithTimeout(loginUrl, {
+    const loginPageResponse = await requestOnWifixNetwork(loginUrl, {
       method: "GET",
       cache: "no-store",
     });
@@ -431,15 +564,21 @@ export const loginToCaptivePortal = async (params: {
     formData.append("username", params.username);
     formData.append("password", params.password);
 
+    const sessionCookies = loginPageResponse.setCookies
+      .map((cookie) => cookie.split(";", 1)[0])
+      .filter((cookie) => cookie.length > 0)
+      .join("; ");
+
     const postUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 
     debug.wifix("Step 4: Posting login credentials", { postUrl });
     wifixLogger.info(`Posting login credentials to: ${postUrl}`);
 
-    const loginResponse = await fetchWithTimeout(postUrl, {
+    const loginResponse = await requestOnWifixNetwork(postUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
+        ...(sessionCookies ? { Cookie: sessionCookies } : {}),
       },
       body: formData.toString(),
     });
@@ -496,7 +635,7 @@ export const logoutFromCaptivePortal = async (params: {
   wifixLogger.info(`Requesting logout: ${logoutUrl}`);
 
   try {
-    const response = await fetchWithTimeout(logoutUrl, {
+    const response = await requestOnWifixNetwork(logoutUrl, {
       method: "GET",
       cache: "no-store",
     });
