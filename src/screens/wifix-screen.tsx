@@ -271,10 +271,6 @@ export default function WifixScreen() {
           syncPortalBaseUrl(loginResult.portalBaseUrl);
 
           if (loginResult.success) {
-            Toast.show("Logged in to campus WiFi", {
-              type: "success",
-              position: "top",
-            });
             const updated = await checkConnectivity();
             setStatus(updated.state);
             setPortalUrl(updated.portalUrl);
@@ -286,6 +282,12 @@ export default function WifixScreen() {
             syncPortalBaseUrl(
               updatedSelection.portalBaseUrl ?? loginResult.portalBaseUrl,
             );
+            if (updated.state === "online") {
+              Toast.show("Logged in to campus WiFi", {
+                type: "success",
+                position: "top",
+              });
+            }
           }
         } else if (shouldLogin && result.state === "offline") {
           setMessage("No captive portal detected.");
