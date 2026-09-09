@@ -26,10 +26,8 @@ import type {
 } from "@/types";
 import { wifixLogger } from "@/utils/wifix-logger";
 import { Ionicons } from "@expo/vector-icons";
-import NetInfo from "@react-native-community/netinfo";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -122,7 +120,6 @@ export default function WifixScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showMobileDataWarning, setShowMobileDataWarning] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const inFlightRef = useRef(false);
@@ -255,16 +252,6 @@ export default function WifixScreen() {
           result.portalBaseUrl,
         );
         syncPortalBaseUrl(selection.portalBaseUrl ?? result.portalBaseUrl);
-
-        // Check if mobile data might interfere
-        if (result.state === "captive") {
-          const netInfo = await NetInfo.fetch();
-          if (netInfo.details?.isConnectionExpensive === true) {
-            setShowMobileDataWarning(true);
-            setMessage("Mobile data is active. Please disable it to login.");
-            return;
-          }
-        }
 
         if (shouldLogin && result.state === "captive") {
           const credentials = await getCredentials();
@@ -501,58 +488,6 @@ export default function WifixScreen() {
             />
           </Pressable>
         </View>
-
-        {showMobileDataWarning && (
-          <View
-            className="mb-4 flex-row gap-4 p-4"
-            style={{
-              borderRadius: Radius.md,
-              borderWidth: 1,
-              borderColor: Colors.status.warning,
-              backgroundColor: "rgba(255, 193, 7, 0.1)",
-            }}
-          >
-            <Ionicons name="warning" size={24} color={Colors.status.warning} />
-            <View className="flex-1">
-              <Text
-                className="mb-1 text-base font-semibold"
-                style={{ color: theme.text }}
-              >
-                Mobile Data Detected
-              </Text>
-              <Text className="mb-2 text-sm" style={{ color: theme.textSecondary }}>
-                Mobile data may prevent WiFi login. Please disable it in settings
-                and retry.
-              </Text>
-              <View className="flex-row gap-2">
-                <Pressable
-                  onPress={() => Linking.openSettings()}
-                  className="rounded-md px-4 py-1.5"
-                  style={{ backgroundColor: theme.backgroundSecondary }}
-                >
-                  <Text className="text-sm" style={{ color: theme.text }}>
-                    Open Settings
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setShowMobileDataWarning(false);
-                    runConnectivityCheck(true);
-                  }}
-                  className="rounded-md px-4 py-1.5"
-                  style={{ backgroundColor: Colors.status.warning }}
-                >
-                  <Text
-                    className="text-sm font-medium"
-                    style={{ color: Colors.black }}
-                  >
-                    I&apos;ve Disabled It
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        )}
 
         <View className="mb-7 items-center">
           <View className="flex-row items-center gap-2">
