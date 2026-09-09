@@ -20,6 +20,13 @@ export interface WifixNetworkResponse {
   resolvedAddresses: string[];
 }
 
+export interface WifixDnsResponse {
+  interfaceName: string | null;
+  dnsServers: string[];
+  dhcpServer: string | null;
+  resolvedAddresses: string[];
+}
+
 export interface WifixNetworkState {
   available: boolean;
   validated: boolean;
@@ -31,6 +38,7 @@ export interface WifixNetworkState {
 
 export interface WifixNetworkModule {
   requestOnWifi(request: WifixNetworkRequest): Promise<WifixNetworkResponse>;
+  resolveOnWifi(host: string): Promise<WifixDnsResponse>;
   getWifiNetworkState(): Promise<WifixNetworkState>;
 }
 

@@ -19,7 +19,13 @@ import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
-import { InteractionManager, Pressable, Text, View } from "react-native";
+import {
+  InteractionManager,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { FAB, Portal } from "react-native-paper";
 
 export default function AttendanceScreen() {
@@ -30,6 +36,8 @@ export default function AttendanceScreen() {
 
   const {
     courses,
+    error: attendanceError,
+    isLoading,
     lastSyncTime,
     fetchAttendance,
     hasHydrated: isAttendanceHydrated,
@@ -60,6 +68,10 @@ export default function AttendanceScreen() {
   const attendanceStaleMs = Math.max(5, refreshIntervalMinutes) * 60 * 1000;
 
   const { handleOpenCreateCourse, handleToggleEditMode } = useCourseActions();
+
+  const handleRefresh = useCallback(() => {
+    void fetchAttendance();
+  }, [fetchAttendance]);
 
   const visibleAttendanceCourses = useMemo(
     () => courses.filter((course) => !hiddenCourses[course.courseId]),
@@ -197,6 +209,21 @@ export default function AttendanceScreen() {
             )}
           </View>
           <View className="min-w-[45%] flex-row flex-wrap items-center justify-end gap-1 gap-y-1">
+            {Platform.OS === "web" && (
+              <Pressable
+                accessibilityLabel="Refresh attendance"
+                accessibilityRole="button"
+                className="p-2"
+                disabled={isLoading}
+                onPress={handleRefresh}
+              >
+                <Ionicons
+                  name="refresh-outline"
+                  size={20}
+                  color={isLoading ? theme.textSecondary : Colors.status.info}
+                />
+              </Pressable>
+            )}
             <Pressable
               onPress={() => openModal({ type: "duty-leave-list" })}
               className="flex-row items-center p-2"
@@ -245,6 +272,18 @@ export default function AttendanceScreen() {
             </Pressable>
           </View>
         </View>
+
+        {attendanceError ? (
+          <Pressable
+            className="mb-2 rounded-lg border px-3 py-2"
+            onPress={handleRefresh}
+            style={{ borderColor: Colors.status.danger }}
+          >
+            <Text className="text-xs" style={{ color: Colors.status.danger }}>
+              Attendance sync failed. Tap to retry: {attendanceError}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {/* Tab Switcher */}
         <View

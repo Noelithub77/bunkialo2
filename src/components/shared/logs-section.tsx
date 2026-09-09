@@ -8,6 +8,7 @@ import { Pressable, Text, View } from "react-native";
 type LogsSectionProps = {
   logs: DashboardLog[];
   onClear: () => void;
+  onCopy: () => void;
 };
 
 const formatLogTime = (timestamp: number): string => {
@@ -29,7 +30,7 @@ const getLogColor = (type: DashboardLog["type"]): string => {
   }
 };
 
-export const LogsSection = ({ logs, onClear }: LogsSectionProps) => {
+export const LogsSection = ({ logs, onClear, onCopy }: LogsSectionProps) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
@@ -86,15 +87,22 @@ export const LogsSection = ({ logs, onClear }: LogsSectionProps) => {
                   </Text>
                 </View>
               ))}
-              {logs.length > 0 && (
-                <Pressable className="items-center pt-2" onPress={onClear}>
-                  <Text className="text-xs font-medium" style={{ color: Colors.status.danger }}>
-                    Clear Logs
-                  </Text>
-                </Pressable>
-              )}
             </>
           )}
+          <View className="flex-row justify-center gap-5 pt-2">
+            <Pressable onPress={onCopy}>
+              <Text className="text-xs font-medium" style={{ color: Colors.status.info }}>
+                Copy Error Logs
+              </Text>
+            </Pressable>
+            {logs.length > 0 && (
+              <Pressable onPress={onClear}>
+                <Text className="text-xs font-medium" style={{ color: Colors.status.danger }}>
+                  Clear Logs
+                </Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       )}
     </View>

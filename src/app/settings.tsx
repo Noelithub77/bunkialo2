@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import * as Updates from "expo-updates";
 import { useState } from "react";
@@ -32,6 +33,8 @@ import type { ThemePreference } from "@/types";
 import { AccountSettingsSection } from "@/components/settings/account-settings-section";
 import { DeveloperSettingsSection } from "@/components/settings/developer-settings-section";
 import { usePwaInstallStore } from "@/stores/pwa-install-store";
+import { Toast } from "@/components/shared/ui/molecules/toast";
+import { getErrorMessage } from "@/utils/error-details";
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
@@ -141,6 +144,29 @@ export default function SettingsScreen() {
 
   const handleSetTheme = () => {
     setShowThemeModal(true);
+  };
+
+  const handleCopyLogs = async (): Promise<void> => {
+    try {
+      const text = logs.length === 0
+        ? "No sync logs recorded."
+        : logs
+            .slice()
+            .reverse()
+            .map(
+              (log) =>
+                `${new Date(log.timestamp).toISOString()} [${log.type.toUpperCase()}] ${log.message}`,
+            )
+            .join("\n");
+      await Clipboard.setStringAsync(text);
+      Toast.show(logs.length > 0 ? "Error logs copied" : "No logs to copy", {
+        type: logs.length > 0 ? "success" : "default",
+      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Could not copy logs.");
+      useDashboardStore.getState().addLog(`Copy logs failed: ${message}`, "error");
+      Toast.show("Could not copy logs", { type: "error" });
+    }
   };
 
   const themeLabelMap: Record<ThemePreference, string> = {
@@ -353,6 +379,7 @@ export default function SettingsScreen() {
             logs={logs}
             theme={theme}
             onClearLogs={clearLogs}
+            onCopyLogs={() => void handleCopyLogs()}
             onPressWifixInterval={handleSetWifixInterval}
             onToggleAutoReconnect={(enabled) => {
               setAutoReconnectEnabled(enabled);

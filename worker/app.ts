@@ -154,8 +154,23 @@ app.get("/api/desktop/snapshot", async (context) => {
 });
 
 app.post("/api/sync", async (context) => {
-  const payload = await context.var.session.syncAll();
-  return context.json(payload);
+  try {
+    const payload = await context.var.session.syncAll();
+    if (!payload.lms) {
+      return context.json({ error: "LMS session is missing or expired." }, 401);
+    }
+    return context.json(payload);
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : "The synchronized data could not be loaded.";
+    console.error(JSON.stringify({
+      error: message,
+      message: "Full sync failed",
+      path: context.req.path,
+    }));
+    return context.json({ error: message }, 502);
+  }
 });
 
 app.post("/api/auth/logout", async (context) => {

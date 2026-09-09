@@ -16,6 +16,7 @@ import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   Text,
   View,
@@ -251,6 +252,7 @@ export const CoursesContent = () => {
         ItemSeparatorComponent={() => <View className="h-4" />}
         refreshControl={
           <RefreshControl
+            enabled={Platform.OS !== "web"}
             refreshing={isLoading}
             onRefresh={handleRefresh}
             tintColor={theme.text}

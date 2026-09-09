@@ -15,6 +15,7 @@ const MaterialBottomTabs = withLayoutContext(Navigator);
 const PRIMARY_TAB_WARMUP_PRELOADERS = [
   () => import("./timetable"),
   () => import("./mess"),
+  () => import("@/screens/wifix-screen"),
 ];
 const SECONDARY_TAB_WARMUP_PRELOADERS = [
   () => import("./faculty"),

@@ -40,7 +40,10 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     // Developer-facing build numbers are managed by EAS remote versioning.
     android: {
       softwareKeyboardLayoutMode: "resize",
-      permissions: ["RECEIVE_BOOT_COMPLETED", "ACCESS_NETWORK_STATE"],
+      permissions: [
+        "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_NETWORK_STATE",
+      ],
       adaptiveIcon: {
         backgroundColor: "#FFAB00",
         foregroundImage: "./src/assets/images/android-icon-foreground.png",

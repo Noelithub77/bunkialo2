@@ -1,5 +1,7 @@
 import { syncAttendance } from "@/services/attendance/attendance-sync";
+import { useDashboardStore } from "@/stores/dashboard-store";
 import type { AttendanceState, CourseAttendance, CourseStats } from "@/types";
+import { getErrorMessage } from "@/utils/error-details";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { zustandStorage } from "./storage";
@@ -33,7 +35,12 @@ export const useAttendanceStore = create<
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
       fetchAttendance: (options) => {
-        if (activeAttendanceFetch) return activeAttendanceFetch;
+        if (activeAttendanceFetch) {
+          if (!options?.background && !options?.silent) {
+            set({ isLoading: true, error: null });
+          }
+          return activeAttendanceFetch;
+        }
 
         const fetchPromise = (async (): Promise<void> => {
           const background = options?.background ?? false;
@@ -46,16 +53,28 @@ export const useAttendanceStore = create<
             set({ isLoading: true, error: null });
           }
           try {
+            useDashboardStore
+              .getState()
+              .addLog(
+                `Starting attendance sync${background ? " (background)" : ""}...`,
+                "info",
+              );
             const result = await syncAttendance(
               useAttendanceStore.getState().courses,
               (courses) => set({ courses, lastSyncTime: Date.now() }),
             );
             const courses = result.complete;
+            for (const warning of result.warnings) {
+              useDashboardStore.getState().addLog(warning, "error");
+            }
             if (background) {
               set({
                 courses,
                 lastSyncTime: Date.now(),
               });
+              useDashboardStore
+                .getState()
+                .addLog(`Attendance sync complete (${courses.length} courses)`, "success");
               return;
             }
 
@@ -64,15 +83,14 @@ export const useAttendanceStore = create<
               lastSyncTime: Date.now(),
               isLoading: silent ? state.isLoading : false,
             }));
+            useDashboardStore
+              .getState()
+              .addLog(`Attendance sync complete (${courses.length} courses)`, "success");
           } catch (error) {
-            if (background) {
-              return;
-            }
-
-            const message =
-              error instanceof Error
-                ? error.message
-                : "Failed to fetch attendance";
+            const message = getErrorMessage(error, "Failed to fetch attendance");
+            useDashboardStore
+              .getState()
+              .addLog(`Attendance sync failed: ${message}`, "error");
             set((state) => ({
               error: message,
               isLoading: silent ? state.isLoading : false,

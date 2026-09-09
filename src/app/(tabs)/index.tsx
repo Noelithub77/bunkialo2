@@ -6,6 +6,7 @@ import { TimelineSection } from "@/components/dashboard/timeline-section";
 import { UpNextSection } from "@/components/dashboard/up-next-section";
 import { DevInfoModal } from "@/components/modals/dev-info-modal";
 import { Container } from "@/components/ui/container";
+import { WifixQuickAction } from "@/components/wifix/wifix-quick-action";
 import { Colors } from "@/constants/theme";
 import { POPUP_NOTICES } from "@/data/popups";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -274,20 +275,6 @@ export default function DashboardScreen() {
     username?.startsWith("2022") || username?.startsWith("2023");
 
   const fabActions = [
-    ...(process.env.EXPO_OS !== "web"
-      ? [{
-          icon: "wifi",
-          label: "WiFix",
-          color: theme.text,
-          style: { backgroundColor: theme.backgroundSecondary },
-          labelStyle: actionLabelStyle,
-          containerStyle: actionContainerStyle,
-          onPress: () => {
-            setShowFabMenu(false);
-            router.push("/wifix");
-          },
-        }]
-      : []),
     {
       icon: "calculator-variant",
       label: "GPA Calculator",
@@ -480,6 +467,8 @@ export default function DashboardScreen() {
 
         {/* Up Next Section */}
         <UpNextSection />
+
+        <WifixQuickAction theme={theme} />
 
         {/* Loading */}
         {(isHydratingFromCache || (isLoading && isEmpty)) && (

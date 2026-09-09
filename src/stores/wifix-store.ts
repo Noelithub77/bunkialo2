@@ -1,5 +1,8 @@
 import { DEFAULT_MANUAL_PORTAL_URL } from "@/constants/wifix";
-import type { WifixPortalSource, WifixSettings } from "@/types";
+import type {
+  WifixPortalSource,
+  WifixSettings,
+} from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { zustandStorage } from "./storage";

@@ -7,7 +7,7 @@ import { useAttendanceStore } from "@/stores/attendance-store";
 import { useAttendanceUIStore } from "@/stores/attendance-ui-store";
 import { selectAllDutyLeaves, useBunkStore } from "@/stores/bunk-store";
 import { useCallback, useMemo } from "react";
-import { RefreshControl, ScrollView } from "react-native";
+import { Platform, RefreshControl, ScrollView } from "react-native";
 import { DLInputModal } from "./../dl-input-modal";
 import { DutyLeaveModal } from "./../duty-leave-modal";
 import { PresenceInputModal } from "./../presence-input-modal";
@@ -106,6 +106,7 @@ export const AllBunksContent = () => {
         nestedScrollEnabled
         refreshControl={
           <RefreshControl
+            enabled={Platform.OS !== "web"}
             refreshing={isLoading}
             onRefresh={handleRefresh}
             tintColor={theme.text}

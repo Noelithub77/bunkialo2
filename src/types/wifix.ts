@@ -12,6 +12,7 @@ export interface WifixConnectivityResult {
   state: WifixConnectionState;
   portalUrl: string | null;
   portalBaseUrl: string | null;
+  campusPortalAvailable: boolean;
   statusCode: number | null;
   message: string | null;
 }

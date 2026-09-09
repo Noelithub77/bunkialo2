@@ -27,6 +27,7 @@ import {
   portalTermsSchema,
   portalUserSchema,
 } from "./attendance-schemas";
+import { getErrorMessage } from "@/utils/error-details";
 
 const attendanceClient = axios.create({
   baseURL: ATTENDANCE_PORTAL_URL,
@@ -62,6 +63,17 @@ const replayedRequests = new WeakSet<object>();
 let unauthorizedRefresh: ReturnType<typeof refreshAttendanceTokens> | null =
   null;
 
+const request = async <T>(
+  label: string,
+  operation: () => Promise<T>,
+): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new Error(`${label}: ${getErrorMessage(error)}`);
+  }
+};
+
 attendanceClient.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
@@ -87,39 +99,49 @@ attendanceClient.interceptors.response.use(
 );
 
 export const getPortalProfile = async (): Promise<AttendancePortalUser> => {
-  const response = await attendanceClient.get("/api/auth/me");
-  return portalUserSchema.parse(response.data);
+  return request("Attendance profile request failed", async () => {
+    const response = await attendanceClient.get("/api/auth/me");
+    return portalUserSchema.parse(response.data);
+  });
 };
 
 export const getPortalTerms = async (): Promise<AttendanceTerm[]> => {
-  const response = await attendanceClient.get("/api/terms");
-  return portalTermsSchema.parse(response.data);
+  return request("Attendance terms request failed", async () => {
+    const response = await attendanceClient.get("/api/terms");
+    return portalTermsSchema.parse(response.data);
+  });
 };
 
 export const getPortalAttendance =
   async (): Promise<PortalAttendanceSummary> => {
-    const response = await attendanceClient.get("/api/students/me/attendance");
-    return portalAttendanceSchema.parse(response.data);
+    return request("Attendance summary request failed", async () => {
+      const response = await attendanceClient.get("/api/students/me/attendance");
+      return portalAttendanceSchema.parse(response.data);
+    });
   };
 
 export const getPortalCourseSessions = async (
   attendanceCourseId: string,
 ): Promise<PortalCourseSessions> => {
-  const response = await attendanceClient.get(
-    `/api/students/me/courses/${encodeURIComponent(attendanceCourseId)}/sessions`,
-  );
-  const parsed = portalCourseSessionsSchema.parse(response.data);
-  return {
-    courseId: parsed.courseId || attendanceCourseId,
-    sessions: parsed.sessions,
-  };
+  return request("Attendance course sessions request failed", async () => {
+    const response = await attendanceClient.get(
+      `/api/students/me/courses/${encodeURIComponent(attendanceCourseId)}/sessions`,
+    );
+    const parsed = portalCourseSessionsSchema.parse(response.data);
+    return {
+      courseId: parsed.courseId || attendanceCourseId,
+      sessions: parsed.sessions,
+    };
+  });
 };
 
 export const getPortalNotifications =
   async (): Promise<PortalNotificationPage> => {
+  return request("Attendance notifications request failed", async () => {
     const response = await attendanceClient.get("/api/notifications");
     return portalNotificationsSchema.parse(response.data);
-  };
+  });
+};
 
 export const markPortalNotificationRead = async (
   notificationId: string,

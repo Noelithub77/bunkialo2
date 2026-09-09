@@ -326,7 +326,12 @@ export class UserSession extends DurableObject<CloudflareBindings> {
           : "Attendance login requires verification or returned an invalid response.",
         ok: false,
       };
-    } catch {
+    } catch (error) {
+      console.error(JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Attendance login request failed",
+        stage: "attendance-login",
+      }));
       return { message: "Could not reach the attendance portal.", ok: false };
     }
   }
@@ -481,9 +486,12 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     let tokens = this.getValue<AttendanceTokens>("attendance");
     if (!tokens) {
       const credentials = this.getAttendanceCredentials();
-      if (!credentials || !(await this.loginAttendance(credentials)).ok) return null;
+      if (!credentials) return null;
+      if (!(await this.loginAttendance(credentials)).ok) {
+        throw new Error("Attendance authentication failed.");
+      }
       tokens = this.getValue<AttendanceTokens>("attendance");
-      if (!tokens) return null;
+      if (!tokens) throw new Error("Attendance authentication returned no tokens.");
     }
 
     const fetchJson = async (path: string): Promise<unknown> => {
@@ -503,8 +511,15 @@ export class UserSession extends DurableObject<CloudflareBindings> {
         if (!tokens) return null;
         response = await request();
       }
-      if (!response.ok) return null;
+      if (!response.ok) {
+        throw new Error(
+          `Attendance request failed for ${path} (HTTP ${response.status}).`,
+        );
+      }
       const data = await readJsonIfPossible(response);
+      if (data === null) {
+        throw new Error(`Attendance request returned invalid JSON for ${path}.`);
+      }
       const newTokens = tokenValues(data);
       if (newTokens) {
         tokens = newTokens;
@@ -515,18 +530,31 @@ export class UserSession extends DurableObject<CloudflareBindings> {
 
     const [summary, terms, notifications] = await Promise.all([
       fetchJson("/api/students/me/attendance"),
-      fetchJson("/api/terms"),
-      fetchJson("/api/notifications"),
+      fetchJson("/api/terms").catch(() => null),
+      fetchJson("/api/notifications").catch(() => null),
     ]);
-    if (!summary) return null;
+    if (!summary) throw new Error("Attendance summary was empty.");
 
     const sessions: Record<string, unknown> = {};
     const courseIds = this.extractAttendanceCourseIds(summary);
-    await Promise.all(courseIds.map(async (courseId) => {
-      const value = await fetchJson(`/api/students/me/courses/${encodeURIComponent(courseId)}/sessions`);
-      if (value) sessions[courseId] = value;
+    const sessionResults = await Promise.all(courseIds.map(async (courseId) => {
+      try {
+        const value = await fetchJson(`/api/students/me/courses/${encodeURIComponent(courseId)}/sessions`);
+        sessions[courseId] = value;
+        return true;
+      } catch (error) {
+        console.error(JSON.stringify({
+          courseId,
+          error: error instanceof Error ? error.message : "Unknown error",
+          message: "Attendance course sessions request failed",
+          stage: "attendance-sessions",
+        }));
+        return false;
+      }
     }));
-    if (courseIds.length > 0 && Object.keys(sessions).length === 0) return null;
+    if (courseIds.length > 0 && sessionResults.every((loaded) => !loaded)) {
+      throw new Error("Attendance course sessions could not be loaded.");
+    }
     if (tokens) this.setValue("attendance", tokens);
     await this.keepAlive();
     return { notifications, sessions, summary, terms };
@@ -590,8 +618,25 @@ export class UserSession extends DurableObject<CloudflareBindings> {
       headers,
       method: input.method,
     });
-    if (response.status === 401 && tokens && !isLogin && !isRefresh) {
-      tokens = await this.refreshAttendanceTokens(tokens);
+    if (response.status === 401 && !isLogin && !isRefresh) {
+      if (tokens) {
+        try {
+          tokens = await this.refreshAttendanceTokens(tokens);
+        } catch (error) {
+          console.error(JSON.stringify({
+            error: error instanceof Error ? error.message : "Unknown error",
+            message: "Attendance token refresh failed",
+            stage: "attendance-refresh",
+          }));
+          tokens = null;
+        }
+      }
+      if (!tokens) {
+        const credentials = this.getAttendanceCredentials();
+        if (credentials && (await this.loginAttendance(credentials)).ok) {
+          tokens = this.getValue<AttendanceTokens>("attendance");
+        }
+      }
       if (tokens) {
         headers.set("Authorization", `Bearer ${tokens.accessToken}`);
         response = await fetch(target, {

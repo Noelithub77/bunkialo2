@@ -18,6 +18,7 @@ interface DeveloperSettingsSectionProps {
   logs: DashboardLog[];
   theme: typeof Colors.light;
   onClearLogs: () => void;
+  onCopyLogs: () => void;
   onPressWifixInterval: () => void;
   onToggleAutoReconnect: (enabled: boolean) => void;
   onToggleBackgroundActivity: (enabled: boolean) => void;
@@ -33,6 +34,7 @@ export function DeveloperSettingsSection({
   logs,
   theme,
   onClearLogs,
+  onCopyLogs,
   onPressWifixInterval,
   onToggleAutoReconnect,
   onToggleBackgroundActivity,
@@ -116,7 +118,7 @@ export function DeveloperSettingsSection({
           >
             Logs
           </Text>
-          <LogsSection logs={logs} onClear={onClearLogs} />
+          <LogsSection logs={logs} onClear={onClearLogs} onCopy={onCopyLogs} />
         </>
       ) : null}
     </>
