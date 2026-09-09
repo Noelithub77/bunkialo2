@@ -537,24 +537,6 @@ export default function DashboardScreen() {
 
       {isFocused && (
         <Portal>
-          {process.env.EXPO_OS !== "web" && (
-            <FAB
-              accessibilityLabel="Open WiFix"
-              visible={!showFabMenu}
-              icon="wifi"
-              color={isDark ? Colors.gray[200] : Colors.gray[700]}
-              onPress={() => {
-                setShowFabMenu(false);
-                router.push("/wifix");
-              }}
-              style={{
-                position: "absolute",
-                right: 72,
-                bottom: 80,
-                backgroundColor: theme.backgroundSecondary,
-              }}
-            />
-          )}
           <FAB.Group
             open={showFabMenu}
             visible={true}
@@ -571,6 +553,25 @@ export default function DashboardScreen() {
             onStateChange={({ open }) => setShowFabMenu(open)}
           />
         </Portal>
+      )}
+
+      {isFocused && process.env.EXPO_OS !== "web" && (
+        <FAB
+          accessibilityLabel="Open WiFix"
+          visible={!showFabMenu}
+          icon="wifi"
+          color={isDark ? Colors.gray[200] : Colors.gray[700]}
+          onPress={() => {
+            setShowFabMenu(false);
+            router.push("/wifix");
+          }}
+          style={{
+            position: "absolute",
+            right: 72,
+            bottom: 80,
+            backgroundColor: theme.backgroundSecondary,
+          }}
+        />
       )}
 
       <DevInfoModal
