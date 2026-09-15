@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly PACKAGE_ID="com.codialo.bunkialo"
+readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+    printf 'Usage: %s <prod|dev>\n' "$(basename "$0")" >&2
+    exit 2
+}
+
+discover_adb_services() {
+    local endpoint
+
+    while read -r endpoint; do
+        [[ -n "$endpoint" ]] || continue
+        adb connect "$endpoint" >/dev/null 2>&1 || true
+    done < <(
+        adb mdns services |
+            awk '$2 == "_adb-tls-connect._tcp" { print $3 }'
+    )
+}
+
+find_watch_serial() {
+    local serial model characteristics hardware
+
+    discover_adb_services
+
+    while read -r serial; do
+        [[ -n "$serial" ]] || continue
+        [[ "$serial" == emulator-* ]] && continue
+
+        model="$(adb -s "$serial" shell getprop ro.product.model 2>/dev/null | tr -d '\r')"
+        characteristics="$(adb -s "$serial" shell getprop ro.build.characteristics 2>/dev/null | tr -d '\r')"
+        hardware="$(adb -s "$serial" shell getprop ro.hardware.type 2>/dev/null | tr -d '\r')"
+
+        if [[ "$characteristics" == *watch* || "$hardware" == watch* || "$model" == SM-L* || "$model" == SM_L* ]]; then
+            printf '%s\n' "$serial"
+            return 0
+        fi
+    done < <(adb devices | awk '$2 == "device" { print $1 }')
+
+    printf 'No Wear OS watch is connected through ADB mDNS.\n' >&2
+    return 1
+}
+
+main() {
+    [[ $# -eq 1 ]] || usage
+
+    local variant="$1"
+    local gradle_task apk_path watch_serial
+
+    case "$variant" in
+        prod)
+            gradle_task=":app:assembleRelease"
+            apk_path="$REPO_ROOT/app/build/outputs/apk/release/app-release.apk"
+            ;;
+        dev)
+            gradle_task=":app:assembleDebug"
+            apk_path="$REPO_ROOT/app/build/outputs/apk/debug/app-debug.apk"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+
+    cd "$REPO_ROOT"
+    JAVA_HOME="${JAVA_HOME:-/opt/android-studio/jbr}" ./gradlew "$gradle_task"
+
+    [[ -f "$apk_path" ]] || {
+        printf 'Build succeeded but APK was not found: %s\n' "$apk_path" >&2
+        exit 1
+    }
+
+    watch_serial="$(find_watch_serial)"
+    printf 'Deploying %s build to %s.\n' "$variant" "$watch_serial"
+
+    if adb -s "$watch_serial" shell pm path "$PACKAGE_ID" >/dev/null 2>&1; then
+        adb -s "$watch_serial" uninstall "$PACKAGE_ID"
+    fi
+
+    adb -s "$watch_serial" install "$apk_path"
+    printf 'Installed %s build on %s.\n' "$variant" "$watch_serial"
+}
+
+main "$@"

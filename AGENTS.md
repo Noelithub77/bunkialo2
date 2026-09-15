@@ -345,6 +345,19 @@ components/
 4. Store: `stores/wifix-store.ts` for settings; `stores/wifix-log-store.ts` for logs; `components/wifix/wifix-log-modal.tsx` for viewing logs.
 5. Constants: `constants/wifix.ts` presets and defaults; types in `types/wifix.ts`.
 
+### Wear OS timetable extension
+
+1. The native Wear OS Gradle app lives under `wear-os/` and uses package ID
+   `com.codialo.bunkialo`.
+2. The built-in timetable in `wear-os/app/src/main/java/com/codialo/bunkialo/schedule/Timetable.kt`
+   is the default and reset target.
+3. The phone-side `modules/wear-timetable` Expo module sends only the selected timetable
+   display snapshot through the Wear OS Data Layer; never send LMS credentials or session data.
+4. The phone timetable screen owns source selection and manual editing. The watch opens it
+   with the `bunkialo://timetable?wear=1` deep link.
+5. Build or install the watch app from `wear-os/` with the scripts in `wear-os/scripts/`;
+   refresh active ADB devices immediately before any installation.
+
 ## Background Tasks & Notifications
 
 ```typescript

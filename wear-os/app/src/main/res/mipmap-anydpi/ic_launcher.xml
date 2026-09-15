@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/bunkialo_icon_background" />
+    <foreground android:drawable="@drawable/bunkialo_icon" />
+    <monochrome android:drawable="@drawable/bunkialo_icon" />
+</adaptive-icon>

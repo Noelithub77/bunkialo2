@@ -4,6 +4,7 @@ import { SlotConflictModal } from "@/components/modals/slot-conflict-modal";
 import { DaySchedule } from "@/components/timetable/day-schedule";
 import { DaySelector } from "@/components/timetable/day-selector";
 import { TimetableExportModal } from "@/components/timetable/timetable-export-modal";
+import { WearTimetableModal } from "@/components/timetable/wear-timetable-modal";
 import { UpNextCarousel } from "@/components/timetable/upnext-carousel";
 import { Container } from "@/components/ui/container";
 import { GradientCard } from "@/components/ui/gradient-card";
@@ -12,6 +13,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { useBunkStore } from "@/stores/bunk-store";
 import { useTimetableStore } from "@/stores/timetable-store";
+import { useWearTimetableStore } from "@/stores/wear-timetable-store";
+import { syncWearTimetable } from "@/services/wear-timetable";
+import type { WearTimetableSource } from "../../../shared/wear-timetable";
 import type {
   CourseBunkData,
   CourseConfig,
@@ -21,7 +25,7 @@ import type {
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useGlobalSearchParams } from "expo-router";
 import type { ErrorBoundaryProps } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -94,11 +98,18 @@ export default function TimetableScreen() {
     addCustomCourse,
     deleteCourse,
   } = useBunkStore();
+  const {
+    source: wearTimetableSource,
+    lastSyncedAt: wearLastSyncedAt,
+    setSource: setWearTimetableSource,
+    setLastSyncedAt: setWearLastSyncedAt,
+  } = useWearTimetableStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showSlotConflictModal, setShowSlotConflictModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showTimetableExport, setShowTimetableExport] = useState(false);
   const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+  const [showWearTimetableModal, setShowWearTimetableModal] = useState(false);
   const [isCourseEditMode, setIsCourseEditMode] = useState(false);
   const [showCourseEditModal, setShowCourseEditModal] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
@@ -107,9 +118,22 @@ export default function TimetableScreen() {
     typeof InteractionManager.runAfterInteractions
   > | null>(null);
   const isFocused = useIsFocused();
+  const params = useGlobalSearchParams<{ wear?: string }>();
+  const openedFromWearLink = useRef(false);
   const unresolvedConflictCount = conflicts.filter(
     (c) => c.resolvedChoice === null,
   ).length;
+
+  useEffect(() => {
+    if (params.wear !== "1") {
+      openedFromWearLink.current = false;
+      return;
+    }
+    if (isFocused && !openedFromWearLink.current) {
+      openedFromWearLink.current = true;
+      setShowWearTimetableModal(true);
+    }
+  }, [isFocused, params.wear]);
 
   const getDefaultDay = (): DayOfWeek => {
     const day = new Date().getDay() as DayOfWeek;
@@ -174,6 +198,22 @@ export default function TimetableScreen() {
       setRefreshing(false);
     }
   }, [fetchAttendance, scheduleTimetableRecompute]);
+
+  const handleSendToWear = useCallback(
+    async (source: WearTimetableSource): Promise<string | null> => {
+      const result = await syncWearTimetable(source);
+      if (!result.ok) return result.message;
+      setWearTimetableSource(source);
+      setWearLastSyncedAt(result.payload.updatedAt);
+      return null;
+    },
+    [setWearLastSyncedAt, setWearTimetableSource],
+  );
+
+  const handleResetWearTimetable = useCallback(
+    async (): Promise<string | null> => handleSendToWear("template"),
+    [handleSendToWear],
+  );
 
   const handleOpenConflicts = useCallback(() => {
     if (conflicts.length === 0) {
@@ -511,6 +551,16 @@ export default function TimetableScreen() {
                 },
               },
               {
+                icon: "watch-variant",
+                label: "Wear OS timetable",
+                color: theme.text,
+                style: { backgroundColor: theme.backgroundSecondary },
+                onPress: () => {
+                  setShowFabMenu(false);
+                  setShowWearTimetableModal(true);
+                },
+              },
+              {
                 icon: "plus",
                 label: "Add Course",
                 color: Colors.white,
@@ -544,6 +594,20 @@ export default function TimetableScreen() {
         visible={showTimetableExport}
         onClose={() => setShowTimetableExport(false)}
         slots={displaySlots}
+      />
+
+      <WearTimetableModal
+        visible={showWearTimetableModal}
+        source={wearTimetableSource}
+        accountSlotCount={slots.filter((slot) => !slot.isManual).length}
+        lastSyncedAt={wearLastSyncedAt}
+        onClose={() => setShowWearTimetableModal(false)}
+        onSave={handleSendToWear}
+        onReset={handleResetWearTimetable}
+        onEditManually={() => {
+          setShowWearTimetableModal(false);
+          setIsCourseEditMode(true);
+        }}
       />
 
       <CreateCourseModal

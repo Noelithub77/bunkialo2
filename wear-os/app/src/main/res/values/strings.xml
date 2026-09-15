@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Bunkialo</string>
+    <string name="tile_label">Bunkialo</string>
+    <string name="complication_label">Bunkialo course</string>
+</resources>
