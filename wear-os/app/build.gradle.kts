@@ -1,6 +1,51 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+import org.gradle.process.ExecOperations
+import javax.inject.Inject
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+abstract class GenerateWearMessMenuTask @Inject constructor(
+    private val execOperations: ExecOperations,
+) : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val menuSource: RegularFileProperty
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val generatorScript: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun generateMenu() {
+        execOperations.exec {
+            commandLine(
+                "bun",
+                "run",
+                generatorScript.get().asFile.absolutePath,
+                outputDirectory.file("raw/mess_menu.json").get().asFile.absolutePath,
+            )
+        }
+    }
+}
+
+val repositoryRoot = rootProject.projectDir.parentFile
+val generateWearMessMenu = tasks.register<GenerateWearMessMenuTask>("generateWearMessMenu") {
+    menuSource.set(repositoryRoot.resolve("src/data/mess.ts"))
+    generatorScript.set(repositoryRoot.resolve("scripts/generate-wear-mess-menu.ts"))
+    outputDirectory.set(layout.buildDirectory.dir("generated/mess-menu-res"))
 }
 
 val easKeystorePath = providers.environmentVariable("NEAROS_EAS_KEYSTORE_PATH").orNull
@@ -65,6 +110,15 @@ android {
     useLibrary("wear-sdk")
     buildFeatures {
         compose = true
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.res?.addGeneratedSourceDirectory(
+            generateWearMessMenu,
+            GenerateWearMessMenuTask::outputDirectory,
+        )
     }
 }
 

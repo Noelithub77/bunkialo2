@@ -316,7 +316,7 @@ components/
 
 ### Mess Menu
 
-1. Static menu data stored in `data/mess.ts`.
+1. Static menu data stored in `src/data/mess.ts`.
 2. Helper functions to get current/next meal based on time.
 3. Carousel display for upcoming meals with expandable items.
 4. Daily schedule view with timeline visualization.
@@ -362,6 +362,9 @@ background task uses the same portal check before attempting login.
    with the `bunkialo://timetable?wear=1` deep link.
 5. Build or install the watch app from `wear-os/` with the scripts in `wear-os/scripts/`;
    refresh active ADB devices immediately before any installation.
+6. The Wear OS mess menu is generated from `src/data/mess.ts` by
+   `scripts/generate-wear-mess-menu.ts` during Gradle builds. Do not maintain a
+   separate hand-edited Android menu JSON.
 
 ## Background Tasks & Notifications
 
