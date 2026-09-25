@@ -4,19 +4,18 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.KeyEvent
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.wear.compose.foundation.hierarchicalFocusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,16 +25,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,6 +59,7 @@ import com.codialo.bunkialo.schedule.WearTimetableSource
 import com.codialo.bunkialo.schedule.breakLabelBetween
 import com.codialo.bunkialo.schedule.events
 import com.codialo.bunkialo.schedule.focusDay
+import com.codialo.bunkialo.ui.ScreenModeToggle
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.style.TextAlign
@@ -73,25 +72,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { TimetableApp() }
     }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_STEM_1 || keyCode == KeyEvent.KEYCODE_STEM_2) {
-            moveTaskToBack(true)
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 }
 
 @Composable
 fun TimetableApp() {
     BunkialoTheme {
-        val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
         AppScaffold {
             val now = remember { mutableStateOf(LocalDateTime.now()) }
             val context = LocalContext.current
             val repository = remember { WearTimetableRepository(context) }
             val timetable = remember { mutableStateOf(repository.load()) }
+            var isMessSelected by remember { mutableStateOf(false) }
             val initialDay = remember {
                 TimetableDay.entries.indexOf(focusDay(now.value, timetable.value.timetable))
             }
@@ -108,64 +99,70 @@ fun TimetableApp() {
                 initialPage = firstPage,
                 pageCount = { Int.MAX_VALUE },
             )
-            Box(modifier = Modifier.fillMaxSize()) {
+            val messPagerState = rememberPagerState(
+                initialPage = firstPage,
+                pageCount = { Int.MAX_VALUE },
+            )
+
+            LaunchedEffect(isMessSelected) {
+                val currentDayIndex = if (isMessSelected) {
+                    pagerState.currentPage % TimetableDay.entries.size
+                } else {
+                    messPagerState.currentPage % TimetableDay.entries.size
+                }
+
+                if (isMessSelected) {
+                    val messDayIndex = messPagerState.currentPage % TimetableDay.entries.size
+                    if (currentDayIndex != messDayIndex) {
+                        val targetPage = messPagerState.currentPage - messDayIndex + currentDayIndex
+                        messPagerState.animateScrollToPage(targetPage)
+                    }
+                } else {
+                    val timetableDayIndex = pagerState.currentPage % TimetableDay.entries.size
+                    if (currentDayIndex != timetableDayIndex) {
+                        val targetPage = pagerState.currentPage - timetableDayIndex + currentDayIndex
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                }
+            }
+
+            BackHandler(enabled = isMessSelected) {
+                isMessSelected = false
+            }
+
+            if (isMessSelected) {
+                val messRepo = remember { com.codialo.bunkialo.mess.MessMenuRepository(context) }
+                val messMenu = remember { messRepo.loadMenu() }
+                com.codialo.bunkialo.mess.MessMenuScreen(
+                    pagerState = messPagerState,
+                    now = now.value,
+                    menu = messMenu,
+                    isMessSelected = true,
+                    onToggleMode = { isMessSelected = false },
+                )
+            } else {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
                 ) { page ->
-                    DaySchedule(
-                        day = TimetableDay.entries[page % TimetableDay.entries.size],
-                        now = now.value,
-                        timetable = timetable.value,
-                        onReset = {
-                            timetable.value = repository.resetToTemplate()
-                        },
-                    )
+                    val isCurrentTimetablePage = pagerState.currentPage == page
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .hierarchicalFocusGroup(active = isCurrentTimetablePage),
+                    ) {
+                        DaySchedule(
+                            day = TimetableDay.entries[page % TimetableDay.entries.size],
+                            now = now.value,
+                            timetable = timetable.value,
+                            onReset = {
+                                timetable.value = repository.resetToTemplate()
+                            },
+                            isMessSelected = false,
+                            onToggleMode = { isMessSelected = true },
+                        )
+                    }
                 }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .fillMaxHeight()
-                        .width(36.dp)
-                        .edgeBackGesture {
-                            backDispatcher?.onBackPressed()
-                        },
-                )
-            }
-        }
-    }
-}
-
-private fun Modifier.edgeBackGesture(
-    onBack: () -> Unit,
-): Modifier = pointerInput(onBack) {
-    val triggerDistance = 48.dp.toPx()
-
-    awaitPointerEventScope {
-        var tracking = false
-        var startX = 0f
-        var triggered = false
-
-        while (true) {
-            val event = awaitPointerEvent(PointerEventPass.Initial)
-            val change = event.changes.firstOrNull() ?: break
-
-            if (change.pressed && !change.previousPressed) {
-                tracking = true
-                startX = change.position.x
-                triggered = false
-            }
-
-            if (tracking) {
-                change.consume()
-                if (!triggered && change.position.x - startX >= triggerDistance) {
-                    triggered = true
-                    onBack()
-                }
-            }
-
-            if (!change.pressed && change.previousPressed) {
-                tracking = false
             }
         }
     }
@@ -187,6 +184,8 @@ private fun DaySchedule(
     now: LocalDateTime,
     timetable: WearTimetableData,
     onReset: () -> Unit,
+    isMessSelected: Boolean,
+    onToggleMode: () -> Unit,
 ) {
     val listState = rememberTransformingLazyColumnState()
     val context = LocalContext.current
@@ -218,17 +217,20 @@ private fun DaySchedule(
     }
 
     ScreenScaffold(scrollState = listState) { contentPadding ->
-        TransformingLazyColumn(
-            state = listState,
-            contentPadding = contentPadding,
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            TransformingLazyColumn(
+                state = listState,
+                contentPadding = contentPadding,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
             item {
                 ListHeader(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -251,6 +253,23 @@ private fun DaySchedule(
                                 )
                             }
                         }
+                    }
+                }
+            }
+            if (events.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = if (isToday) "No classes scheduled today" else "No classes scheduled",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF8A8A8A),
+                            textAlign = TextAlign.Center,
+                        )
                     }
                 }
             }
@@ -296,6 +315,17 @@ private fun DaySchedule(
                     }
                 }
             }
+            }
+            ScreenModeToggle(
+                isMessSelected = isMessSelected,
+                onToggle = onToggleMode,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(
+                        top = contentPadding.calculateTopPadding() + 8.dp,
+                        end = 40.dp,
+                    ),
+            )
         }
     }
 }
@@ -347,53 +377,58 @@ private fun TimetableCard(event: TimetableEvent, highlight: EventHighlight) {
         ),
         border = highlightBorder?.let { BorderStroke(2.dp, it) },
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Row(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(5.dp)
-                        .height(42.dp)
-                        .background(colors.accent, RoundedCornerShape(50)),
+                    .width(5.dp)
+                    .height(42.dp)
+                    .background(colors.accent, RoundedCornerShape(50)),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = event.course.label,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = event.course.label,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
+                if (event.course.faculty.isNotBlank()) {
                     Text(
                         text = event.course.faculty,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
                     )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     Text(
                         text = event.time,
                         style = MaterialTheme.typography.labelMedium,
                     )
-                }
-            }
-            if (event.isLab) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 7.dp, end = 8.dp)
-                        .size(23.dp)
-                        .border(2.dp, Color.Black, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "L",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
+                    if (event.isLab) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.14f),
+                                    shape = RoundedCornerShape(4.dp),
+                                )
+                                .padding(horizontal = 5.dp, vertical = 1.dp),
+                        ) {
+                            Text(
+                                text = "LAB",
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
                 }
             }
         }
