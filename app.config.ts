@@ -27,6 +27,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
+      bundleIdentifier: "com.codialo.Bunkialo2",
       supportsTablet: true,
       icon: {
         light: "./src/assets/images/ios-icon-light.png",
@@ -40,10 +41,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     // Developer-facing build numbers are managed by EAS remote versioning.
     android: {
       softwareKeyboardLayoutMode: "resize",
-      permissions: [
-        "RECEIVE_BOOT_COMPLETED",
-        "ACCESS_NETWORK_STATE",
-      ],
+      permissions: ["RECEIVE_BOOT_COMPLETED", "ACCESS_NETWORK_STATE"],
       adaptiveIcon: {
         backgroundColor: "#FFAB00",
         foregroundImage: "./src/assets/images/android-icon-foreground.png",
@@ -60,6 +58,15 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     },
     plugins: [
       "expo-router",
+      [
+        "expo-share-intent",
+        {
+          androidIntentFilters: ["image/*", "application/pdf"],
+          androidMultiIntentFilters: ["image/*", "application/pdf"],
+          iosActivationRules:
+            'SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $attachment, ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.image" OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf").@count == $item.attachments.@count).@count == extensionItems.@count',
+        },
+      ],
       "expo-build-properties",
       "expo-background-task",
       "expo-font",
@@ -93,7 +100,9 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
       },
     },
     // Expo Go needs the SDK runtime; EAS builds use the app version contract.
-    runtimeVersion: isExpoGoPreview ? { policy: "sdkVersion" } : pkgVersion,
+    runtimeVersion: isExpoGoPreview
+      ? { policy: "sdkVersion" }
+      : `${pkgVersion}-share-intent-v1`,
     updates: {
       url: "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
     },

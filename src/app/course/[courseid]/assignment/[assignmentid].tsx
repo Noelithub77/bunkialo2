@@ -17,7 +17,6 @@ import {
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   TextInput,
   Platform,
@@ -29,6 +28,9 @@ import { getContentUriAsync } from "expo-file-system/legacy";
 import { startActivityAsync } from "expo-intent-launcher";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
 import { debug } from "@/utils/debug";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { clampUploadProgress } from "@/utils/upload-progress";
+import { getAssignmentViewUrl } from "@/utils/assignment-share";
 
 const formatDateTime = (timestamp: number | null): string => {
   if (!timestamp) return "Not available";
@@ -107,6 +109,9 @@ export default function AssignmentDetailScreen() {
       ? (state.isSubmittingByAssignmentId[assignmentId] ?? false)
       : false,
   );
+  const isLoadingEdit = useAssignmentStore(
+    (state) => state.isLoadingEditByAssignmentId[assignmentId] ?? false,
+  );
   const uploadProgress = useAssignmentStore((state) =>
     assignmentId
       ? (state.uploadProgressByAssignmentId[assignmentId] ?? null)
@@ -130,43 +135,24 @@ export default function AssignmentDetailScreen() {
   const [onlineText, setOnlineText] = useState("");
   const [files, setFiles] = useState<AssignmentUploadLocalFile[]>([]);
   const [hasSeededOnlineText, setHasSeededOnlineText] = useState(false);
-  const [hasForcedDateRefresh, setHasForcedDateRefresh] = useState(false);
 
   const [downloadingUrlSet, setDownloadingUrlSet] = useState<
     Record<string, boolean>
   >({});
 
   useEffect(() => {
-    setHasForcedDateRefresh(false);
+    setOnlineText("");
+    setFiles([]);
+    setHasSeededOnlineText(false);
   }, [assignmentId]);
 
   useEffect(() => {
     if (!assignmentId || !hasHydrated) return;
     const stale =
       !entry || Date.now() - entry.lastSyncTime > ASSIGNMENT_STALE_MS;
-    const hasMissingDates = Boolean(
-      entry && (entry.data.openedAt === null || entry.data.dueAt === null),
-    );
-    const shouldForceForMissingDates = hasMissingDates && !hasForcedDateRefresh;
-    if (!stale && !shouldForceForMissingDates) return;
-
-    const task = InteractionManager.runAfterInteractions(() => {
-      void fetchAssignmentDetails(assignmentId, {
-        silent: Boolean(entry),
-        force: shouldForceForMissingDates,
-      });
-      if (shouldForceForMissingDates) {
-        setHasForcedDateRefresh(true);
-      }
-    });
-    return () => task.cancel();
-  }, [
-    assignmentId,
-    entry,
-    fetchAssignmentDetails,
-    hasForcedDateRefresh,
-    hasHydrated,
-  ]);
+    if (!stale) return;
+    void fetchAssignmentDetails(assignmentId, { silent: Boolean(entry) });
+  }, [assignmentId, entry, fetchAssignmentDetails, hasHydrated]);
 
   useEffect(() => {
     if (!assignmentId || !details?.canEditSubmission) return;
@@ -197,9 +183,7 @@ export default function AssignmentDetailScreen() {
   );
 
   const openOnLms = async () => {
-    const url =
-      details?.editSubmissionUrl ??
-      `${getCurrentBaseUrl()}/mod/assign/view.php?id=${assignmentId}`;
+    const url = getAssignmentViewUrl(getCurrentBaseUrl(), assignmentId);
 
     try {
       const canOpen = await Linking.canOpenURL(url);
@@ -244,6 +228,7 @@ export default function AssignmentDetailScreen() {
       uri: asset.uri,
       name: asset.name,
       mimeType: asset.mimeType ?? "application/octet-stream",
+      size: asset.size,
     }));
 
     const deduped = new Map<string, AssignmentUploadLocalFile>();
@@ -433,7 +418,9 @@ export default function AssignmentDetailScreen() {
 
   return (
     <Container className="relative">
-      <ScrollView
+      <KeyboardAwareScrollView
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
         contentContainerClassName="px-4 pb-10"
         refreshControl={
           <RefreshControl
@@ -517,20 +504,6 @@ export default function AssignmentDetailScreen() {
                   {breadcrumbCourse}
                 </Text>
               </Pressable>
-
-              <Ionicons
-                name="chevron-forward"
-                size={12}
-                color={theme.textSecondary}
-              />
-
-              <Text
-                className="text-[12px] font-semibold"
-                style={{ color: theme.text }}
-                numberOfLines={1}
-              >
-                {breadcrumbAssignment}
-              </Text>
             </View>
 
             <Text
@@ -780,7 +753,9 @@ export default function AssignmentDetailScreen() {
                     : ""}
                   {supportsOnlineTextSubmission ? "Online text" : ""}
                   {!supportsFileSubmission && !supportsOnlineTextSubmission
-                    ? "Not editable"
+                    ? isLoadingEdit
+                      ? "Loading..."
+                      : "Not editable"
                     : ""}
                 </Text>
                 {supportsFileSubmission && (
@@ -794,6 +769,14 @@ export default function AssignmentDetailScreen() {
                 )}
               </View>
 
+              {isLoadingEdit && (
+                <Text
+                  className="mt-3 text-[12px]"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Loading submission options...
+                </Text>
+              )}
               {supportsFileSubmission && (
                 <View className="mt-3 gap-2">
                   <Pressable
@@ -869,7 +852,7 @@ export default function AssignmentDetailScreen() {
                   style={{ color: theme.textSecondary }}
                 >
                   {uploadProgress !== null
-                    ? `Uploading ${Math.round(uploadProgress * 100)}%`
+                    ? `Uploading ${Math.round((clampUploadProgress(uploadProgress) ?? 0) * 100)}%`
                     : "Submitting..."}
                 </Text>
               )}
@@ -885,7 +868,12 @@ export default function AssignmentDetailScreen() {
                     borderWidth: canEditSubmission ? 0 : 1,
                     opacity: isSubmitting ? 0.7 : 1,
                   }}
-                  disabled={isSubmitting || !canEditSubmission}
+                  disabled={
+                    isSubmitting ||
+                    isLoadingEdit ||
+                    !editSession ||
+                    !canEditSubmission
+                  }
                   onPress={() => void handleSubmit()}
                 >
                   {isSubmitting ? (
@@ -924,7 +912,7 @@ export default function AssignmentDetailScreen() {
             </View>
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Container>
   );
 }

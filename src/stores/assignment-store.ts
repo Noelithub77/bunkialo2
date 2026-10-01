@@ -1,4 +1,5 @@
 import { ASSIGNMENT_STALE_MS } from "@/constants/assignment";
+import { clampUploadProgress } from "@/utils/upload-progress";
 import {
   fetchAssignmentDetailsWithSession,
   startAssignmentEditSession,
@@ -23,6 +24,7 @@ interface AssignmentStoreState {
   detailsByAssignmentId: Record<string, AssignmentCacheEntry>;
   editSessionByAssignmentId: Record<string, AssignmentEditSession>;
   isLoadingByAssignmentId: Record<string, boolean>;
+  isLoadingEditByAssignmentId: Record<string, boolean>;
   isSubmittingByAssignmentId: Record<string, boolean>;
   uploadProgressByAssignmentId: Record<string, number | null>;
   errorByAssignmentId: Record<string, string | null>;
@@ -42,6 +44,7 @@ interface AssignmentStoreActions {
   submitAssignment: (
     assignmentId: string,
     payload: AssignmentSubmissionPayload,
+    options?: { draftSession: AssignmentEditSession },
   ) => Promise<AssignmentSubmitResult>;
   setUploadProgress: (assignmentId: string, progress: number | null) => void;
   clearAssignmentCache: () => void;
@@ -65,6 +68,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
       detailsByAssignmentId: {},
       editSessionByAssignmentId: {},
       isLoadingByAssignmentId: {},
+      isLoadingEditByAssignmentId: {},
       isSubmittingByAssignmentId: {},
       uploadProgressByAssignmentId: {},
       errorByAssignmentId: {},
@@ -129,6 +133,9 @@ export const useAssignmentStore = create<AssignmentStore>()(
               [assignmentId]: null,
             },
           }));
+          if (details.canEditSubmission) {
+            void get().startEditSession(assignmentId);
+          }
         } catch (error) {
           if (generationAtRequest !== assignmentGeneration) {
             return;
@@ -167,8 +174,8 @@ export const useAssignmentStore = create<AssignmentStore>()(
         }
 
         set((state) => ({
-          isLoadingByAssignmentId: {
-            ...state.isLoadingByAssignmentId,
+          isLoadingEditByAssignmentId: {
+            ...state.isLoadingEditByAssignmentId,
             [assignmentId]: true,
           },
           errorByAssignmentId: {
@@ -197,8 +204,8 @@ export const useAssignmentStore = create<AssignmentStore>()(
               ...state.errorByAssignmentId,
               [assignmentId]: null,
             },
-            isLoadingByAssignmentId: {
-              ...state.isLoadingByAssignmentId,
+            isLoadingEditByAssignmentId: {
+              ...state.isLoadingEditByAssignmentId,
               [assignmentId]: false,
             },
           }));
@@ -216,8 +223,8 @@ export const useAssignmentStore = create<AssignmentStore>()(
               ...state.errorByAssignmentId,
               [assignmentId]: message,
             },
-            isLoadingByAssignmentId: {
-              ...state.isLoadingByAssignmentId,
+            isLoadingEditByAssignmentId: {
+              ...state.isLoadingEditByAssignmentId,
               [assignmentId]: false,
             },
           }));
@@ -229,7 +236,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
         }
       },
 
-      submitAssignment: async (assignmentId, payload) => {
+      submitAssignment: async (assignmentId, payload, options) => {
         set((state) => ({
           isSubmittingByAssignmentId: {
             ...state.isSubmittingByAssignmentId,
@@ -245,7 +252,10 @@ export const useAssignmentStore = create<AssignmentStore>()(
           },
         }));
 
-        const session = await get().startEditSession(assignmentId, { force: true });
+        // A staged upload must save its original draft, never a new edit form.
+        const session =
+          options?.draftSession ??
+          (await get().startEditSession(assignmentId, { force: true }));
         if (!session) {
           set((state) => ({
             isSubmittingByAssignmentId: {
@@ -267,7 +277,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
               set((state) => ({
                 uploadProgressByAssignmentId: {
                   ...state.uploadProgressByAssignmentId,
-                  [assignmentId]: fraction,
+                  [assignmentId]: clampUploadProgress(fraction),
                 },
               }));
             },
@@ -302,7 +312,16 @@ export const useAssignmentStore = create<AssignmentStore>()(
         }));
 
         if (result.success) {
-          await get().refreshAssignmentDetails(assignmentId);
+          set((state) => {
+            const sessions = { ...state.editSessionByAssignmentId };
+            delete sessions[assignmentId];
+            return { editSessionByAssignmentId: sessions };
+          });
+          // The save response already confirmed success. Refresh without delaying feedback.
+          void get().fetchAssignmentDetails(assignmentId, {
+            force: true,
+            silent: true,
+          });
         }
 
         return result;
@@ -312,7 +331,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
         set((state) => ({
           uploadProgressByAssignmentId: {
             ...state.uploadProgressByAssignmentId,
-            [assignmentId]: progress,
+            [assignmentId]: clampUploadProgress(progress),
           },
         }));
       },
@@ -325,6 +344,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
           detailsByAssignmentId: {},
           editSessionByAssignmentId: {},
           isLoadingByAssignmentId: {},
+          isLoadingEditByAssignmentId: {},
           isSubmittingByAssignmentId: {},
           uploadProgressByAssignmentId: {},
           errorByAssignmentId: {},
