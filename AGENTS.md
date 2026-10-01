@@ -407,6 +407,58 @@ debug.scraper("Dashboard refresh triggered", data);
 - Set `keyboardShouldPersistTaps="handled"` and a suitable `bottomOffset` so the focused input stays visible while the keyboard is open on both iOS and Android.
 - Keep `KeyboardProvider` mounted at the app root and do not use a plain `ScrollView` as the container for an interactive form.
 
+## Android development and emulators
+
+For Android and Wear OS setup, emulator use, and native build steps, read
+[`bunkialo-android-development`](.agents/skills/bunkialo-android-development/SKILL.md)
+and the installed Android CLI skills under `.agents/skills/`. Use the existing
+checkout; do not create a Git worktree.
+
+This repository has two Android targets:
+
+- The Expo phone app builds against Android API 36 and React Native 0.81 uses
+  NDK `27.1.12297006`.
+- The native Compose watch app is in `wear-os/`, compiles against API 37, and
+  uses the Wear OS Android 37.0 system image for emulator checks.
+
+The cloud setup keeps Android SDK files, AVD data, Gradle caches, and Expo
+state under `/workspace`. Set `ANDROID_HOME` and `ANDROID_SDK_ROOT` to
+`/workspace/android-sdk`, `ANDROID_USER_HOME` and `ANDROID_EMULATOR_HOME` to
+`/workspace/.android`, `ANDROID_AVD_HOME` to `/workspace/.android/avd`,
+`JAVA_HOME` to `/workspace/jdk21`, and `GRADLE_USER_HOME` to
+`/workspace/.gradle`. Gradle must use the managed HTTP proxy via JVM options
+`-Dhttp.proxyHost=proxy -Dhttp.proxyPort=8080` and
+`-Dhttps.proxyHost=proxy -Dhttps.proxyPort=8080`, plus
+`-Djavax.net.ssl.trustStore=/workspace/java-cacerts` and
+`-Djavax.net.ssl.trustStorePassword=changeit`. This trust store includes the
+runtime-provided proxy CA; keep TLS verification enabled. Set
+`EXPO_NO_TELEMETRY=1` when invoking Expo CLI in
+the managed container.
+
+Run the checks that match the target being changed:
+
+```bash
+bun test
+bun run lint
+bunx tsc --noEmit
+(cd android && ./gradlew :app:assembleDebug -PreactNativeArchitectures=x86_64)
+(cd wear-os && ./gradlew :app:assembleDebug)
+```
+
+To start the phone emulator, use `emulator -avd Bunkialo_Phone_API_36`. For the
+watch, use `emulator -avd Bunkialo_Wear_API_37`. In a headless container add
+`-no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -gpu software`;
+add `-accel off` when `/dev/kvm` is unavailable. Wait for
+`adb shell getprop sys.boot_completed` to return `1` before installing an APK.
+
+The cloud host has no `/dev/kvm`; AVD profiles are configured, but software
+emulation did not reach boot completion during setup. Use a KVM-enabled host
+for interactive app testing.
+
+Use the Wear OS emulator for watch layouts and install checks. Building the APK
+does not test phone/watch Data Layer pairing; that check needs both emulators
+running with Google Play services.
+
 ## Testing
 
 ```bash
