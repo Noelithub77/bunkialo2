@@ -1,8 +1,8 @@
-import { useShareIntent } from "expo-share-intent";
-import Constants from "expo-constants";
+import { isRunningInExpoGo } from "expo";
+import { useIncomingShare, type UseIncomingShareResult } from "expo-sharing";
+import { useLinkingURL } from "expo-linking";
 import { router, usePathname, useRootNavigationState } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Platform } from "react-native";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAssignmentShareStore } from "@/stores/assignment-share-store";
@@ -12,13 +12,27 @@ import {
   SHARED_ASSIGNMENT_ROUTE,
 } from "@/utils/assignment-share";
 
+// Expo Go has no app-specific iOS share group; querying native payloads throws.
+const emptyIncomingShare: UseIncomingShareResult = {
+  sharedPayloads: [],
+  resolvedSharedPayloads: [],
+  clearSharedPayloads: () => {},
+  refreshSharePayloads: async () => {},
+  isResolving: false,
+  error: null,
+};
+const useAssignmentIncomingShare = isRunningInExpoGo()
+  ? () => emptyIncomingShare
+  : useIncomingShare;
+
 export function useAssignmentShareIntent() {
-  const { hasShareIntent, shareIntent, resetShareIntent, error } =
-    useShareIntent({
-      disabled: Platform.OS === "web" || Constants.appOwnership === "expo",
-      resetOnBackground: false,
-      scheme: "bunkialo",
-    });
+  const {
+    resolvedSharedPayloads,
+    clearSharedPayloads,
+    refreshSharePayloads,
+    error,
+  } = useAssignmentIncomingShare();
+  const incomingUrl = useLinkingURL();
   const navigation = useRootNavigationState();
   const pathname = usePathname();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -26,21 +40,21 @@ export function useAssignmentShareIntent() {
   const files = useAssignmentShareStore((state) => state.files);
   const shareId = useAssignmentShareStore((state) => state.shareId);
   const routedShare = useRef<number | null>(null);
-  const lastIntent = useRef<typeof shareIntent | null>(null);
+  const lastIntent = useRef<typeof resolvedSharedPayloads | null>(null);
 
   useEffect(() => {
     if (
       !navigation?.key ||
-      !hasShareIntent ||
-      lastIntent.current === shareIntent
+      resolvedSharedPayloads.length === 0 ||
+      lastIntent.current === resolvedSharedPayloads
     )
       return;
-    lastIntent.current = shareIntent;
-    const incoming = (shareIntent.files ?? []).map((file) => ({
-      uri: normalizeSharedFileUri(file.path),
-      name: file.fileName,
-      mimeType: file.mimeType,
-      size: file.size,
+    lastIntent.current = resolvedSharedPayloads;
+    const incoming = resolvedSharedPayloads.map((file) => ({
+      uri: normalizeSharedFileUri(file.contentUri ?? ""),
+      name: file.originalName ?? "",
+      mimeType: file.contentMimeType ?? file.mimeType,
+      size: file.contentSize,
     }));
     if (incoming.length === 0 || !incoming.every(isSupportedAssignmentShare)) {
       Toast.show("Share images or PDF files to upload to an assignment.", {
@@ -49,8 +63,14 @@ export function useAssignmentShareIntent() {
     } else {
       useAssignmentShareStore.getState().setSharedFiles(incoming);
     }
-    resetShareIntent();
-  }, [hasShareIntent, navigation?.key, resetShareIntent, shareIntent]);
+    clearSharedPayloads();
+    void refreshSharePayloads();
+  }, [
+    navigation?.key,
+    clearSharedPayloads,
+    refreshSharePayloads,
+    resolvedSharedPayloads,
+  ]);
 
   useEffect(() => {
     if (
@@ -76,7 +96,14 @@ export function useAssignmentShareIntent() {
   ]);
 
   useEffect(() => {
+    if (incomingUrl?.startsWith("bunkialo://expo-sharing"))
+      refreshSharePayloads();
+  }, [incomingUrl, refreshSharePayloads]);
+
+  useEffect(() => {
     if (error)
-      Toast.show(`Could not receive shared file: ${error}`, { type: "error" });
+      Toast.show(`Could not receive shared file: ${error.message}`, {
+        type: "error",
+      });
   }, [error]);
 }

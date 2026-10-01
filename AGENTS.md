@@ -416,7 +416,7 @@ checkout; do not create a Git worktree.
 
 This repository has two Android targets:
 
-- The Expo phone app builds against Android API 36 and React Native 0.81 uses
+- The Expo SDK 58 phone app builds against Android API 37 and React Native 0.88 uses
   NDK `27.1.12297006`.
 - The native Compose watch app is in `wear-os/`, compiles against API 37, and
   uses the Wear OS Android 37.0 system image for emulator checks.
@@ -480,8 +480,8 @@ bun run test:e2e:hosted-auth -- --headed
 
 ## OTA Runtime Compatibility
 
-- Production OTA updates must keep runtime version `1.4.1` so they remain compatible
-  with installed app version `1.4.1 (59)`.
+- SDK 58 production updates use runtime `1.4.1-sdk58-widgets-v1` and require a matching new native build.
+- Updates targeting legacy app `1.4.1 (59)` must retain runtime `1.4.1`.
 - Do not bump `package.json` or the Expo runtime version inside the OTA workflow.
 - If a change requires new native Android or iOS code, publish a new native build with
   its matching runtime instead of sending that change as a `1.4.1` OTA update.
@@ -497,4 +497,4 @@ bun run test:e2e:hosted-auth -- --headed
 
 ---
 
-**Expo SDK**: 54 | **React Native**: 0.81.5 | **TypeScript**: 5.9.2 (strict) | **React**: 19.1.0 | **Preferred package manager**: bun
+**Expo SDK**: 58 | **React Native**: 0.88.0-rc.3 | **TypeScript**: 6.0.3 (strict) | **React**: 19.3.0 | **Preferred package manager**: bun

@@ -10,6 +10,7 @@ export * from "./course-link";
 export * from "./notification";
 export * from "./academic-calendar";
 export * from "./assignment";
+export * from "./widget";
 export * from "./bunk";
 export * from "./calendar";
 export * from "./common";

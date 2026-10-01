@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import { AndroidImportance } from "expo-notifications";
 import { Platform } from "react-native";
 import { zustandStorage } from "@/stores/storage";
 import type { NotificationChannelConfig } from "./notifications.types";
@@ -25,7 +26,7 @@ export const ensureNotificationChannels = async (
     channels.map((channel) =>
       Notifications.setNotificationChannelAsync(channel.id, {
         name: channel.name,
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: channel.lightColor ?? "#FF231F7C",
       }),

@@ -1,3 +1,4 @@
+import { scheduleDeferredTask } from "@/utils/scheduling";
 import { BunkTransferModal } from "@/components/attendance/bunk-transfer-modal";
 import { AllBunksContent } from "@/components/attendance/sub_tabs/all-bunks-content";
 import { CoursesContent } from "@/components/attendance/sub_tabs/courses-content";
@@ -20,7 +21,6 @@ import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
 import {
-  InteractionManager,
   Platform,
   Pressable,
   Text,
@@ -106,7 +106,7 @@ export default function AttendanceScreen() {
       const shouldRefresh =
         lastSyncTime === null || Date.now() - lastSyncTime > attendanceStaleMs;
       if (!shouldRefresh) return undefined;
-      const task = InteractionManager.runAfterInteractions(() => {
+      const task = scheduleDeferredTask(() => {
         if (lastSyncTime === null) {
           void fetchAttendance();
         } else {
@@ -127,9 +127,10 @@ export default function AttendanceScreen() {
   useEffect(() => {
     if (!isAttendanceHydrated || !isBunkHydrated) return;
     if (courses.length === 0) return;
-    InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       syncFromLms();
     });
+    return () => task.cancel();
   }, [
     isAttendanceHydrated,
     isBunkHydrated,

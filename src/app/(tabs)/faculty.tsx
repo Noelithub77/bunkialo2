@@ -38,7 +38,7 @@ export default function FacultyScreen() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   useEffect(() => {
     if (faculties.length === 0) loadFaculty();
@@ -235,7 +235,7 @@ export default function FacultyScreen() {
                 No faculty found for &quot;{searchQuery}&quot;
               </Text>
             </View>
-          ) : null
+          ) : undefined
         }
       />
     </Container>

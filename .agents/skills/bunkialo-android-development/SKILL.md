@@ -38,7 +38,7 @@ export EXPO_NO_TELEMETRY=1
 export GRADLE_OPTS="${GRADLE_OPTS:-} -Dhttps.proxyHost=proxy -Dhttps.proxyPort=8080 -Dhttp.proxyHost=proxy -Dhttp.proxyPort=8080 -Djavax.net.ssl.trustStore=/workspace/java-cacerts -Djavax.net.ssl.trustStorePassword=changeit"
 ```
 
-The phone app uses Expo SDK 54, React Native 0.81, Android API 36, and NDK
+The phone app uses Expo SDK 58, React Native 0.88, Android API 37, and NDK
 `27.1.12297006`. The native watch app uses Gradle 9.5, AGP 9.3.2, JDK 21, and
 Android API 37.0. The managed environment installs the Android command-line
 tools and emulator under `/workspace/android-sdk`. Gradle uses the environment
@@ -68,7 +68,7 @@ system-images;android-37.0;android-wear-signed;x86_64
 ```
 
 The SDK also needs `platform-tools`, `emulator`, `platforms;android-36`,
-`platforms;android-37.0`, `build-tools;36.0.0`, NDK `27.1.12297006`, and CMake
+`platforms;android-37.0`, `build-tools;37.0.0`, NDK `27.1.12297006`, and CMake
 `3.22.1`. Use the Android CLI documented in the installed `android-cli` skill
 or `sdkmanager` to add packages. Do not commit SDK files or generated native
 projects.

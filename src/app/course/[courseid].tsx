@@ -1,3 +1,4 @@
+import { scheduleDeferredTask } from "@/utils/scheduling";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Container } from "@/components/ui/container";
 import { Colors } from "@/constants/theme";
@@ -20,7 +21,6 @@ import { isAvailableAsync, shareAsync } from "expo-sharing";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Linking,
   Platform,
   Pressable,
@@ -166,7 +166,7 @@ export default function CourseResourcesScreen() {
       !entry || Date.now() - entry.lastSyncTime > LMS_RESOURCES_STALE_MS;
     if (!isTreeStale) return;
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       void fetchCourseResources(courseId, {
         silent: Boolean(entry),
       });

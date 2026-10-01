@@ -21,14 +21,13 @@ import { syncDashboardNotifications } from "@/services/dashboard-notifications";
 import { initializeNotifications } from "@/utils/notifications";
 import { syncPortalNotifications } from "@/services/attendance/portal-notification-sync";
 import { usePortalNotificationStore } from "@/stores/portal-notification-store";
-import { scheduleIdleTask } from "@/utils/scheduling";
+import { scheduleDeferredTask, scheduleIdleTask } from "@/utils/scheduling";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Linking,
   Pressable,
   RefreshControl,
@@ -114,7 +113,7 @@ export default function DashboardScreen() {
     }
     hasFetchedAcademicCalendar.current = true;
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       void (async () => {
         await fetchAcademicCalendarEvents();
         await initializeNotifications();
@@ -146,7 +145,7 @@ export default function DashboardScreen() {
     if (isAttendanceRefreshQueued.current) return;
     isAttendanceRefreshQueued.current = true;
 
-    const interactionTask = InteractionManager.runAfterInteractions(() => {
+    const interactionTask = scheduleDeferredTask(() => {
       const cancelIdleTask = scheduleIdleTask(
         () => {
           void Promise.allSettled([
@@ -174,7 +173,7 @@ export default function DashboardScreen() {
     if (isOffline) return;
     hasAutoRefreshed.current = true;
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       if (lastSyncTime === null) {
         void (async () => {
           const result = await fetchDashboard({ source: "foreground" });
@@ -209,7 +208,7 @@ export default function DashboardScreen() {
   // Start background refresh for notifications
   useEffect(() => {
     if (hasHydrated) {
-      const task = InteractionManager.runAfterInteractions(() => {
+      const task = scheduleDeferredTask(() => {
         // Initialize notifications on first load
         initializeNotifications();
         startBackgroundRefresh();
@@ -224,7 +223,7 @@ export default function DashboardScreen() {
     hasDeferredResourcePrefetch.current = true;
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       timeoutId = setTimeout(() => {
         void prefetchEnrolledCourseResources();
       }, 1200);
@@ -260,11 +259,11 @@ export default function DashboardScreen() {
         Date.now() - lastSyncTime > staleAfterMs;
 
       let task: ReturnType<
-        typeof InteractionManager.runAfterInteractions
+        typeof scheduleDeferredTask
       > | null = null;
 
       if (shouldRefreshOnFocus) {
-        task = InteractionManager.runAfterInteractions(() => {
+        task = scheduleDeferredTask(() => {
           void (async () => {
             const result = await fetchDashboard({
               silent: true,

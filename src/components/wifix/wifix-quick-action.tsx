@@ -1,3 +1,4 @@
+import { scheduleDeferredTask } from "@/utils/scheduling";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Colors } from "@/constants/theme";
 import { getCredentials } from "@/services/auth/lms-auth";
@@ -19,7 +20,6 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Platform,
   Pressable,
   Text,
@@ -253,7 +253,7 @@ export function WifixQuickAction({ theme }: WifixQuickActionProps) {
 
   useEffect(() => {
     if (isWeb || !settingsReady) return;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       void runActionRef.current("startup");
     });
     return () => task.cancel();

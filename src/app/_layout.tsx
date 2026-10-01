@@ -27,6 +27,7 @@ import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
 import { AppSyncController } from "@/components/sync/app-sync-controller";
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { DESKTOP_PAIRING_ROUTE } from "@/services/desktop-pairing";
+import { useHomeWidgets } from "@/hooks/use-home-widgets";
 import { useAssignmentShareIntent } from "@/hooks/use-assignment-share-intent";
 import { useAssignmentShareStore } from "@/stores/assignment-share-store";
 import { SHARED_ASSIGNMENT_ROUTE } from "@/utils/assignment-share";
@@ -56,6 +57,7 @@ const CustomLightTheme = {
 
 export default function RootLayout() {
   useAssignmentShareIntent();
+  useHomeWidgets();
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
   const dashboardHydrated = useDashboardStore((state) => state.hasHydrated);

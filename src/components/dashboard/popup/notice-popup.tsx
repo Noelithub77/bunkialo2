@@ -239,7 +239,7 @@ export function NoticePopup() {
             {popupImageSource ? (
               <View className="mb-4 items-center">
                 <Image
-                  source={popupImageSource}
+                  source={popupImageSource as React.ComponentProps<typeof Image>["source"]}
                   style={{ width: "100%", height: 120 }}
                   contentFit="contain"
                 />

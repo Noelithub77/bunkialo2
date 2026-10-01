@@ -14,7 +14,7 @@ meaning: if you fork and distribute a modified version, you must also provide so
 
 ### Prerequisites
 
-- Bun
+- Node 24.3+ and Bun
 - Expo CLI / EAS CLI
 
 ### Install
@@ -41,6 +41,25 @@ bunx expo start
 ### Android development build
 
 Download the latest Android development APK from the [GitHub Releases page](https://github.com/Noelithub77/bunkialo2/releases), install it on an Android device, and use the EAS Update preview link from the matching pull request.
+
+## Home-screen widgets
+
+SDK 58's Expo Widgets powers small timetable and mess cards on Android and iOS.
+The cards use the timetable aliases/colours and mess palette, with previous/next
+buttons and page dots. Meal dishes appear as bullet lists; widgets support light
+and dark mode. Native home-screen widgets do not support swipe carousels.
+
+Timetable snapshots update after schedule or course changes, after hydration, on
+foregrounding, and on sign-out. Only display data is shared with the widgets.
+Android schedules inexact native alarms at weekly class/meal boundaries and has a
+30-minute system refresh fallback; Doze can delay refreshes. iOS schedules 14 days
+of boundary updates, renewed whenever the app opens or the data changes.
+
+Install a new native build for runtime `1.4.1-sdk58-widgets-v1`; Expo Go and older
+installed builds cannot expose these widgets. Run `bun run test:widgets` after
+`bunx expo prebuild --no-install` to verify the compiled layouts and paging in
+Expo's widget runtime. The tracked Expo Widgets patch supplies the missing `memo`
+stub needed by Expo UI 58 during Android runtime initialization.
 
 ## Wear OS app
 
