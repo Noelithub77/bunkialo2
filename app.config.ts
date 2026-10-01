@@ -71,6 +71,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
           },
         },
       ],
+      // Dangerous mods run in reverse registration order: patch after widget files exist.
       "./plugins/with-widget-refresh",
       [
         "expo-widgets",
