@@ -416,7 +416,7 @@ checkout; do not create a Git worktree.
 
 This repository has two Android targets:
 
-- The Expo phone app builds against Android API 36 and React Native 0.81 uses
+- The Expo SDK 58 phone app builds against Android API 37 and React Native 0.88 uses
   NDK `27.1.12297006`.
 - The native Compose watch app is in `wear-os/`, compiles against API 37, and
   uses the Wear OS Android 37.0 system image for emulator checks.
