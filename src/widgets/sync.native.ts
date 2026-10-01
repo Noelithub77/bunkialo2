@@ -1,3 +1,4 @@
+import { isRunningInExpoGo } from "expo";
 import { requireOptionalNativeModule } from "expo-modules-core";
 import { Platform } from "react-native";
 import WidgetRefresh from "../../modules/widget-refresh";
@@ -12,7 +13,7 @@ import {
 } from "./data";
 
 export async function syncHomeWidgets(): Promise<void> {
-  if (!requireOptionalNativeModule("ExpoWidgets")) return;
+  if (isRunningInExpoGo() || !requireOptionalNativeModule("ExpoWidgets")) return;
   const bunk = useBunkStore.getState();
   const timetable = useTimetableStore.getState();
   const auth = useAuthStore.getState();
