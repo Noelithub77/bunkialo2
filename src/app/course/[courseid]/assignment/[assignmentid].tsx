@@ -1,3 +1,4 @@
+import { scheduleDeferredTask } from "@/utils/scheduling";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Container } from "@/components/ui/container";
 import { ASSIGNMENT_STALE_MS } from "@/constants/assignment";
@@ -13,7 +14,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Linking,
   Pressable,
   RefreshControl,
@@ -156,7 +156,7 @@ export default function AssignmentDetailScreen() {
 
   useEffect(() => {
     if (!assignmentId || !details?.canEditSubmission) return;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleDeferredTask(() => {
       void startEditSession(assignmentId, { force: false });
     });
     return () => task.cancel();

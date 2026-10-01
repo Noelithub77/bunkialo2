@@ -189,7 +189,7 @@ export function NotificationListItem({
 
                 {expanded && item.imageSource && (
                   <Image
-                    source={item.imageSource}
+                    source={item.imageSource as React.ComponentProps<typeof Image>["source"]}
                     style={{ width: "100%", height: 92, marginTop: 8 }}
                     contentFit="contain"
                   />

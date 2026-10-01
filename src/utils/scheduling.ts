@@ -11,6 +11,10 @@ interface ScheduleIdleTaskOptions {
   fallbackDelayMs?: number;
 }
 
+export const scheduleDeferredTask = (callback: () => void) => ({
+  cancel: scheduleIdleTask(callback),
+});
+
 export const scheduleIdleTask = (
   callback: () => void,
   options?: ScheduleIdleTaskOptions,
@@ -28,4 +32,3 @@ export const scheduleIdleTask = (
   const timeoutId = setTimeout(callback, fallbackDelayMs);
   return () => clearTimeout(timeoutId);
 };
-

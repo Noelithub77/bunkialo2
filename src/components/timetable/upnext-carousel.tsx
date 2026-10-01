@@ -20,7 +20,6 @@ import {
   Pressable,
   Text,
   View,
-  type ViewToken,
 } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 
@@ -168,7 +167,7 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
   }, [initialScrollIndex]);
 
   const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    ({ viewableItems }: { viewableItems: { index?: number | null }[] }) => {
       if (viewableItems.length > 0) {
         const newIndex = viewableItems[0].index ?? 0;
         if (newIndex !== activeIndexRef.current) {

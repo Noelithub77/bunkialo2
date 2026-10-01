@@ -15,6 +15,13 @@ module.exports = defineConfig([
   {
     rules: {
       "react/display-name": "off",
+      // Adopt SDK 58's new compiler diagnostics gradually across existing screens.
+      "react-hooks/refs": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/static-components": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
   {

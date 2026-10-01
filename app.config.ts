@@ -25,7 +25,6 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     icon: "./src/assets/images/icon.png",
     scheme: "bunkialo",
     userInterfaceStyle: "automatic",
-    newArchEnabled: true,
     ios: {
       bundleIdentifier: "com.codialo.Bunkialo2",
       supportsTablet: true,
@@ -47,7 +46,6 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
         foregroundImage: "./src/assets/images/android-icon-foreground.png",
         monochromeImage: "./src/assets/images/android-icon-monochrome.png",
       },
-      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: "com.codialo.Bunkialo2",
     },
@@ -59,12 +57,63 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     plugins: [
       "expo-router",
       [
-        "expo-share-intent",
+        "expo-sharing",
         {
-          androidIntentFilters: ["image/*", "application/pdf"],
-          androidMultiIntentFilters: ["image/*", "application/pdf"],
-          iosActivationRules:
-            'SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $attachment, ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.image" OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf").@count == $item.attachments.@count).@count == extensionItems.@count',
+          android: {
+            enabled: true,
+            singleShareMimeTypes: ["image/*", "application/pdf"],
+            multipleShareMimeTypes: ["image/*", "application/pdf"],
+          },
+          ios: {
+            enabled: true,
+            activationRule:
+              'SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $attachment, ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.image" OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf").@count == $item.attachments.@count).@count == extensionItems.@count',
+          },
+        },
+      ],
+      "./plugins/with-widget-refresh",
+      [
+        "expo-widgets",
+        {
+          enableAndroid: true,
+          widgets: [
+            {
+              name: "BunkialoTimetable",
+              displayName: "Timetable",
+              description: "Now and next",
+              ios: {
+                supportedFamilies: ["systemSmall", "systemMedium"],
+                contentMarginsDisabled: true,
+                initialLayout: "./src/widgets/timetable.ios.tsx",
+              },
+              android: {
+                targetCellWidth: 2,
+                targetCellHeight: 2,
+                minWidth: 150,
+                minHeight: 160,
+                resizeMode: "both",
+                initialLayout: "./src/widgets/timetable.android.tsx",
+              },
+            },
+            {
+              name: "BunkialoMess",
+              displayName: "Mess",
+              description: "Next meal",
+              ios: {
+                supportedFamilies: ["systemSmall", "systemMedium"],
+                contentMarginsDisabled: true,
+                initialLayout: "./src/widgets/mess.ios.tsx",
+              },
+              android: {
+                targetCellWidth: 3,
+                targetCellHeight: 2,
+                minWidth: 180,
+                minHeight: 180,
+                resizeMode: "both",
+                initialLayout: "./src/widgets/mess.android.tsx",
+              },
+            },
+          ],
         },
       ],
       "expo-build-properties",
@@ -102,7 +151,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     // Expo Go needs the SDK runtime; EAS builds use the app version contract.
     runtimeVersion: isExpoGoPreview
       ? { policy: "sdkVersion" }
-      : `${pkgVersion}-share-intent-v1`,
+      : `${pkgVersion}-sdk58-widgets-v1`,
     updates: {
       url: "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
     },

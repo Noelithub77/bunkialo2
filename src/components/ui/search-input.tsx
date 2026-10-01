@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
-import { forwardRef } from "react";
+import { forwardRef, type ComponentRef } from "react";
 import {
   Pressable,
   TextInput,
@@ -15,7 +15,7 @@ interface SearchInputProps extends TextInputProps {
   focused?: boolean;
 }
 
-export const SearchInput = forwardRef<TextInput, SearchInputProps>(
+export const SearchInput = forwardRef<ComponentRef<typeof TextInput>, SearchInputProps>(
   function SearchInput({ onClear, focused = false, style, value, ...props }, ref) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";

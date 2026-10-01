@@ -6,8 +6,12 @@ export function redirectSystemPath({
   path: string;
   initial: boolean;
 }) {
-  // iOS uses a dataUrl deep link to wake the app after its share extension runs.
-  // The share-intent hook reads the original URL and retrieves the shared files.
-  if (path.startsWith("bunkialo://dataUrl=")) return SHARED_ASSIGNMENT_ROUTE;
+  // SDK 58 sharing wakes iOS through expo-sharing; preserve older dataUrl links.
+  // The incoming-share hook retrieves the native file payloads.
+  if (
+    path.startsWith("bunkialo://dataUrl=") ||
+    path.startsWith("bunkialo://expo-sharing")
+  )
+    return SHARED_ASSIGNMENT_ROUTE;
   return path;
 }

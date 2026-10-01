@@ -1,3 +1,4 @@
+import { scheduleDeferredTask } from "@/utils/scheduling";
 import { LoginCredentialsStep } from "@/components/auth/login-credentials-step";
 import { PortalChallengeStep } from "@/components/auth/portal-challenge-step";
 import { login } from "@/services/auth/login";
@@ -16,7 +17,6 @@ import type { ErrorInfo, ReactNode } from "react";
 import { StatusBar } from "expo-status-bar";
 import { router, useGlobalSearchParams } from "expo-router";
 import {
-  InteractionManager,
   Linking,
   Platform,
   Pressable,
@@ -96,7 +96,7 @@ export default function LoginScreen() {
     if (!canAttemptLoginAnimation) return;
 
     let startTimer: ReturnType<typeof setTimeout> | undefined;
-    const interactionTask = InteractionManager.runAfterInteractions(() => {
+    const interactionTask = scheduleDeferredTask(() => {
       startTimer = setTimeout(() => setBackgroundMode("animated"), 1200);
     });
 

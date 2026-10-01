@@ -120,6 +120,12 @@ describe("native assignment sharing", () => {
     ).toBe("bunkialo://timetable?wear=1");
   });
 
+  test("SDK 58 incoming-share links open the assignment picker", () => {
+    expect(
+      redirectSystemPath({ path: "bunkialo://expo-sharing", initial: true }),
+    ).toBe("/share-assignment");
+  });
+
   test("normalizes iOS photo paths and preserves native content URIs", () => {
     expect(normalizeSharedFileUri("/private/var/mobile/photo.jpg")).toBe(
       "file:///private/var/mobile/photo.jpg",

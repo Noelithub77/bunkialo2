@@ -12,9 +12,9 @@ Open LMS always opens `/mod/assign/view.php?id=…`.
 
 ## Build requirement
 
-`expo-share-intent` adds native code and an iOS share extension. Install a new
+SDK 58’s `expo-sharing` adds native code and an iOS share extension. Install a new
 development or production native build; Expo Go and existing native builds cannot
-receive these shares. The runtime is now `1.4.1-share-intent-v1`, keeping these
+receive these shares. The runtime is now `1.4.1-sdk58-widgets-v1`, keeping these
 changes separate from installed `1.4.1 (59)` OTA clients. Package version stays
 `1.4.1`; EAS manages native build numbers remotely. Do not send this native feature
 as a `1.4.1` OTA update.
