@@ -15,12 +15,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import {
-  Stack,
-  router,
-  useGlobalSearchParams,
-  usePathname,
-} from "expo-router";
+import { Stack, router, useGlobalSearchParams, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
@@ -32,6 +27,9 @@ import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
 import { AppSyncController } from "@/components/sync/app-sync-controller";
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { DESKTOP_PAIRING_ROUTE } from "@/services/desktop-pairing";
+import { useAssignmentShareIntent } from "@/hooks/use-assignment-share-intent";
+import { useAssignmentShareStore } from "@/stores/assignment-share-store";
+import { SHARED_ASSIGNMENT_ROUTE } from "@/utils/assignment-share";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -57,9 +55,13 @@ const CustomLightTheme = {
 };
 
 export default function RootLayout() {
+  useAssignmentShareIntent();
   const colorScheme = useColorScheme();
   const { isLoggedIn, isCheckingAuth, isOffline, checkAuth } = useAuthStore();
   const dashboardHydrated = useDashboardStore((state) => state.hasHydrated);
+  const hasSharedFiles = useAssignmentShareStore(
+    (state) => state.files.length > 0,
+  );
   const pathname = usePathname();
   const params = useGlobalSearchParams<{ returnTo?: string }>();
   const isDark = colorScheme === "dark";
@@ -92,19 +94,25 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!isCheckingAuth) {
-      const returnTo = params.returnTo === DESKTOP_PAIRING_ROUTE
-        ? DESKTOP_PAIRING_ROUTE
-        : "/(tabs)";
-      const publicPath = pathname === "/login" || pathname === DESKTOP_PAIRING_ROUTE;
+      const returnTo =
+        hasSharedFiles || params.returnTo === SHARED_ASSIGNMENT_ROUTE
+          ? SHARED_ASSIGNMENT_ROUTE
+          : params.returnTo === DESKTOP_PAIRING_ROUTE
+            ? DESKTOP_PAIRING_ROUTE
+            : "/(tabs)";
+      const publicPath =
+        pathname === "/login" || pathname === DESKTOP_PAIRING_ROUTE;
       if (isLoggedIn && pathname === "/login") {
         router.replace(returnTo as never);
       } else if (!isLoggedIn && !publicPath) {
         router.replace(`/login?returnTo=${encodeURIComponent(pathname)}`);
       } else if (!isLoggedIn && pathname === DESKTOP_PAIRING_ROUTE) {
-        router.replace(`/login?returnTo=${encodeURIComponent(DESKTOP_PAIRING_ROUTE)}`);
+        router.replace(
+          `/login?returnTo=${encodeURIComponent(DESKTOP_PAIRING_ROUTE)}`,
+        );
       }
     }
-  }, [isCheckingAuth, isLoggedIn, params.returnTo, pathname]);
+  }, [hasSharedFiles, isCheckingAuth, isLoggedIn, params.returnTo, pathname]);
 
   useEffect(() => {
     if (!fontsReady || isCheckingAuth || !appHydrated) return;
@@ -156,6 +164,7 @@ export default function RootLayout() {
                 <Stack.Screen name="faculty/[id]" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="pair/desktop" />
+                <Stack.Screen name="share-assignment" />
                 <Stack.Screen
                   name="(fab-group)/gpa"
                   options={{

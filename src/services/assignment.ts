@@ -11,6 +11,10 @@ import type {
 } from "@/types";
 import { debug } from "@/utils/debug";
 import {
+  clampUploadProgress,
+  getBatchUploadProgress,
+} from "@/utils/upload-progress";
+import {
   getQueryParamValue,
   isLoginHtml,
   parseAssignmentIdFromMoodleUrl,
@@ -607,11 +611,7 @@ export const fetchAssignmentDetails = async (
 export const startAssignmentEditSession = async (
   assignmentId: string,
 ): Promise<AssignmentEditSession> => {
-  const sessionOk = await ensureAuthenticatedSession();
-  if (!sessionOk) {
-    throw new Error("Could not refresh LMS session. Please re-login.");
-  }
-
+  // The API interceptor refreshes expired sessions and retries this GET.
   const editUrl = `/mod/assign/view.php?id=${assignmentId}&action=editsubmission`;
   const response = await api.get<string>(editUrl);
   const html = response.data;
@@ -716,7 +716,10 @@ type RepositoryUploadResponse = {
 export const uploadAssignmentDraftFile = async (
   session: AssignmentEditSession,
   localFile: AssignmentUploadLocalFile,
-  options?: { onProgress?: (fraction: number | null) => void },
+  options?: {
+    onProgress?: (fraction: number | null) => void;
+    signal?: AbortSignal;
+  },
 ): Promise<AssignmentFileDraft> => {
   if (!session.supportsFileSubmission || !session.draftItemId) {
     throw new Error("Assignment does not support file submissions");
@@ -768,13 +771,15 @@ export const uploadAssignmentDraftFile = async (
     "/repository/repository_ajax.php?action=upload",
     uploadForm,
     {
+      signal: options?.signal,
       headers: {
         "Content-Type": "multipart/form-data",
       },
       onUploadProgress: (event) => {
         const total = event.total ?? null;
         const loaded = event.loaded;
-        const fraction = total && total > 0 ? loaded / total : null;
+        const fraction =
+          total && total > 0 ? clampUploadProgress(loaded / total) : null;
         options?.onProgress?.(fraction);
       },
     },
@@ -795,6 +800,54 @@ export const uploadAssignmentDraftFile = async (
     author: payload.author ?? session.defaultAuthor ?? null,
     license: payload.license ?? session.defaultLicense ?? null,
   };
+};
+
+/** Upload into Moodle's temporary draft area without saving the submission form. */
+export const uploadAssignmentDraftFiles = async (
+  session: AssignmentEditSession,
+  files: AssignmentUploadLocalFile[],
+  options?: {
+    onProgress?: (fraction: number | null) => void;
+    signal?: AbortSignal;
+  },
+): Promise<AssignmentEditSession> => {
+  if (!session.supportsFileSubmission || !session.draftItemId) {
+    throw new Error("This assignment does not accept file submissions");
+  }
+  if (
+    session.maxFiles !== null &&
+    session.maxFiles >= 0 &&
+    files.length > session.maxFiles
+  ) {
+    throw new Error(`Maximum ${session.maxFiles} file(s) allowed`);
+  }
+  // Validate the entire selection before uploading any file.
+  for (const file of files) {
+    const validation = validateFileType(file.name, session.acceptedFileTypes);
+    if (!validation.ok)
+      throw new Error(validation.message ?? "File type not allowed");
+    if (
+      session.maxBytes !== null &&
+      session.maxBytes > 0 &&
+      file.size != null &&
+      file.size > session.maxBytes
+    ) {
+      throw new Error(`${file.name} exceeds the assignment's file size limit`);
+    }
+  }
+  let draftSession = session;
+  for (const [index, file] of files.entries()) {
+    const draft = await uploadAssignmentDraftFile(draftSession, file, {
+      signal: options?.signal,
+      onProgress: (fraction) =>
+        options?.onProgress?.(
+          getBatchUploadProgress(index, files.length, fraction),
+        ),
+    });
+    draftSession = { ...draftSession, draftItemId: draft.itemId };
+    options?.onProgress?.((index + 1) / files.length);
+  }
+  return draftSession;
 };
 
 export const submitAssignment = async (
@@ -821,11 +874,6 @@ export const submitAssignment = async (
 
   const files = payload.files ?? [];
   let draftItemIdToSubmit = session.draftItemId;
-  const maxFilesLimit =
-    session.maxFiles !== null && session.maxFiles >= 0
-      ? session.maxFiles
-      : null;
-  let uploadSession: AssignmentEditSession = session;
   if (files.length > 0) {
     if (!session.supportsFileSubmission || !session.draftItemId) {
       return {
@@ -835,36 +883,20 @@ export const submitAssignment = async (
       };
     }
 
-    if (maxFilesLimit !== null && files.length > maxFilesLimit) {
+    try {
+      const draftSession = await uploadAssignmentDraftFiles(
+        session,
+        files,
+        options,
+      );
+      draftItemIdToSubmit = draftSession.draftItemId;
+    } catch (error) {
       return {
         success: false,
-        reason: "validation",
-        message: `Maximum ${maxFilesLimit} file(s) allowed`,
+        reason: "server",
+        message:
+          error instanceof Error ? error.message : "Failed to upload file",
       };
-    }
-
-    for (const file of files) {
-      try {
-        const uploadedDraft = await uploadAssignmentDraftFile(
-          uploadSession,
-          file,
-          {
-            onProgress: options?.onProgress,
-          },
-        );
-        draftItemIdToSubmit = uploadedDraft.itemId;
-        uploadSession = {
-          ...uploadSession,
-          draftItemId: uploadedDraft.itemId,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          reason: "server",
-          message:
-            error instanceof Error ? error.message : "Failed to upload file",
-        };
-      }
     }
   }
 
@@ -942,30 +974,6 @@ export const submitAssignment = async (
 export const fetchAssignmentDetailsWithSession = async (
   assignmentId: string,
 ): Promise<AssignmentDetails> => {
-  const sessionOk = await ensureAuthenticatedSession();
-  if (!sessionOk) {
-    throw new Error("Could not refresh LMS session. Please re-login.");
-  }
-
-  const details = await fetchAssignmentDetails(assignmentId);
-  if (!details.canEditSubmission) {
-    return details;
-  }
-
-  try {
-    const editSession = await startAssignmentEditSession(assignmentId);
-    return {
-      ...details,
-      maxFiles: editSession.maxFiles,
-      maxBytes: editSession.maxBytes,
-      acceptedFileTypes: editSession.acceptedFileTypes,
-      supportsFileSubmission: editSession.supportsFileSubmission,
-      supportsOnlineTextSubmission: editSession.supportsOnlineTextSubmission,
-    };
-  } catch (error) {
-    debug.scraper(
-      `Could not augment assignment details with edit-session metadata: ${String(error)}`,
-    );
-    return details;
-  }
+  // Render the view page immediately; the store loads edit metadata separately.
+  return fetchAssignmentDetails(assignmentId);
 };

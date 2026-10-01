@@ -18,6 +18,7 @@ import { useDashboardStore } from "@/stores/dashboard-store";
 import { useFacultyStore } from "@/stores/faculty-store";
 import { useLmsResourcesStore } from "@/stores/lms-resources-store";
 import { useAssignmentStore } from "@/stores/assignment-store";
+import { useAssignmentShareStore } from "@/stores/assignment-share-store";
 import { useTimetableStore } from "@/stores/timetable-store";
 import { useCourseLinkStore } from "@/stores/course-link-store";
 import { usePortalNotificationStore } from "@/stores/portal-notification-store";
@@ -136,6 +137,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       useFacultyStore.getState().clearRecentSearches();
       useLmsResourcesStore.getState().clearCourseResources();
       useAssignmentStore.getState().clearAssignmentCache();
+      useAssignmentShareStore.getState().clearSharedFiles();
       useAttendanceUIStore.getState().resetUI();
 
       useCourseLinkStore.getState().clearCourseLinks();

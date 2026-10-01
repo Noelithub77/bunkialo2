@@ -46,6 +46,7 @@ export interface AssignmentUploadLocalFile {
   uri: string;
   name: string;
   mimeType?: string | null;
+  size?: number | null;
 }
 
 export interface AssignmentEditSession {
