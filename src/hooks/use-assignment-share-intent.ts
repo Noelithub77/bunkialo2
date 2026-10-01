@@ -1,4 +1,5 @@
-import { useIncomingShare } from "expo-sharing";
+import { isRunningInExpoGo } from "expo";
+import { useIncomingShare, type UseIncomingShareResult } from "expo-sharing";
 import { useLinkingURL } from "expo-linking";
 import { router, usePathname, useRootNavigationState } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -11,13 +12,26 @@ import {
   SHARED_ASSIGNMENT_ROUTE,
 } from "@/utils/assignment-share";
 
+// Expo Go has no app-specific iOS share group; querying native payloads throws.
+const emptyIncomingShare: UseIncomingShareResult = {
+  sharedPayloads: [],
+  resolvedSharedPayloads: [],
+  clearSharedPayloads: () => {},
+  refreshSharePayloads: async () => {},
+  isResolving: false,
+  error: null,
+};
+const useAssignmentIncomingShare = isRunningInExpoGo()
+  ? () => emptyIncomingShare
+  : useIncomingShare;
+
 export function useAssignmentShareIntent() {
   const {
     resolvedSharedPayloads,
     clearSharedPayloads,
     refreshSharePayloads,
     error,
-  } = useIncomingShare();
+  } = useAssignmentIncomingShare();
   const incomingUrl = useLinkingURL();
   const navigation = useRootNavigationState();
   const pathname = usePathname();

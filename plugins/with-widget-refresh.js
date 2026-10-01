@@ -16,12 +16,13 @@ module.exports = (config) =>
       ]) {
         const file = path.join(root, name);
         const xml = await fs.readFile(file, "utf8");
+        const period = /android:updatePeriodMillis\s*=\s*["']\d+["']/;
+        if (!period.test(xml)) {
+          throw new Error(`Widget refresh interval missing in ${name}`);
+        }
         await fs.writeFile(
           file,
-          xml.replace(
-            'android:updatePeriodMillis="0"',
-            'android:updatePeriodMillis="1800000"',
-          ),
+          xml.replace(period, 'android:updatePeriodMillis="1800000"'),
         );
       }
       return config;

@@ -127,9 +127,10 @@ export default function AttendanceScreen() {
   useEffect(() => {
     if (!isAttendanceHydrated || !isBunkHydrated) return;
     if (courses.length === 0) return;
-    scheduleDeferredTask(() => {
+    const task = scheduleDeferredTask(() => {
       syncFromLms();
     });
+    return () => task.cancel();
   }, [
     isAttendanceHydrated,
     isBunkHydrated,
