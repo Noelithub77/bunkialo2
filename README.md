@@ -40,7 +40,12 @@ bunx expo start
 
 ### Android development build
 
-Download the latest Android development APK from the [GitHub Releases page](https://github.com/Noelithub77/bunkialo2/releases), install it on an Android device, and use the EAS Update preview link from the matching pull request.
+Download the latest Android development APK from the [GitHub Releases page](https://github.com/Noelithub77/bunkialo2/releases), install it on an Android device, and open the EAS Update preview link from a manually started preview run.
+
+All build and publish workflows require a manual trigger. Start GitHub workflows
+from **Actions → Run workflow**. Start EAS previews with
+`bunx eas-cli workflow:run .eas/workflows/manual-preview.yml`; the run publishes to
+`manual-preview-dev` and `manual-preview-expo-go`.
 
 ## Home-screen widgets
 

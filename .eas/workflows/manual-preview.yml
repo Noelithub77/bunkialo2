@@ -1,0 +1,28 @@
+name: Manual Preview Update
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}
+
+jobs:
+  publish_dev_preview:
+    name: Publish development-build preview
+    type: update
+    environment: development
+    params:
+      branch: manual-preview-dev
+      message: "Manual development-build preview"
+
+  publish_expo_go_preview:
+    name: Publish Expo Go preview
+    type: update
+    environment: development
+    env:
+      EXPO_GO_PREVIEW: "1"
+    params:
+      platform: ios
+      branch: manual-preview-expo-go
+      message: "Manual Expo Go preview"
