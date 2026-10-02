@@ -1,8 +1,9 @@
 import path from "node:path";
-import dotenv from "dotenv";
+import { existsSync } from "node:fs";
 import { chromium } from "playwright";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+const envFile = path.resolve(process.cwd(), ".env");
+if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 const username = process.env.LMS_TEST_USERNAME;
 const password = process.env.LMS_TEST_PASSWORD;
