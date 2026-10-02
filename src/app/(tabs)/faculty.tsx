@@ -2,12 +2,13 @@ import { FacultyCard } from "@/components/faculty/faculty-card";
 import { Container } from "@/components/ui/container";
 import { SearchInput } from "@/components/ui/search-input";
 import { Colors } from "@/constants/theme";
+import { hostelGroups } from "@/data/hostels";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  getTopFaculty,
   searchFacultyWithMatches,
   useFacultyStore,
 } from "@/stores/faculty-store";
+import { useHostelPreferenceStore } from "@/stores/hostel-preference-store";
 import type { Faculty } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -16,6 +17,7 @@ import {
   FlatList,
   Keyboard,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -28,13 +30,18 @@ export default function FacultyScreen() {
 
   const {
     faculties,
-    topFacultyIds,
     recentSearches,
     loadFaculty,
     addRecentSearch,
     removeRecentSearch,
     clearRecentSearches,
   } = useFacultyStore();
+  const { selectedHostelId, selectHostel, hasHydrated } =
+    useHostelPreferenceStore();
+  const selectedHostel =
+    hostelGroups.find((hostel) => hostel.id === selectedHostelId) ||
+    hostelGroups.find((hostel) => hostel.id === "manimala")!;
+  const [hostelMenuOpen, setHostelMenuOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -42,7 +49,7 @@ export default function FacultyScreen() {
 
   useEffect(() => {
     if (faculties.length === 0) loadFaculty();
-  }, []);
+  }, [faculties.length, loadFaculty]);
 
   // instant search - no debounce needed for 136 items
   const searchResults = useMemo(() => {
@@ -54,9 +61,11 @@ export default function FacultyScreen() {
     );
   }, [searchResults]);
 
-  const topFaculty = useMemo(() => {
-    return getTopFaculty(faculties, topFacultyIds);
-  }, [faculties, topFacultyIds]);
+  const wardens = useMemo(() => {
+    return selectedHostel.wardenIds
+      .map((id) => faculties.find((faculty) => faculty.id === id))
+      .filter((faculty): faculty is Faculty => Boolean(faculty));
+  }, [faculties, selectedHostel]);
 
   const handleFacultyPress = useCallback(
     (faculty: Faculty) => {
@@ -83,10 +92,9 @@ export default function FacultyScreen() {
 
   const isSearching = searchQuery.trim().length > 0;
   const showRecentSearches = !isSearching && recentSearches.length > 0;
-  const showTopFaculty = !isSearching && topFaculty.length > 0;
   const displayData = isSearching
     ? searchResults.map((result) => result.faculty)
-    : topFaculty;
+    : wardens;
 
   const renderItem = useCallback(
     ({ item }: { item: Faculty }) => (
@@ -94,9 +102,16 @@ export default function FacultyScreen() {
         faculty={item}
         onPress={() => handleFacultyPress(item)}
         matchedFields={isSearching ? searchMatchMap.get(item.id) : undefined}
+        role={
+          isSearching
+            ? undefined
+            : item.hostelRoles?.find(
+                (entry) => entry.hostelId === selectedHostel.id,
+              )?.role
+        }
       />
     ),
-    [handleFacultyPress, isSearching, searchMatchMap],
+    [handleFacultyPress, isSearching, searchMatchMap, selectedHostel.id],
   );
 
   const keyExtractor = useCallback((item: Faculty) => item.id, []);
@@ -185,14 +200,87 @@ export default function FacultyScreen() {
         )}
 
         {/* section labels */}
-        {showTopFaculty && !showRecentSearches && (
-          <View className="mt-6">
+        {!isSearching && (
+          <View className="mb-3 mt-5">
             <Text
-              className="text-[13px] font-semibold uppercase tracking-[0.5px]"
+              className="mb-1 text-[12px] font-semibold uppercase tracking-[0.5px]"
               style={{ color: theme.textSecondary }}
             >
-              Top Faculty
+              Wardens
             </Text>
+            <Pressable
+              className="min-h-12 flex-row items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
+              style={{
+                backgroundColor: theme.backgroundSecondary,
+                borderColor: theme.border,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Hostel: ${selectedHostel.name}`}
+              accessibilityState={{
+                expanded: hostelMenuOpen,
+                disabled: !hasHydrated,
+              }}
+              aria-expanded={hostelMenuOpen}
+              aria-disabled={!hasHydrated}
+              disabled={!hasHydrated}
+              onPress={() => {
+                Keyboard.dismiss();
+                setHostelMenuOpen((open) => !open);
+              }}
+            >
+              <Text
+                className="flex-1 text-[15px] font-semibold"
+                style={{ color: theme.text }}
+              >
+                {selectedHostel.name}
+              </Text>
+              <Ionicons
+                name={hostelMenuOpen ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={theme.text}
+              />
+            </Pressable>
+            {hostelMenuOpen && (
+              <ScrollView
+                className="mt-2 rounded-xl border"
+                accessibilityRole="radiogroup"
+                accessibilityLabel="Hostel groups"
+                style={{
+                  maxHeight: 280,
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                }}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+              >
+                {hostelGroups.map((hostel) => (
+                  <Pressable
+                    key={hostel.id}
+                    className="min-h-12 flex-row items-center justify-between gap-3 px-3 py-3"
+                    accessibilityRole="radio"
+                    accessibilityLabel={hostel.name}
+                    accessibilityState={{
+                      checked: selectedHostel.id === hostel.id,
+                    }}
+                    aria-checked={selectedHostel.id === hostel.id}
+                    onPress={() => {
+                      selectHostel(hostel.id);
+                      setHostelMenuOpen(false);
+                    }}
+                  >
+                    <Text
+                      className="flex-1 text-[14px]"
+                      style={{ color: theme.text }}
+                    >
+                      {hostel.name}
+                    </Text>
+                    {selectedHostel.id === hostel.id && (
+                      <Ionicons name="checkmark" size={18} color={theme.text} />
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
           </View>
         )}
 

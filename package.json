@@ -6,7 +6,7 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "generate-icons": "node ./src/scripts/generate-icons.mjs",
-    "fetch-faculty": "node ./scripts/fetch-faculty.mjs",
+    "fetch-faculty": "node ./src/scripts/fetch-faculty.mjs",
     "desktop:export": "bun scripts/export-omarchy-data.ts",
     "android": "expo run:android",
     "ios": "expo run:ios",

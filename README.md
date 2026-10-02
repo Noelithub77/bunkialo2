@@ -47,6 +47,20 @@ from **Actions → Run workflow**. Start EAS previews with
 `bunx eas-cli workflow:run .eas/workflows/manual-preview.yml`; the run publishes to
 `manual-preview-dev` and `manual-preview-expo-go`.
 
+### Faculty and hostel wardens
+
+The Faculty tab defaults to the Manimala & MJ Apartment wardens. Hostels sharing
+the official roster appear together. The selected group is saved locally and
+survives restarts, OTA updates, app upgrades, and logout; clearing app data or
+uninstalling removes the preference.
+
+`bun run fetch-faculty` refreshes both faculty records and hostel references from
+IIIT Kottayam's official faculty and hostel pages. **Refresh Faculty and Hostel
+Wardens** runs on the first of each month at 00:15 UTC, or manually, and commits
+changed data to main. For protected main, configure `FACULTY_UPDATE_TOKEN` with a
+token allowed to push directly; otherwise the workflow uses `GITHUB_TOKEN`.
+This data refresh does not build or publish an app update.
+
 ## Home-screen widgets
 
 SDK 58's Expo Widgets powers small timetable and mess cards on Android and iOS.
