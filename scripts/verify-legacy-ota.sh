@@ -28,7 +28,7 @@ for attempt in range(90):
             rows=con.execute('SELECT hex(id), runtime_version, status FROM updates').fetchall()
             con.close()
             (out/'update-rows.txt').write_text(repr(rows))
-            # Expo Updates status READY=1; embedded update has status=2.
+            # Expo Updates status READY=1; embedded update has status=5.
             if any(update_id==expected and runtime=='1.4.1' and status==1 for update_id,runtime,status in rows):
                 print('Production SDK 54 OTA downloaded and ready:',rows)
                 raise SystemExit(0)
