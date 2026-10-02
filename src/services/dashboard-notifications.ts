@@ -1,3 +1,13 @@
+import { isVisibleAcademicEvent } from "@/utils/academic-event-visibility";
+import { ACADEMIC_EVENTS } from "@/data/acad-cal";
+import { useAcademicCalendarStore } from "@/stores/academic-calendar-store";
+import { useAcademicCalendarFeedStore } from "@/stores/academic-calendar-feed-store";
+import {
+  mergeCalendarReminders,
+  getCalendarReminderTime,
+  getCalendarReminderMinutes,
+} from "@/utils/calendar-reminders";
+import { notificationIdentifier } from "@/utils/portal-notification";
 import {
   DASHBOARD_NOTIFICATION_CHANNELS,
   DASHBOARD_NOTIFICATION_STORAGE_KEY,
@@ -8,6 +18,7 @@ import {
   cancelNotificationRequests,
   ensureNotificationChannels,
   hasNotificationPermissions,
+  getScheduledNotificationIds,
   scheduleDateNotification,
   sendImmediateNotification,
 } from "@/utils/notifications";
@@ -38,6 +49,7 @@ type ReminderEvent = {
   id: string;
   startAt: number;
   title: string;
+  reminderMinutes?: number[];
   type: "academic-calendar-reminder" | "dashboard-reminder";
 };
 
@@ -52,7 +64,8 @@ let notificationSyncQueue: Promise<void> = Promise.resolve();
 const getReminderSignature = (
   event: ReminderEvent,
   minutesBefore: number,
-): string => `${event.type}:${event.id}:${event.startAt}:${minutesBefore}`;
+): string =>
+  `${event.type}:${event.id}:${event.startAt}:${minutesBefore}:${notificationIdentifier(JSON.stringify([event.title, event.body(minutesBefore), event.data]))}`;
 
 const toReminderEvents = (
   upcomingEvents: TimelineEvent[],
@@ -72,23 +85,27 @@ const toReminderEvents = (
     type: "dashboard-reminder" as const,
   })),
   ...academicEvents.flatMap((event) => {
-    if (event.origin !== "google-calendar" || !event.startAt || !isVisibleAcademicEvent(event)) return [];
-    const startAt = Date.parse(event.startAt);
-    if (!Number.isFinite(startAt)) return [];
+    if (!isVisibleAcademicEvent(event)) return [];
+    const startAt = getCalendarReminderTime(event);
+    if (startAt === null) return [];
 
-    return [{
-      body: (minutesBefore: number) =>
-        `Starts in ${minutesBefore} minutes${event.location ? ` - ${event.location}` : ""}`,
-      data: {
-        calendarUrl: event.calendarUrl,
-        eventId: event.id,
-        type: "academic-calendar-reminder",
+    return [
+      {
+        body: (minutesBefore: number) =>
+          `${event.deadlineAt ? "Due" : "Starts"} in ${minutesBefore} min${event.location ? ` · ${event.location}` : ""}`,
+        data: {
+          calendarUrl: event.calendarUrl,
+          route: "/acad-cal",
+          eventId: event.id,
+          type: "academic-calendar-reminder",
+        },
+        id: event.id,
+        startAt,
+        title: event.title,
+        reminderMinutes: getCalendarReminderMinutes(event),
+        type: "academic-calendar-reminder" as const,
       },
-      id: event.id,
-      startAt,
-      title: event.title,
-      type: "academic-calendar-reminder" as const,
-    }];
+    ];
   }),
 ];
 
@@ -132,7 +149,9 @@ const loadDashboardNotificationState =
   async (): Promise<DashboardNotificationState> => {
     await ensureLegacyDashboardNotificationStateMigrated();
 
-    const raw = await zustandStorage.getItem(DASHBOARD_NOTIFICATION_STORAGE_KEY);
+    const raw = await zustandStorage.getItem(
+      DASHBOARD_NOTIFICATION_STORAGE_KEY,
+    );
     if (!raw) {
       return EMPTY_NOTIFICATION_STATE;
     }
@@ -188,13 +207,13 @@ const buildNewUpcomingNotification = (
   };
 };
 
-const isFutureReminder = (
-  event: ReminderEvent,
-  minutesBefore: number,
-): boolean => {
-  const scheduledAt = event.startAt - minutesBefore * 60 * 1000;
-  return scheduledAt > Date.now();
-};
+const planReminders = (events: ReminderEvent[], defaultMinutes: number[]) =>
+  events.flatMap((event) => [...new Set(event.reminderMinutes ?? defaultMinutes)]
+    .filter((minutes) => Number.isFinite(minutes) && minutes > 0)
+    .map((minutesBefore) => ({ event, minutesBefore, scheduledAt: event.startAt - minutesBefore * 60000, signature: getReminderSignature(event, minutesBefore) })))
+    .filter((reminder) => reminder.scheduledAt > Date.now())
+    .sort((a, b) => a.scheduledAt - b.scheduledAt || a.signature.localeCompare(b.signature))
+    .slice(0, 60);
 
 const cancelReminderMap = async (
   reminderMap: Record<string, string>,
@@ -213,36 +232,21 @@ const buildReminderNotifications = async (
   reminderMinutes: number[],
 ): Promise<Record<string, string>> => {
   const scheduledReminderIds: Record<string, string> = {};
-  const uniqueReminderMinutes = Array.from(
-    new Set(reminderMinutes.filter((minutes) => minutes > 0)),
-  ).sort((a, b) => b - a);
-
-  for (const event of reminderEvents) {
-    for (const minutesBefore of uniqueReminderMinutes) {
-      if (!isFutureReminder(event, minutesBefore)) {
-        continue;
-      }
-
-      const scheduledAt = event.startAt - minutesBefore * 60 * 1000;
-
-      const reminderSignature = getReminderSignature(event, minutesBefore);
-      const existingNotificationId = previousReminderIds[reminderSignature];
-
-      if (existingNotificationId) {
-        scheduledReminderIds[reminderSignature] = existingNotificationId;
-        continue;
-      }
-
-      const notificationId = await scheduleDateNotification({
-        body: event.body(minutesBefore),
-        channelId: DASHBOARD_NOTIFICATION_CHANNELS.reminders,
-        data: { ...event.data, reminderMinutes: minutesBefore },
-        date: scheduledAt,
-        title: event.title,
-      });
-
-      scheduledReminderIds[reminderSignature] = notificationId;
+  for (const {event, minutesBefore, scheduledAt, signature: reminderSignature} of planReminders(reminderEvents, reminderMinutes)) {
+    const existingNotificationId = previousReminderIds[reminderSignature];
+    if (existingNotificationId) {
+      scheduledReminderIds[reminderSignature] = existingNotificationId;
+      continue;
     }
+    const notificationId = await scheduleDateNotification({
+      identifier: notificationIdentifier(reminderSignature),
+      body: event.body(minutesBefore),
+      channelId: DASHBOARD_NOTIFICATION_CHANNELS.reminders,
+      data: { ...event.data, reminderMinutes: minutesBefore },
+      date: scheduledAt,
+      title: event.title,
+    });
+    scheduledReminderIds[reminderSignature] = notificationId;
   }
 
   return scheduledReminderIds;
@@ -266,7 +270,20 @@ const runDashboardNotificationsSync = async ({
   newUpcomingEvents: TimelineEvent[];
 }> => {
   const dedupedUpcomingEvents = dedupeTimelineEvents(upcomingEvents);
-  const reminderEvents = toReminderEvents(dedupedUpcomingEvents, academicEvents);
+  const calendar = useAcademicCalendarStore.getState();
+  const allAcademicEvents = mergeCalendarReminders(
+    [
+      ...ACADEMIC_EVENTS,
+      ...calendar.customEvents,
+      ...useAcademicCalendarFeedStore.getState().googleEvents,
+      ...academicEvents,
+    ],
+    calendar.overrides,
+  );
+  const reminderEvents = toReminderEvents(
+    dedupedUpcomingEvents,
+    allAcademicEvents,
+  );
   const previousState = await loadDashboardNotificationState();
   const previousSignatures = new Set(previousState.seenUpcomingSignatures);
   const currentSignatures = new Set(
@@ -309,13 +326,7 @@ const runDashboardNotificationsSync = async ({
     },
   ]);
 
-  const nextReminderKeys = new Set(
-    reminderEvents.flatMap((event) =>
-      reminderMinutes
-        .filter((minutes) => minutes > 0 && isFutureReminder(event, minutes))
-        .map((minutesBefore) => getReminderSignature(event, minutesBefore)),
-    ),
-  );
+  const nextReminderKeys = new Set(planReminders(reminderEvents, reminderMinutes).map((reminder) => reminder.signature));
   const staleReminderIds = Object.entries(previousState.scheduledReminderIds)
     .filter(([reminderSignature]) => !nextReminderKeys.has(reminderSignature))
     .map(([, notificationId]) => notificationId);
@@ -324,8 +335,15 @@ const runDashboardNotificationsSync = async ({
     await cancelNotificationRequests(staleReminderIds);
   }
 
+  const scheduledIds = await getScheduledNotificationIds();
+  const pendingIds = new Set(scheduledIds ?? Object.values(previousState.scheduledReminderIds));
+  const validExisting = Object.fromEntries(
+    Object.entries(previousState.scheduledReminderIds).filter(([, id]) =>
+      pendingIds.has(id),
+    ),
+  );
   const scheduledReminderIds = await buildReminderNotifications(
-    previousState.scheduledReminderIds,
+    validExisting,
     reminderEvents,
     reminderMinutes,
   );
@@ -373,4 +391,3 @@ export const syncDashboardNotifications = async (
     releaseQueue();
   }
 };
-import { isVisibleAcademicEvent } from "@/utils/academic-event-visibility";

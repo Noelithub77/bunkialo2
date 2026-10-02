@@ -14,8 +14,8 @@ on:
       platform:
         description: Platform to publish
         type: choice
-        options: [all, android, ios]
-        default: all
+        options: [android]
+        default: android
         required: true
       update_message:
         description: Update message for the OTA release
@@ -36,7 +36,7 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       OTA_TARGET: ${{ inputs.target }}
-      OTA_PLATFORM: ${{ inputs.platform }}
+      OTA_PLATFORM: android
       UPDATE_MESSAGE: ${{ inputs.update_message }}
     steps:
       - uses: actions/checkout@v4

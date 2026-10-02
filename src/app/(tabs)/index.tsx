@@ -468,7 +468,7 @@ export default function DashboardScreen() {
                 color={theme.textSecondary}
               />
             </Pressable>
-            <Pressable
+            <Pressable accessibilityLabel="Notifications" accessibilityRole="button"
               onPress={() => {
                 setShowNoticesModal(true);
               }}

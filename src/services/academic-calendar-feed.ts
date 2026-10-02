@@ -186,7 +186,16 @@ const normalizeOccurrence = ({
   const endDateValue = getExclusiveEndDate(endDate);
   const location = event.location?.trim() ?? "";
 
+  const alarmMinutes = event.component.getAllSubcomponents("valarm").flatMap((alarm) => {
+    const trigger = alarm.getFirstProperty("trigger");
+    const value = trigger?.getFirstValue();
+    if (!(value instanceof ICAL.Duration)) return [];
+    const offset = value.toSeconds() + (trigger?.getParameter("related") === "END" ? endDate.toUnixTime() - startDate.toUnixTime() : 0);
+    return offset < 0 ? [-offset / 60] : [];
+  });
+
   return {
+    reminderMinutes: alarmMinutes.length ? [...new Set(alarmMinutes)] : undefined,
     allDay,
     calendarUrl: createGoogleEventUrl(event.uid),
     category: "club",

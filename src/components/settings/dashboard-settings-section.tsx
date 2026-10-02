@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import type { DashboardBackgroundActivity } from "@/types";
-import { Switch, Text, View } from "react-native";
+import { Platform, Switch, Text, View } from "react-native";
+import { openBatterySettings } from "@/utils/battery-settings";
 import { SettingRow } from "./setting-row";
 
 type DashboardSettingsSectionProps = {
@@ -70,6 +71,10 @@ export const DashboardSettingsSection = ({
         }
       />
       <Divider theme={theme} />
+      {Platform.OS === "android" && (<>
+        <SettingRow icon="battery-half-outline" label="Battery" onPress={() => void openBatterySettings()} theme={theme} />
+        <Divider theme={theme} />
+      </>)}
       <SettingRow
         icon="checkmark-circle-outline"
         label="Test Notification"

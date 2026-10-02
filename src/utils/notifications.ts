@@ -46,13 +46,7 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
   let finalStatus = existingStatus;
 
   if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-      },
-    });
+    const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
@@ -75,6 +69,7 @@ export const initializeNotifications = async (): Promise<void> => {
 };
 
 export const scheduleDateNotification = async (params: {
+  identifier?: string;
   body: string;
   channelId?: string;
   data?: Record<string, unknown>;
@@ -82,6 +77,7 @@ export const scheduleDateNotification = async (params: {
   title: string;
 }): Promise<string> => {
   return Notifications.scheduleNotificationAsync({
+    identifier: params.identifier,
     content: {
       title: params.title,
       body: params.body,
@@ -96,12 +92,14 @@ export const scheduleDateNotification = async (params: {
 };
 
 export const sendImmediateNotification = async (params: {
+  identifier?: string;
   body: string;
   channelId?: string;
   data?: Record<string, unknown>;
   title: string;
 }): Promise<string> => {
   return Notifications.scheduleNotificationAsync({
+    identifier: params.identifier,
     content: {
       title: params.title,
       body: params.body,
@@ -133,3 +131,5 @@ export const requestNotificationPermissionsWithExplanation =
   async (): Promise<boolean> => {
     return requestNotificationPermissions();
   };
+
+export const getScheduledNotificationIds = async (): Promise<string[]> => (await Notifications.getAllScheduledNotificationsAsync()).map((request) => request.identifier);

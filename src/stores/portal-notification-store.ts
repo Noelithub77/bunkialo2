@@ -27,6 +27,10 @@ interface PortalNotificationState {
   deliveredIds: string[];
   dismissedAtById: Record<string, number>;
   hasBaseline: boolean;
+  hasHydrated: boolean;
+  lastSyncAt: number | null;
+  pendingDeliveryIds: string[];
+  setPendingDeliveryIds: (ids: string[]) => void;
   setFetched: (items: PortalNotification[]) => void;
   addDeliveredIds: (ids: string[]) => void;
   dismiss: (ids: string[]) => void;
@@ -44,10 +48,22 @@ export const usePortalNotificationStore = create<PortalNotificationState>()(
       deliveredIds: [],
       dismissedAtById: {},
       hasBaseline: false,
+      hasHydrated: false,
+      lastSyncAt: null,
+      pendingDeliveryIds: [],
+      setPendingDeliveryIds: (ids) =>
+        set({ pendingDeliveryIds: [...new Set(ids)] }),
       setFetched: (items) =>
         set((state) => {
           const now = Date.now();
-          const recentItems = items.filter((item) =>
+          const previous = new Map(state.items.map((item) => [item.id, item]));
+          const merged = new Map(state.items.map((item) => [item.id, item]));
+          for (const item of items)
+            merged.set(item.id, {
+              ...item,
+              readAt: item.readAt ?? previous.get(item.id)?.readAt ?? null,
+            });
+          const recentItems = [...merged.values()].filter((item) =>
             isNotificationRecent(item.createdAt, now),
           );
           const recentIds = new Set(recentItems.map((item) => item.id));
@@ -59,21 +75,27 @@ export const usePortalNotificationStore = create<PortalNotificationState>()(
             items: recentItems.filter(
               (item) => dismissedAtById[item.id] === undefined,
             ),
+            pendingDeliveryIds: state.pendingDeliveryIds.filter((id) => recentIds.has(id) && dismissedAtById[id] === undefined),
             fetchedIds: [...recentIds],
             deliveredIds: state.deliveredIds.filter((id) => recentIds.has(id)),
             dismissedAtById,
             hasBaseline: true,
+            lastSyncAt: now,
           };
         }),
       addDeliveredIds: (ids) =>
         set((state) => ({
           deliveredIds: [...new Set([...state.deliveredIds, ...ids])],
+          pendingDeliveryIds: state.pendingDeliveryIds.filter(
+            (id) => !ids.includes(id),
+          ),
         })),
       dismiss: (ids) => {
         const dismissedIds = new Set(ids);
         const dismissedAt = Date.now();
         set((state) => ({
           items: state.items.filter((item) => !dismissedIds.has(item.id)),
+          pendingDeliveryIds: state.pendingDeliveryIds.filter((id) => !dismissedIds.has(id)),
           dismissedAtById: {
             ...(state.dismissedAtById ?? {}),
             ...Object.fromEntries(ids.map((id) => [id, dismissedAt])),
@@ -96,6 +118,7 @@ export const usePortalNotificationStore = create<PortalNotificationState>()(
           ]);
           return {
             items,
+            pendingDeliveryIds: state.pendingDeliveryIds.filter((id) => recentIds.has(id) && dismissedAtById[id] === undefined),
             fetchedIds: state.fetchedIds.filter((id) => recentIds.has(id)),
             deliveredIds: state.deliveredIds.filter((id) => recentIds.has(id)),
             dismissedAtById,
@@ -128,12 +151,17 @@ export const usePortalNotificationStore = create<PortalNotificationState>()(
           deliveredIds: [],
           dismissedAtById: {},
           hasBaseline: false,
+          pendingDeliveryIds: [],
+          lastSyncAt: null,
         }),
     }),
     {
       name: "portal-notification-storage-sqlite-v1",
       storage: createJSONStorage(() => zustandStorage),
-      onRehydrateStorage: () => (state) => state?.pruneExpired(),
+      onRehydrateStorage: () => (state) => {
+        state?.pruneExpired();
+        usePortalNotificationStore.setState({ hasHydrated: true });
+      },
     },
   ),
 );

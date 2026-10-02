@@ -23,6 +23,32 @@ execFileSync("git", ["rev-parse", "--verify", nativeBase]);
 const { writeFileSync } = await import("node:fs");
 writeFileSync(resolve(destination, "src/app/login.tsx"), login);
 const files = [
+  "src/background/wifix-background.ts",
+  "src/stores/wifix-store.ts",
+  "src/background/index.ts",
+  "src/background/portal-notification-background.ts",
+  "src/background/portal-notification-background.web.ts",
+  "src/components/dashboard/notices-modal.tsx",
+  "src/components/dashboard/notification-inbox-controls.tsx",
+  "src/components/dashboard/notification-list-item.tsx",
+  "src/components/settings/dashboard-settings-section.tsx",
+  "src/components/sync/app-sync-controller.tsx",
+  "src/components/sync/calendar-notification-controller.tsx",
+  "src/constants/dashboard.ts",
+  "src/constants/portal-notifications.ts",
+  "src/services/attendance/portal-notification-sync.ts",
+  "src/services/calendar-notification-sync.ts",
+  "src/stores/portal-notification-store.ts",
+  "src/types/notification.ts",
+  "src/utils/notification-inbox.ts",
+  "src/utils/portal-notification.ts",
+  "src/utils/calendar-reminders.ts",
+  "src/utils/battery-settings.ts",
+  "src/utils/notifications.ts",
+  "src/utils/notifications.web.ts",
+  "tests/unit/notifications/portal-sync.test.ts",
+  "tests/unit/notifications/presentation-reminders.test.ts",
+
   "src/app/(tabs)/faculty.tsx",
   "src/app/course/[courseid]/assignment/[assignmentid].tsx",
   "src/services/assignment.ts",
@@ -113,8 +139,8 @@ if (!rootSource.includes("export default function RootLayout() {"))
   throw new Error("Legacy root layout hook anchor missing");
 writeFileSync(
   rootLayout,
-  `import { useFacultyPhotoCaching } from "@/hooks/use-faculty-photo";\n` +
-    rootSource.replace(
+  `import { CalendarNotificationController } from "@/components/sync/calendar-notification-controller";\nimport { useFacultyPhotoCaching } from "@/hooks/use-faculty-photo";\n` +
+    rootSource.replace("<AppSyncController />", "<AppSyncController /><CalendarNotificationController />").replace(
       "export default function RootLayout() {",
       "export default function RootLayout() {\n  useFacultyPhotoCaching();",
     ),

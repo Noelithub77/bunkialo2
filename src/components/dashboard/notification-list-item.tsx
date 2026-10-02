@@ -1,16 +1,19 @@
 import { Colors } from "@/constants/theme";
+import { notificationAppearance } from "@/utils/portal-notification";
 import type { NotificationInboxItem } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Image } from "expo-image";
 import { Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  FadeInDown,
+  LinearTransition,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 
 interface NotificationListItemProps {
@@ -28,16 +31,15 @@ interface NotificationListItemProps {
   onClear: () => void;
 }
 
-const SWIPE_ACTION_WIDTH = 80;
-const SWIPE_THRESHOLD = 70;
-const SWIPE_ACTIVE_OFFSET_X: [number, number] = [-10, 10];
-const SWIPE_FAIL_OFFSET_Y: [number, number] = [-15, 15];
-const ACTION_OPACITY_THRESHOLD = 20;
-
-const formatRelativeTime = (timestamp: string): string => {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "Recently";
-  return formatDistanceToNowStrict(date, { addSuffix: true });
+const compactTime = (timestamp: string): string => {
+  if (!Number.isFinite(Date.parse(timestamp))) return "";
+  return formatDistanceToNowStrict(new Date(timestamp))
+    .replace(/ seconds?/, "s")
+    .replace(/ minutes?/, "m")
+    .replace(/ hours?/, "h")
+    .replace(/ days?/, "d")
+    .replace(/ months?/, "mo")
+    .replace(/ years?/, "y");
 };
 
 export function NotificationListItem({
@@ -49,171 +51,162 @@ export function NotificationListItem({
   onMarkRead,
   onClear,
 }: NotificationListItemProps) {
-  const isAttendance = item.source === "attendance";
-  const sourceColor = isAttendance ? Colors.status.info : Colors.accent;
-  const important = item.priority === "important";
+  const appearance = notificationAppearance(item.kind ?? item.source);
   const translateX = useSharedValue(0);
-
   const panGesture = Gesture.Pan()
-    .activeOffsetX(SWIPE_ACTIVE_OFFSET_X)
-    .failOffsetY(SWIPE_FAIL_OFFSET_Y)
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-15, 15])
     .onUpdate((event) => {
-      translateX.value = Math.max(
-        -SWIPE_ACTION_WIDTH,
-        Math.min(SWIPE_ACTION_WIDTH, event.translationX),
-      );
+      translateX.value = Math.max(-72, Math.min(72, event.translationX));
     })
     .onEnd((event) => {
-      if (event.translationX <= -SWIPE_THRESHOLD) {
-        runOnJS(onClear)();
-      } else if (event.translationX >= SWIPE_THRESHOLD && !item.isRead) {
-        runOnJS(onMarkRead)();
-      }
-      translateX.value = withSpring(0, { damping: 20 });
+      if (event.translationX < -60) runOnJS(onClear)();
+      else if (event.translationX > 60 && !item.isRead) runOnJS(onMarkRead)();
+      translateX.value = withSpring(0, {
+        damping: 22,
+        reduceMotion: ReduceMotion.System,
+      });
     });
-
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
-  const readActionStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(translateX.value > ACTION_OPACITY_THRESHOLD ? 1 : 0, {
-      duration: 150,
-    }),
-  }));
-  const clearActionStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(translateX.value < -ACTION_OPACITY_THRESHOLD ? 1 : 0, {
-      duration: 150,
-    }),
-  }));
-
+  const readStyle = useAnimatedStyle(() => ({ opacity: translateX.value > 0 ? 1 : 0, flex: 1 }));
+  const clearStyle = useAnimatedStyle(() => ({ opacity: translateX.value < 0 ? 1 : 0, flex: 1 }));
   return (
-    <View
+    <Animated.View
+      entering={FadeInDown.duration(180).reduceMotion(ReduceMotion.System)}
+      layout={LinearTransition.duration(180).reduceMotion(ReduceMotion.System)}
       className="relative overflow-hidden rounded-2xl"
-      accessibilityHint="Swipe right to mark as read or left to clear"
     >
-      <Animated.View
-        className="absolute inset-y-0 left-0 w-20 items-center justify-center gap-1 bg-emerald-500"
-        style={readActionStyle}
-      >
-        <Ionicons name="checkmark-done" size={18} color={Colors.white} />
-        <Text className="text-[11px] font-semibold text-white">
-          {item.isRead ? "Read" : "Mark read"}
-        </Text>
-      </Animated.View>
-
-      <Animated.View
-        className="absolute inset-y-0 right-0 w-20 items-center justify-center gap-1"
-        style={[{ backgroundColor: Colors.status.danger }, clearActionStyle]}
-      >
-        <Ionicons name="trash-outline" size={18} color={Colors.white} />
-        <Text className="text-[11px] font-semibold text-white">Clear</Text>
-      </Animated.View>
-
+      <View className="absolute inset-y-0 left-0 w-[72px]">
+        <Animated.View style={readStyle}>
+          <View className="flex-1 items-center justify-center rounded-2xl bg-emerald-500">
+            <Ionicons name="checkmark-done" size={23} color={Colors.white} />
+          </View>
+        </Animated.View>
+      </View>
+      <View className="absolute inset-y-0 right-0 w-[72px]">
+        <Animated.View style={clearStyle}>
+          <View className="flex-1 items-center justify-center rounded-2xl" style={{ backgroundColor: Colors.status.danger }}>
+            <Ionicons name="trash-outline" size={22} color={Colors.white} />
+          </View>
+        </Animated.View>
+      </View>
       <GestureDetector gesture={panGesture}>
         <Animated.View style={cardStyle}>
           <Pressable
             onPress={onPress}
             accessibilityRole="button"
             accessibilityLabel={item.title}
+            accessibilityHint="Swipe right to mark read, left to clear"
             accessibilityState={{ expanded }}
-            className="overflow-hidden rounded-2xl border px-4 py-3.5 active:opacity-70"
-            style={{
-              backgroundColor: theme.backgroundSecondary,
-              borderColor: item.isRead ? theme.border : `${sourceColor}70`,
-            }}
+            className="rounded-2xl px-3.5 py-3.5 active:opacity-80"
+            style={{ backgroundColor: theme.backgroundSecondary }}
           >
-            <View className="flex-row gap-3">
+            <View className="flex-row items-start gap-3">
               <View
-                className="h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                style={{ backgroundColor: `${sourceColor}18` }}
+                className="h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: `${appearance.color}1A` }}
               >
-                <Ionicons
-                  name={isAttendance ? "calendar-outline" : "sparkles-outline"}
-                  size={19}
-                  color={sourceColor}
+                <MaterialCommunityIcons
+                  name={appearance.icon}
+                  size={23}
+                  color={appearance.color}
                 />
               </View>
-
-              <View className="min-w-0 flex-1 gap-1">
+              <View className="min-w-0 flex-1 gap-1.5">
                 <View className="flex-row items-center justify-between gap-2">
-                  <View className="min-w-0 flex-row items-center gap-2">
-                    <Text
-                      className="text-[11px] font-semibold"
-                      style={{ color: sourceColor }}
-                    >
-                      {isAttendance ? "Attendance" : "App"}
-                    </Text>
+                  <Text
+                    className="text-[10px]"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    {compactTime(item.createdAt)}
+                  </Text>
+                  {!item.isRead && (
                     <View
-                      accessible
-                      accessibilityLabel={`${important ? "Important" : "Normal"} priority`}
-                      className="h-2 w-5 rounded-full"
-                      style={{
-                        backgroundColor: important
-                          ? Colors.status.danger
-                          : Colors.gray[500],
-                      }}
+                      accessibilityLabel="Unread"
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: appearance.color }}
                     />
-                  </View>
-                  <View className="shrink-0 flex-row items-center gap-2">
-                    {!item.isRead && (
-                      <View
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: sourceColor }}
-                      />
-                    )}
-                    <Text
-                      className="text-[10px]"
-                      style={{ color: theme.textSecondary }}
-                    >
-                      {formatRelativeTime(item.createdAt)}
-                    </Text>
-                  </View>
+                  )}
                 </View>
-
                 <Text
-                  selectable
-                  className="text-[15px] font-semibold leading-5"
+                  className="text-[14px] font-semibold leading-5"
                   style={{ color: theme.text }}
-                  numberOfLines={expanded ? undefined : 1}
+                  numberOfLines={expanded ? undefined : 2}
                 >
                   {item.title}
                 </Text>
-                <Text
-                  selectable
-                  className="text-[13px] leading-[19px]"
-                  style={{ color: theme.textSecondary }}
-                  numberOfLines={expanded ? undefined : 2}
-                >
-                  {item.body}
-                </Text>
-
+                {item.body.trim() !== "" && (
+                  <Text
+                    className="text-[12px] leading-[18px]"
+                    style={{ color: theme.textSecondary }}
+                    numberOfLines={expanded ? undefined : 1}
+                  >
+                    {item.body}
+                  </Text>
+                )}
                 {expanded && item.imageSource && (
                   <Image
-                    source={item.imageSource as React.ComponentProps<typeof Image>["source"]}
-                    style={{ width: "100%", height: 92, marginTop: 8 }}
+                    source={
+                      item.imageSource as React.ComponentProps<
+                        typeof Image
+                      >["source"]
+                    }
+                    style={{ width: "100%", height: 92 }}
                     contentFit="contain"
                   />
                 )}
-
-                {expanded && item.action && (
-                  <Pressable
-                    onPress={(event) => {
-                      event.stopPropagation();
-                      onAction();
-                    }}
-                    className="mt-2 self-start rounded-xl px-3.5 py-2 active:opacity-70"
-                    style={{ backgroundColor: sourceColor }}
+                {expanded && (
+                  <Animated.View
+                    entering={FadeInDown.duration(150).reduceMotion(
+                      ReduceMotion.System,
+                    )}
+                    className="mt-1 flex-row justify-end gap-2"
                   >
-                    <Text className="text-[12px] font-bold text-white">
-                      {item.action.label}
-                    </Text>
-                  </Pressable>
+                    {!item.isRead && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Mark read"
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          onMarkRead();
+                        }}
+                        className="h-10 w-10 items-center justify-center rounded-full"
+                        style={{ backgroundColor: `${appearance.color}18` }}
+                      >
+                        <Ionicons
+                          name="checkmark-done-outline"
+                          size={19}
+                          color={appearance.color}
+                        />
+                      </Pressable>
+                    )}
+                    {item.action && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={item.action.label}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          onAction();
+                        }}
+                        className="h-10 w-10 items-center justify-center rounded-full"
+                        style={{ backgroundColor: `${appearance.color}18` }}
+                      >
+                        <Ionicons
+                          name="open-outline"
+                          size={18}
+                          color={appearance.color}
+                        />
+                      </Pressable>
+                    )}
+                  </Animated.View>
                 )}
               </View>
             </View>
           </Pressable>
         </Animated.View>
       </GestureDetector>
-    </View>
+    </Animated.View>
   );
 }

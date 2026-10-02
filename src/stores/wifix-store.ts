@@ -8,6 +8,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { zustandStorage } from "./storage";
 
 interface WifixStore extends WifixSettings {
+  lastBackgroundCheckAt: number | null;
   setAutoReconnectEnabled: (enabled: boolean) => void;
   setBackgroundIntervalMinutes: (minutes: number) => void;
   setPortalBaseUrl: (url: string | null) => void;
@@ -27,6 +28,7 @@ export const useWifixStore = create<WifixStore>()(
   persist(
     (set) => ({
       ...DEFAULT_SETTINGS,
+      lastBackgroundCheckAt: null,
       setAutoReconnectEnabled: (enabled) =>
         set({ autoReconnectEnabled: enabled }),
       setBackgroundIntervalMinutes: (minutes) =>

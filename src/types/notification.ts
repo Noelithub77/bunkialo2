@@ -29,10 +29,16 @@ export interface NotificationInboxItem {
   sourceId: string;
   source: Exclude<NotificationConcern, "all">;
   priority: NotificationPriority;
+  kind?: string;
   title: string;
   body: string;
   createdAt: string;
   isRead: boolean;
   imageSource?: ImageSourcePropType;
   action?: NotificationInboxAction;
+}
+
+export interface PortalNotificationPresentation {
+  title: string;
+  body: string;
 }

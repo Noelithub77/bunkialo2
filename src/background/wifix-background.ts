@@ -1,3 +1,4 @@
+import { PORTAL_BACKGROUND_INTERVAL_MINUTES } from "@/constants/portal-notifications";
 import { getCredentials } from "@/services/auth/lms-auth";
 import {
   checkConnectivity,
@@ -23,6 +24,11 @@ const runWifixLogin =
       return BackgroundTask.BackgroundTaskResult.Success;
     }
 
+    // Expo shares one worker across tasks. Keep its cadence at 15 minutes,
+    // and honor the WiFix preference inside its handler instead.
+    const settings = useWifixStore.getState();
+    if (settings.lastBackgroundCheckAt !== null && Date.now() - settings.lastBackgroundCheckAt < Math.max(15, settings.backgroundIntervalMinutes) * 60000) return BackgroundTask.BackgroundTaskResult.Success;
+    useWifixStore.setState({ lastBackgroundCheckAt: Date.now() });
     wifixLogger.info("Background task: Starting auto-reconnect check");
 
     const credentials = await getCredentials();
@@ -83,7 +89,7 @@ TaskManager.defineTask(WIFIX_TASK_NAME, async () => {
 });
 
 export const registerWifixBackgroundTask = async (
-  intervalMinutes: number,
+  _intervalMinutes: number,
 ): Promise<boolean> => {
   const status = await BackgroundTask.getStatusAsync();
   if (status !== BackgroundTask.BackgroundTaskStatus.Available) {
@@ -96,7 +102,7 @@ export const registerWifixBackgroundTask = async (
   }
 
   await BackgroundTask.registerTaskAsync(WIFIX_TASK_NAME, {
-    minimumInterval: Math.max(15, intervalMinutes),
+    minimumInterval: PORTAL_BACKGROUND_INTERVAL_MINUTES,
   });
 
   return true;

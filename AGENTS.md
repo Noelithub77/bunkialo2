@@ -10,9 +10,17 @@ ALWAYS USE NATIVEWIND (TAILWIND FOR REACT NATIVE) and preffer it over stylesheet
 
 **Key Features**: Secure auth, Dashboard with timeline, Attendance tracking, Bunk management, Timetable generation, Mess menu, Academic calendar, GPA calculator, Background refresh, Local notifications, Offline cache, ICS export.
 
+## Supported Targets
+
+- Android is the only native app target.
+- Web/PWA is the iOS experience; support iPhone and iPad browsers and installed PWAs.
+- Do not build, publish, or add native iOS features unless the user explicitly changes this target policy.
+- Native OTA releases are Android-only and must preserve each installed Android runtime.
+- Validate UI and notification work on Android and web. Android periodic background work has a 15-minute minimum and is OS-controlled; browser timers stop when the page is suspended, so closed-page web push needs server scheduling.
+
 ## Tech Stack
 
-- **Framework**: Expo SDK 54 + Expo Router 6
+- **Framework**: Expo SDK 58 + Expo Router (matching SDK)
 - **Language**: TypeScript (strict, no `any`)
 - **State**: Zustand + AsyncStorage
 - **HTTP**: Axios with cookie interceptors
@@ -365,6 +373,12 @@ background task uses the same portal check before attempting login.
 
 ## Background Tasks & Notifications
 
+- Poll the attendance notification endpoint independently of LMS sync every 15 minutes, with a stale-data check when the app resumes.
+- Expo shares one Android worker among tasks: keep every native registration at a 15-minute minimum and throttle longer preferences inside the relevant handler.
+- WorkManager survives normal restarts and reboots; Doze, battery saver, manufacturer restrictions, force-stop and denied notification permission can still delay or block delivery. Never promise a guaranteed 15-minute cadence or silently request battery exemptions. Keep the user-controlled battery settings shortcut available.
+- Persist stable notification IDs, pending deliveries and successful receipts. Retry failures without alerting again for successful deliveries.
+- Schedule calendar reminders locally on Android and on the server for subscribed PWAs. Respect event deadlines and alarm data; otherwise remind 30 minutes before the event. Never schedule private, hidden or tentative calendar entries.
+
 ```typescript
 // background/dashboard-background.ts
 startBackgroundRefresh(); // Starts setInterval for sync
@@ -404,7 +418,7 @@ debug.scraper("Dashboard refresh triggered", data);
 ## Keyboard-aware inputs
 
 - Every screen or modal that contains input boxes must wrap its form content in `KeyboardAwareScrollView` from `react-native-keyboard-controller`.
-- Set `keyboardShouldPersistTaps="handled"` and a suitable `bottomOffset` so the focused input stays visible while the keyboard is open on both iOS and Android.
+- Set `keyboardShouldPersistTaps="handled"` and a suitable `bottomOffset` so the focused input stays visible while the keyboard is open on Android and mobile web.
 - Keep `KeyboardProvider` mounted at the app root and do not use a plain `ScrollView` as the container for an interactive form.
 
 ## Android development and emulators
@@ -483,7 +497,7 @@ bun run test:e2e:hosted-auth -- --headed
 - SDK 58 production updates use runtime `1.4.1-sdk58-widgets-v1` and require a matching new native build.
 - Updates targeting legacy app `1.4.1 (59)` must retain runtime `1.4.1`.
 - Do not bump `package.json` or the Expo runtime version inside the OTA workflow.
-- If a change requires new native Android or iOS code, publish a new native build with
+- If a change requires new native Android code, publish a new native build with
   its matching runtime instead of sending that change as a `1.4.1` OTA update.
 
 ## Script Session Utility

@@ -1,3 +1,4 @@
+import { webNotificationIdentifier } from "./portal-notification";
 import type { NotificationChannelConfig } from "./notifications.types";
 import { z } from "zod";
 
@@ -81,16 +82,17 @@ export const initializeNotifications = async (): Promise<void> => {
 };
 
 export const scheduleDateNotification = async (params: {
+  identifier?: string;
   body: string;
   channelId?: string;
   data?: Record<string, unknown>;
   date: Date | number;
   title: string;
 }): Promise<string> => {
-  const id = crypto.randomUUID();
+  const id = params.identifier ? webNotificationIdentifier(params.identifier) : crypto.randomUUID();
   const date = typeof params.date === "number" ? params.date : params.date.getTime();
   const response = await fetch("/api/push/reminders", {
-    body: JSON.stringify({ body: params.body, date, id, title: params.title, url: "/" }),
+    body: JSON.stringify({ body: params.body.slice(0, 500) || " ", date, id, title: params.title.slice(0, 160), url: typeof params.data?.route === "string" && params.data.route.startsWith("/") && !params.data.route.startsWith("//") ? params.data.route : "/" }),
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     method: "POST",
@@ -100,6 +102,7 @@ export const scheduleDateNotification = async (params: {
 };
 
 export const sendImmediateNotification = async (params: {
+  identifier?: string;
   body: string;
   channelId?: string;
   data?: Record<string, unknown>;
@@ -124,3 +127,10 @@ export const cancelAllNotifications = async (): Promise<void> => {
 };
 
 export const requestNotificationPermissionsWithExplanation = requestNotificationPermissions;
+
+export const getScheduledNotificationIds = async (): Promise<string[] | null> => {
+  const response = await fetch("/api/push/reminders", { credentials: "same-origin" });
+  if (response.status === 404) return null; // Older deployed web backends lack reconciliation.
+  if (!response.ok) throw new Error("Could not read scheduled reminders.");
+  return z.array(z.string()).parse(await response.json());
+};

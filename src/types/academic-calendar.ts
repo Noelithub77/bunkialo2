@@ -38,6 +38,8 @@ export interface AcademicEvent {
   isTentative?: boolean;
   origin?: AcademicEventSource;
   startAt?: string;
+  deadlineAt?: string;
+  reminderMinutes?: number[];
   endAt?: string;
   allDay?: boolean;
   location?: string;

@@ -118,3 +118,8 @@ END:VEVENT`);
     ]);
   });
 });
+
+test("uses explicit calendar alarms, including END-relative reminders", () => {
+  const feed = feedWith(calendarEvent("Public event", "CLASS:PUBLIC\nBEGIN:VALARM\nACTION:DISPLAY\nTRIGGER:-PT10M\nEND:VALARM\nBEGIN:VALARM\nACTION:DISPLAY\nTRIGGER;RELATED=END:-PT2H\nEND:VALARM"));
+  expect(parseGoogleCalendarFeed(feed,new Date("2026-10-01T00:00:00Z"))[0]?.reminderMinutes).toEqual([10,60]);
+});

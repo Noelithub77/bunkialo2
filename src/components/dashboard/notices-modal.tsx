@@ -1,3 +1,5 @@
+import { presentPortalNotification } from "@/utils/portal-notification";
+import { useAttendanceStore } from "@/stores/attendance-store";
 import { NotificationInboxControls } from "@/components/dashboard/notification-inbox-controls";
 import { NotificationListItem } from "@/components/dashboard/notification-list-item";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
@@ -48,6 +50,7 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
     null,
   );
 
+  const courses = useAttendanceStore((state) => state.courses);
   const portalItems = usePortalNotificationStore((state) => state.items);
   const markPortalRead = usePortalNotificationStore((state) => state.markRead);
   const markAllPortalRead = usePortalNotificationStore(
@@ -76,8 +79,8 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
         sourceId: item.id,
         source: "attendance",
         priority: getNotificationPriority(item.kind),
-        title: item.title,
-        body: item.body,
+        ...presentPortalNotification(item, courses),
+        kind: item.kind,
         createdAt: item.createdAt,
         isRead: item.readAt !== null,
         action: item.link
@@ -97,6 +100,7 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
       id: `app-${notice.id}`,
       sourceId: notice.id,
       source: "app",
+      kind: "APP",
       priority: getNotificationPriority("APP", notice.isImportant),
       title: notice.title,
       body: notice.description,
@@ -124,9 +128,9 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
     return [...attendanceItems, ...appItems].sort(
       (first, second) =>
         new Date(second.createdAt).getTime() -
-        new Date(first.createdAt).getTime(),
+        new Date(first.createdAt).getTime() || first.id.localeCompare(second.id),
     );
-  }, [dismissedPopupIds, isDark, portalItems, seenPopupIds]);
+  }, [courses, dismissedPopupIds, isDark, portalItems, seenPopupIds]);
 
   const filteredNotifications = React.useMemo(
     () =>

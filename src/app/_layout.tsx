@@ -28,6 +28,7 @@ import { PaperProvider, Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AttendanceSetupSheet } from "@/components/auth/attendance-setup-sheet";
+import { CalendarNotificationController } from "@/components/sync/calendar-notification-controller";
 import { AppSyncController } from "@/components/sync/app-sync-controller";
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { DESKTOP_PAIRING_ROUTE } from "@/services/desktop-pairing";
@@ -238,6 +239,7 @@ export default function RootLayout() {
               }
             />
             <AppSyncController />
+            <CalendarNotificationController />
             {process.env.EXPO_OS === "web" ? (
               <PwaInstallPrompt isLoggedIn={isLoggedIn} />
             ) : null}

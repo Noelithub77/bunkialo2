@@ -15,7 +15,7 @@ interface AcademicCalendarFeedState {
   isFetching: boolean;
   error: string | null;
   hasHydrated: boolean;
-  fetchGoogleEvents: () => Promise<CalendarFetchResult>;
+  fetchGoogleEvents: (force?: boolean) => Promise<CalendarFetchResult>;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
 
@@ -33,8 +33,8 @@ export const useAcademicCalendarFeedStore = create<AcademicCalendarFeedState>()(
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
-      fetchGoogleEvents: (): Promise<CalendarFetchResult> => {
-        if (fetchedThisLaunch) {
+      fetchGoogleEvents: (force = false): Promise<CalendarFetchResult> => {
+        if (fetchedThisLaunch && !force) {
           return Promise.resolve({
             count: get().googleEvents.length,
             ok: true,

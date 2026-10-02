@@ -132,18 +132,26 @@ export function NotificationInboxControls({
           return (
             <Pressable
               key={option.value}
+              accessibilityRole="tab"
+              accessibilityLabel={option.label}
+              accessibilityState={{ selected }}
               onPress={() => onConcernChange(option.value)}
               className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg px-2 py-2"
               style={
                 selected ? { backgroundColor: theme.background } : undefined
               }
             >
-              <Text
-                className="text-[12px] font-semibold"
-                style={{ color: selected ? theme.text : theme.textSecondary }}
-              >
-                {option.label}
-              </Text>
+              <Ionicons
+                name={
+                  option.value === "all"
+                    ? "layers-outline"
+                    : option.value === "attendance"
+                      ? "school-outline"
+                      : "sparkles-outline"
+                }
+                size={18}
+                color={selected ? theme.text : theme.textSecondary}
+              />
               <Text
                 className="text-[10px]"
                 style={{

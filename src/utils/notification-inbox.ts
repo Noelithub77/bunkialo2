@@ -1,4 +1,4 @@
-import type { NotificationPriority } from "@/types";
+import type { NotificationPriority } from "../types";
 
 export const NOTIFICATION_RETENTION_DAYS = 7;
 export const NOTIFICATION_RETENTION_MS =
