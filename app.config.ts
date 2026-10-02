@@ -17,9 +17,11 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
   const otaRuntime = process.env.OTA_RUNTIME_VERSION;
   if (
     otaRuntime &&
-    !["1.4.1-sdk58-widgets-v1", `${pkgVersion}-sdk58-widgets-v1`].includes(
-      otaRuntime,
-    )
+    ![
+      "1.4.1-sdk58-widgets-v1",
+      "1.5.0-sdk58-widgets-v1",
+      `${pkgVersion}-sdk58-widgets-pdf-v1`,
+    ].includes(otaRuntime)
   ) {
     throw new Error("Unsupported SDK 58 OTA runtime");
   }
@@ -161,7 +163,7 @@ export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
     // Expo Go needs the SDK runtime; EAS builds use the app version contract.
     runtimeVersion: isExpoGoPreview
       ? { policy: "sdkVersion" }
-      : (otaRuntime ?? `${pkgVersion}-sdk58-widgets-v1`),
+      : (otaRuntime ?? `${pkgVersion}-sdk58-widgets-pdf-v1`),
     updates: {
       url: "https://u.expo.dev/7cbe49d9-9827-4df3-b86e-849443804d63",
     },

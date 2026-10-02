@@ -1,3 +1,4 @@
+import { LmsAttachmentCard } from "@/components/lms/attachment-card";
 import { scheduleDeferredTask } from "@/utils/scheduling";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Container } from "@/components/ui/container";
@@ -19,7 +20,6 @@ import {
   RefreshControl,
   Text,
   TextInput,
-  Platform,
   View,
 } from "react-native";
 import { useDashboardStore } from "@/stores/dashboard-store";
@@ -31,11 +31,6 @@ import {
   assignmentRelativeDate,
   assignmentSubmissionLabel,
 } from "@/utils/assignment-presentation";
-import { downloadLmsResourceWithSession } from "@/services/lms-download";
-import { getContentUriAsync } from "expo-file-system/legacy";
-import { startActivityAsync } from "expo-intent-launcher";
-import { isAvailableAsync, shareAsync } from "expo-sharing";
-import { debug } from "@/utils/debug";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView,
@@ -158,10 +153,6 @@ export default function AssignmentDetailScreen() {
   const [onlineText, setOnlineText] = useState("");
   const [files, setFiles] = useState<AssignmentUploadLocalFile[]>([]);
   const [hasSeededOnlineText, setHasSeededOnlineText] = useState(false);
-
-  const [downloadingUrlSet, setDownloadingUrlSet] = useState<
-    Record<string, boolean>
-  >({});
 
   useEffect(() => {
     setOnlineText("");
@@ -351,6 +342,7 @@ export default function AssignmentDetailScreen() {
     }
 
     setFiles(nextFiles);
+    setShowUpload(true);
   };
 
   const removeFile = (uri: string) => {
@@ -407,13 +399,6 @@ export default function AssignmentDetailScreen() {
 
     Toast.show(result.message, { type: "error" });
   };
-  const FLAG_GRANT_READ_URI_PERMISSION = 1;
-
-  const normalizeMimeType = (contentType: string | null): string => {
-    const baseType = contentType?.split(";")[0]?.trim().toLowerCase();
-    return baseType || "*/*";
-  };
-
   const getFileIconName = (name: string): keyof typeof Ionicons.glyphMap => {
     const ext = name.split(".").pop()?.toLowerCase();
 
@@ -469,61 +454,16 @@ export default function AssignmentDetailScreen() {
     }
   };
 
-  const openExternal = async (url: string, preferredName: string) => {
-    if (downloadingUrlSet[url]) return;
-
-    setDownloadingUrlSet((prev) => ({ ...prev, [url]: true }));
-
-    try {
-      const result = await downloadLmsResourceWithSession(url, preferredName);
-      if (!result.success) {
-        Toast.show(result.message || "Download failed", { type: "error" });
-        setDownloadingUrlSet((prev) => {
-          const next = { ...prev };
-          delete next[url];
-          return next;
-        });
-        return;
-      }
-      const mime = normalizeMimeType(result.contentType);
-
-      if (Platform.OS === "android") {
-        const contentUri = await getContentUriAsync(result.uri);
-
-        await startActivityAsync("android.intent.action.VIEW", {
-          data: contentUri,
-          type: mime,
-          flags: FLAG_GRANT_READ_URI_PERMISSION,
-        });
-      } else {
-        const canShare = await isAvailableAsync();
-        if (canShare) {
-          await shareAsync(result.uri, { mimeType: mime });
-        } else {
-          await Linking.openURL(result.uri);
-        }
-      }
-
-      Toast.show("Downloaded successfully", { type: "success" });
-    } catch (error) {
-      debug.api("assignment resource open failed", error);
-
-      Toast.show("Downloaded but could not open file", {
-        type: "warning",
-      });
-    } finally {
-      setDownloadingUrlSet((prev) => {
-        const next = { ...prev };
-        delete next[url];
-        return next;
-      });
-    }
-  };
+  const [attachmentScrollOffset, setAttachmentScrollOffset] = useState(0);
 
   return (
     <Container className="relative">
       <KeyboardAwareScrollView
         ref={scrollRef}
+        onScroll={(event) =>
+          setAttachmentScrollOffset(event.nativeEvent.contentOffset.y)
+        }
+        scrollEventThrottle={100}
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
@@ -571,13 +511,13 @@ export default function AssignmentDetailScreen() {
                     color: dueIsOverdue ? Colors.status.danger : courseColor,
                   }}
                 >
-                  {dateLabel("due", dueAtForDisplay)}
+                  Due {dateLabel("due", dueAtForDisplay)}
                 </Text>
               </Pressable>
             )}
           </View>
           <View
-            className="gap-4 rounded-[24px] px-4 py-5"
+            className="gap-3 rounded-[24px] p-4"
             style={{
               backgroundColor: `${courseColor}0A`,
               borderWidth: 1,
@@ -619,7 +559,7 @@ export default function AssignmentDetailScreen() {
                 className="flex-row items-center gap-1.5 self-start py-1"
               >
                 <Ionicons
-                  name="lock-open-outline"
+                  name="calendar-outline"
                   size={13}
                   color={theme.textSecondary}
                 />
@@ -660,7 +600,7 @@ export default function AssignmentDetailScreen() {
           </View>
         )}
         {details && (
-          <View className="flex-1 gap-7">
+          <View className="gap-5">
             {description !== "" && (
               <Pressable
                 accessibilityRole="button"
@@ -702,62 +642,29 @@ export default function AssignmentDetailScreen() {
                   className="text-[11px] font-semibold uppercase tracking-wider"
                   style={{ color: theme.textSecondary }}
                 >
-                  Files
+                  Assignment files
                 </Text>
-                {details.resources.map((resource) => {
-                  const preferredName = resource.name?.trim() || "File";
-                  const downloading = Boolean(downloadingUrlSet[resource.url]);
-                  return (
-                    <Pressable
-                      key={resource.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${preferredName}`}
-                      disabled={downloading}
-                      onPress={() =>
-                        void openExternal(resource.url, preferredName)
-                      }
-                      className="flex-row items-center gap-3 rounded-2xl p-3.5"
-                      style={{ backgroundColor: theme.backgroundSecondary }}
-                    >
-                      <View
-                        className="h-10 w-10 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${courseColor}18` }}
-                      >
-                        <Ionicons
-                          name={getFileIconName(preferredName)}
-                          size={21}
-                          color={courseColor}
-                        />
-                      </View>
-                      <Text
-                        className="flex-1 text-[13px] font-medium leading-5"
-                        style={{ color: theme.text }}
-                        numberOfLines={2}
-                      >
-                        {preferredName}
-                      </Text>
-                      {downloading ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={theme.textSecondary}
-                        />
-                      ) : (
-                        <Ionicons
-                          name="download-outline"
-                          size={18}
-                          color={theme.textSecondary}
-                        />
-                      )}
-                    </Pressable>
-                  );
-                })}
+                {details.resources.map((resource) => (
+                  <LmsAttachmentCard
+                    key={resource.id}
+                    attachment={{ ...resource, name: resource.name || "File" }}
+                    color={courseColor}
+                    scrollOffset={attachmentScrollOffset}
+                    previewHeight={240}
+                  />
+                ))}
               </View>
             )}
-            <View className="min-h-4 flex-1" />
             <View
               className="gap-4 rounded-[22px] p-4"
               style={{ backgroundColor: theme.backgroundSecondary }}
             >
+              <Text
+                className="text-[12px] font-semibold"
+                style={{ color: theme.textSecondary }}
+              >
+                Your submission
+              </Text>
               <View className="flex-row items-center gap-2.5">
                 <View
                   className="h-8 w-8 items-center justify-center rounded-full"
@@ -790,54 +697,35 @@ export default function AssignmentDetailScreen() {
                       {details.gradingStatusText}
                     </Text>
                   )}
-              </View>
-              {(details.submittedFiles ?? []).map((file) => (
                 <Pressable
-                  key={file.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Open submitted ${file.name}`}
-                  onPress={() => void openExternal(file.url, file.name)}
-                  className="flex-row items-center gap-2 rounded-xl px-3 py-3"
-                  style={{ backgroundColor: theme.background }}
+                  accessibilityLabel="Assignment details"
+                  accessibilityState={{ expanded: showDetails }}
+                  onPress={() => setShowDetails((value) => !value)}
+                  className="min-h-11 flex-row items-center gap-1.5 pl-2"
                 >
-                  <Ionicons
-                    name="document-attach-outline"
-                    size={17}
-                    color={courseColor}
-                  />
                   <Text
-                    className="flex-1 text-[12px]"
-                    numberOfLines={2}
-                    style={{ color: theme.text }}
+                    className="text-[12px]"
+                    style={{ color: theme.textSecondary }}
                   >
-                    {file.name}
+                    Details
                   </Text>
                   <Ionicons
-                    name="download-outline"
-                    size={16}
+                    name={showDetails ? "chevron-up" : "chevron-down"}
+                    size={14}
                     color={theme.textSecondary}
                   />
                 </Pressable>
-              ))}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Assignment details"
-                accessibilityState={{ expanded: showDetails }}
-                onPress={() => setShowDetails((value) => !value)}
-                className="flex-row items-center justify-between py-1"
-              >
-                <Text
-                  className="text-[12px]"
-                  style={{ color: theme.textSecondary }}
-                >
-                  Details
-                </Text>
-                <Ionicons
-                  name={showDetails ? "chevron-up" : "chevron-down"}
-                  size={14}
-                  color={theme.textSecondary}
+              </View>
+              {(details.submittedFiles ?? []).map((file) => (
+                <LmsAttachmentCard
+                  key={file.id}
+                  attachment={file}
+                  color={courseColor}
+                  scrollOffset={attachmentScrollOffset}
+                  previewHeight={150}
                 />
-              </Pressable>
+              ))}
               {showDetails && (
                 <View
                   className="gap-3 border-t pt-3"
@@ -1059,8 +947,17 @@ export default function AssignmentDetailScreen() {
               {canEditSubmission && !showUpload && (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Add submission"
-                  onPress={() => setShowUpload(true)}
+                  accessibilityLabel={
+                    supportsFileSubmission && !supportsOnlineTextSubmission
+                      ? "Add files"
+                      : "Edit submission"
+                  }
+                  disabled={isSubmitting}
+                  onPress={() => {
+                    if (supportsFileSubmission && !supportsOnlineTextSubmission)
+                      void addFiles();
+                    else setShowUpload(true);
+                  }}
                   className="min-h-[56px] flex-row items-center justify-center gap-2 rounded-xl py-3.5"
                   style={{ backgroundColor: courseColor }}
                 >
@@ -1069,9 +966,13 @@ export default function AssignmentDetailScreen() {
                     className="text-[13px] font-semibold"
                     style={{ color: Colors.black }}
                   >
-                    {submissionLabel === "Submitted"
-                      ? "Edit submission"
-                      : "Add submission"}
+                    {supportsFileSubmission && !supportsOnlineTextSubmission
+                      ? "Add files"
+                      : supportsOnlineTextSubmission && !supportsFileSubmission
+                        ? "Write submission"
+                        : supportsFileSubmission && supportsOnlineTextSubmission
+                          ? "Add files or text"
+                          : "Add submission"}
                   </Text>
                 </Pressable>
               )}

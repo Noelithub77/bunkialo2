@@ -494,7 +494,9 @@ bun run test:e2e:hosted-auth -- --headed
 
 ## OTA Runtime Compatibility
 
-- v1.5 SDK 58 production updates use runtime `1.5.0-sdk58-widgets-v1`.
+- New v1.5 PDF-capable SDK 58 builds use runtime `1.5.0-sdk58-widgets-pdf-v1`.
+- v1.5 build 63 uses runtime `1.5.0-sdk58-widgets-v1`; select `previous-v15` for its compatible OTA.
+- PDF rendering and public Android Downloads require the optional AttachmentPreview native module. Older runtimes must fall back to external PDF viewing and persistent app-local downloads.
 - Previous SDK 58 build 62 uses `1.4.1-sdk58-widgets-v1`; select `previous-sdk58` in the manual OTA workflow.
 - The `OTA_RUNTIME_VERSION` override is only for publishing compatible JavaScript to an existing SDK 58 runtime; do not use it for native builds.
 - Updates targeting legacy app `1.4.1 (59)` must retain runtime `1.4.1`.

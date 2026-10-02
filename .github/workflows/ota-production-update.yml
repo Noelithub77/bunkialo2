@@ -8,6 +8,7 @@ on:
         type: choice
         options:
           - current
+          - previous-v15
           - previous-sdk58
           - legacy-sdk54
         default: current
@@ -60,8 +61,10 @@ jobs:
             echo 'directory=.' >> "$GITHUB_OUTPUT"
             if [ "$OTA_TARGET" = previous-sdk58 ]; then
               echo 'runtime=1.4.1-sdk58-widgets-v1' >> "$GITHUB_OUTPUT"
+            elif [ "$OTA_TARGET" = previous-v15 ]; then
+              echo 'runtime=1.5.0-sdk58-widgets-v1' >> "$GITHUB_OUTPUT"
             else
-              node -e 'console.log("runtime="+require("./package.json").version+"-sdk58-widgets-v1")' >> "$GITHUB_OUTPUT"
+              node -e 'console.log("runtime="+require("./package.json").version+"-sdk58-widgets-pdf-v1")' >> "$GITHUB_OUTPUT"
             fi
           fi
       - uses: expo/expo-github-action@v8

@@ -10,6 +10,7 @@ const run = (command, args) => {
   }
 };
 
+run("node", ["scripts/prepare-pdf-preview.mjs"]);
 run("bunx", ["expo", "export", "--platform", "web", "--output-dir", "dist"]);
 
 await mkdir("dist/icons", { recursive: true });
@@ -41,7 +42,7 @@ run("bun", [
 
 await injectManifest({
   globDirectory: "dist",
-  globPatterns: ["**/*.{css,html,ico,js,json,png,svg,wasm,webmanifest}"],
+  globPatterns: ["**/*.{css,html,ico,js,mjs,json,png,svg,wasm,bcmap,pfb,ttf,webmanifest}"],
   globIgnores: ["service-worker-source.js", "service-worker.js"],
   maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
   injectionPoint: "serviceWorker.__WB_MANIFEST",

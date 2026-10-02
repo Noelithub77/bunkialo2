@@ -23,6 +23,36 @@ execFileSync("git", ["rev-parse", "--verify", nativeBase]);
 const { writeFileSync } = await import("node:fs");
 writeFileSync(resolve(destination, "src/app/login.tsx"), login);
 const files = [
+  "src/hooks/use-lms-attachment-scope.ts",
+  "src/app/lms-file.tsx",
+  "src/app/lms-forum.tsx",
+  "src/app/course/[courseid].tsx",
+  "src/components/lms/attachment-card.tsx",
+  "src/components/lms/attachment-zoom.tsx",
+  "src/components/lms/attachment-zoom.native.tsx",
+  "src/components/lms/attachment-zoom.web.tsx",
+  "src/services/attachment-preview.ts",
+  "src/services/attachment-preview.web.ts",
+  "src/services/saved-lms-files.ts",
+  "src/services/saved-lms-files.web.ts",
+  "src/services/lms-download.ts",
+  "src/services/lms-download.web.ts",
+  "src/services/open-lms-file.ts",
+  "src/services/open-lms-file.web.ts",
+  "src/services/lms-forum.ts",
+  "src/services/resources-scraper.ts",
+  "src/stores/saved-lms-file-store.ts",
+  "src/stores/lms-forum-store.ts",
+  "src/types/attachment-preview.ts",
+  "src/types/saved-lms-file.ts",
+  "src/types/lms-download.ts",
+  "src/types/lms-forum.ts",
+  "src/types/resources.ts",
+  "src/utils/attachment-preview.ts",
+  "src/utils/lms-forum.ts",
+  "tests/unit/utils/attachment-preview.test.ts",
+  "tests/unit/utils/lms-forum.test.ts",
+
   "src/background/dashboard-background.ts",
   "src/background/wifix-background.ts",
   "src/stores/wifix-store.ts",
@@ -150,8 +180,20 @@ if (!rootSource.includes("export default function RootLayout() {"))
 writeFileSync(
   rootLayout,
   `import { CalendarNotificationController } from "@/components/sync/calendar-notification-controller";\nimport { useFacultyPhotoCaching } from "@/hooks/use-faculty-photo";\n` +
-    rootSource.replace("<AppSyncController />", "<AppSyncController /><CalendarNotificationController />").replace(
-      "export default function RootLayout() {",
-      "export default function RootLayout() {\n  useFacultyPhotoCaching();",
-    ),
+    rootSource
+      .replace(
+        "<AppSyncController />",
+        "<AppSyncController /><CalendarNotificationController />",
+      )
+      .replace(
+        "export default function RootLayout() {",
+        "export default function RootLayout() {\n  useFacultyPhotoCaching();",
+      ),
+);
+
+const typeIndex = resolve(destination, "src/types/index.ts");
+writeFileSync(
+  typeIndex,
+  readFileSync(typeIndex, "utf8") +
+    '\nexport * from "./attachment-preview";\nexport * from "./saved-lms-file";\nexport * from "./lms-forum";\n',
 );

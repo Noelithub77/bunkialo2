@@ -1,3 +1,4 @@
+import { LmsAttachmentCard } from "@/components/lms/attachment-card";
 import { scheduleDeferredTask } from "@/utils/scheduling";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import { Container } from "@/components/ui/container";
@@ -41,30 +42,9 @@ import {
 } from "@/course/utils/course-utils";
 import { parseAssignmentIdFromUrl } from "@/course/utils/event-route";
 
-const ANNOUNCEMENT_FORUM_MATCHERS = [
-  "announcement",
-  "announcements",
-  "news forum",
-  "notice board",
-];
-
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
-
-const normalizeMimeType = (contentType: string | null): string => {
-  const baseType = contentType?.split(";")[0]?.trim().toLowerCase();
-  return baseType || "*/*";
-};
-
-const shouldHideItem = (item: LmsResourceItemNode): boolean => {
-  if (item.moduleType !== "forum") return false;
-
-  const normalized = `${item.title} ${item.typeLabel ?? ""}`
-    .toLowerCase()
-    .trim();
-  return ANNOUNCEMENT_FORUM_MATCHERS.some((matcher) =>
-    normalized.includes(matcher),
-  );
-};
+const normalizeMimeType = (contentType: string | null) =>
+  contentType?.split(";")[0]?.trim() || "*/*";
 
 const formatOrdinal = (value: number): string => String(value).padStart(2, "0");
 
@@ -110,8 +90,10 @@ export default function CourseResourcesScreen() {
 
   const tree = entry?.tree;
   const bunkCourses = useBunkStore((state) => state.courses);
-  const linkedCourseKey = useCourseLinkStore((state) =>
-    state.identities.find((identity) => identity.lmsCourseId === courseId)?.key,
+  const linkedCourseKey = useCourseLinkStore(
+    (state) =>
+      state.identities.find((identity) => identity.lmsCourseId === courseId)
+        ?.key,
   );
   const configuredCourse = useMemo(
     () =>
@@ -137,7 +119,7 @@ export default function CourseResourcesScreen() {
     return tree.sections
       .map((section) => ({
         ...section,
-        items: section.items.filter((item) => !shouldHideItem(item)),
+        items: section.items,
       }))
       .filter((section) => section.items.length > 0);
   }, [tree]);
@@ -227,7 +209,9 @@ export default function CourseResourcesScreen() {
           downloadResult.contentType,
         );
         if (Platform.OS === "android") {
-          const contentUri = await getContentUriAsync(downloadResult.uri);
+          const contentUri = downloadResult.uri.startsWith("content://")
+            ? downloadResult.uri
+            : await getContentUriAsync(downloadResult.uri);
           await startActivityAsync("android.intent.action.VIEW", {
             data: contentUri,
             type: normalizedMimeType,
@@ -279,6 +263,13 @@ export default function CourseResourcesScreen() {
   };
 
   const openItem = (item: LmsResourceItemNode) => {
+    if (item.moduleType === "forum") {
+      router.push({
+        pathname: "/lms-forum",
+        params: { url: item.url, title: item.title, color: courseColor },
+      });
+      return;
+    }
     if (item.moduleType === "assign") {
       const assignmentId = parseAssignmentIdFromUrl(item.url);
       if (assignmentId) {
@@ -303,7 +294,19 @@ export default function CourseResourcesScreen() {
     });
   };
 
+  const [attachmentScrollOffset, setAttachmentScrollOffset] = useState(0);
+
   const renderItem = (item: LmsResourceItemNode, itemNumber: string) => {
+    if (item.moduleType === "resource")
+      return (
+        <LmsAttachmentCard
+          key={item.id}
+          attachment={{ id: item.id, name: item.title, url: item.url }}
+          color={courseColor}
+          scrollOffset={attachmentScrollOffset}
+          kindHint={item.fileTypeHint ?? undefined}
+        />
+      );
     const canExpandFolder =
       item.moduleType === "folder" && item.children.length > 0;
     const nodeKey = itemNodeKey(item);
@@ -478,71 +481,14 @@ export default function CourseResourcesScreen() {
               className="ml-3 gap-2 border-l pl-3"
               style={{ borderColor: theme.border }}
             >
-              {item.children.map((child, childIndex) => {
-                const childDownloadProgress = downloadProgressByUrl[child.url];
-                const isChildDownloading = Boolean(
-                  downloadingUrlSet[child.url],
-                );
-                const childProgressText =
-                  isChildDownloading && childDownloadProgress
-                    ? childDownloadProgress.fraction !== null
-                      ? `${Math.round(childDownloadProgress.fraction * 100)}%`
-                      : "..."
-                    : null;
-
-                return (
-                  <Pressable
-                    key={child.id}
-                    className="flex-row items-center justify-between rounded-xl border px-3 py-2"
-                    style={{
-                      backgroundColor: theme.background,
-                      borderColor: theme.border,
-                    }}
-                    onPress={() =>
-                      void openExternal(child.url, {
-                        tryDownload: true,
-                        preferredName: displayCourseName,
-                      })
-                    }
-                  >
-                    <View className="flex-1 flex-row items-center gap-2 pr-2">
-                      <Text
-                        className="text-[11px] font-bold tracking-[0.4px]"
-                        style={{
-                          color: theme.textSecondary,
-                          fontVariant: ["tabular-nums"],
-                        }}
-                      >
-                        {`${itemNumber}.${formatOrdinal(childIndex + 1)}`}
-                      </Text>
-                      <Text
-                        className="flex-1 text-[12px]"
-                        style={{ color: theme.text }}
-                        numberOfLines={2}
-                      >
-                        {child.name}
-                      </Text>
-                      {childProgressText && (
-                        <Text
-                          className="text-[11px] font-semibold"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          {childProgressText}
-                        </Text>
-                      )}
-                    </View>
-                    {isChildDownloading ? (
-                      <ActivityIndicator size="small" color={theme.icon} />
-                    ) : (
-                      <Ionicons
-                        name="document-outline"
-                        size={14}
-                        color={theme.icon}
-                      />
-                    )}
-                  </Pressable>
-                );
-              })}
+              {item.children.map((child) => (
+                <LmsAttachmentCard
+                  key={child.id}
+                  attachment={child}
+                  color={courseColor}
+                  scrollOffset={attachmentScrollOffset}
+                />
+              ))}
             </View>
           </View>
         )}
@@ -553,6 +499,10 @@ export default function CourseResourcesScreen() {
   return (
     <Container className="relative">
       <ScrollView
+        onScroll={(event) =>
+          setAttachmentScrollOffset(event.nativeEvent.contentOffset.y)
+        }
+        scrollEventThrottle={100}
         contentContainerClassName="px-4 pb-10"
         refreshControl={
           <RefreshControl

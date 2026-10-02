@@ -189,6 +189,7 @@ const parseActivityNode = async (
     title,
     moduleType,
     typeLabel,
+    fileTypeHint: /(?:\/f\/pdf|pdf)/i.test(getAttr(querySelector(activity,"img.activityicon"),"src")||"") ? "pdf" : /\/f\/image/i.test(getAttr(querySelector(activity,"img.activityicon"),"src")||"") ? "image" : null,
     url,
     description: descriptionText || null,
     availabilityText: availabilityText || null,

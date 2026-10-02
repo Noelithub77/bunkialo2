@@ -32,5 +32,8 @@ export interface LmsDownloadProgress {
 }
 
 export interface LmsDownloadOptions {
+  destination?: "downloads" | "preview-cache";
+  maxBytes?: number;
+  cacheKey?: string;
   onProgress?: (progress: LmsDownloadProgress) => void;
 }

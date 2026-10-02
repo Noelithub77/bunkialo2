@@ -1,17 +1,27 @@
 import { getCurrentBaseUrl } from "@/services/api";
-import { checkSession, tryAutoLogin } from "@/services/auth/lms-auth";
+import {
+  checkSession,
+  getCredentials,
+  tryAutoLogin,
+} from "@/services/auth/lms-auth";
 import { cookieStore } from "@/services/cookie-store";
 import type {
   LmsDownloadFailure,
   LmsDownloadFailureReason,
   LmsDownloadOptions,
   LmsDownloadResult,
-  LmsDownloadSuccess,
 } from "@/types";
 import { debug } from "@/utils/debug";
 import { isLoginHtml } from "@/utils/moodle-url";
 import { File, Paths } from "expo-file-system";
 import { fetch as expoFetch } from "expo/fetch";
+
+import { attachmentPreviewKey } from "@/utils/attachment-preview";
+import {
+  lookupSavedLmsFile,
+  rememberLmsFile,
+  persistLmsDownload,
+} from "@/services/saved-lms-files";
 
 const LMS_USER_AGENT =
   "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile";
@@ -83,7 +93,6 @@ const toAbsoluteLmsUrl = (url: string): string => {
   if (url.startsWith("/")) return `${baseUrl}${url}`;
   return `${baseUrl}/${url.replace(/^\.?\//, "")}`;
 };
-
 
 const buildFailure = (
   reason: LmsDownloadFailureReason,
@@ -161,7 +170,10 @@ const resolveWithCookieRedirects = async (
       Accept: "*/*",
     };
 
-    if (cookieHeader) {
+    if (
+      cookieHeader &&
+      new URL(currentUrl).origin === new URL(getCurrentBaseUrl()).origin
+    ) {
       headers.Cookie = cookieHeader;
     }
 
@@ -172,7 +184,10 @@ const resolveWithCookieRedirects = async (
     });
 
     const setCookie = response.headers.get("set-cookie");
-    if (setCookie) {
+    if (
+      setCookie &&
+      new URL(currentUrl).origin === new URL(getCurrentBaseUrl()).origin
+    ) {
       cookieStore.setCookiesFromHeader(setCookie);
     }
 
@@ -202,7 +217,12 @@ const downloadResponseToFile = async (
   fileName: string,
   options?: LmsDownloadOptions,
 ): Promise<string> => {
-  const targetFile = new File(Paths.cache, fileName);
+  const targetFile = new File(
+    Paths.cache,
+    "lms-files",
+    attachmentPreviewKey("cache", options?.cacheKey ?? fileName),
+    fileName,
+  );
   targetFile.create({ intermediates: true, overwrite: true });
 
   const contentLength = Number.parseInt(
@@ -217,7 +237,7 @@ const downloadResponseToFile = async (
       totalBytesWritten,
       totalBytesExpected,
       fraction: totalBytesExpected
-        ? totalBytesWritten / totalBytesExpected
+        ? Math.min(1, Math.max(0, totalBytesWritten / totalBytesExpected))
         : null,
     });
   };
@@ -225,6 +245,10 @@ const downloadResponseToFile = async (
   const streamReader = response.body?.getReader();
   if (!streamReader) {
     const bytes = await response.bytes();
+    if (options?.maxBytes && bytes.length > options.maxBytes) {
+      targetFile.delete();
+      throw new Error("File too large for a preview");
+    }
     targetFile.write(bytes);
     emitProgress(bytes.length);
     return targetFile.uri;
@@ -241,6 +265,10 @@ const downloadResponseToFile = async (
       if (!value || value.length === 0) continue;
       handle.writeBytes(value);
       totalBytesWritten += value.length;
+      if (options?.maxBytes && totalBytesWritten > options.maxBytes) {
+        await streamReader.cancel();
+        throw new Error("File too large for a preview");
+      }
       emitProgress(totalBytesWritten);
     }
   } finally {
@@ -284,7 +312,8 @@ const performDownloadAttempt = async (
   const isAttachmentHtml =
     (contentDisposition.includes("attachment") ||
       contentDisposition.includes("filename=")) &&
-    (contentDisposition.includes(".html") || contentDisposition.includes(".htm"));
+    (contentDisposition.includes(".html") ||
+      contentDisposition.includes(".htm"));
   if (
     !isAttachmentHtml &&
     (contentType.includes("text/html") ||
@@ -302,6 +331,12 @@ const performDownloadAttempt = async (
       "LMS returned an HTML page instead of a downloadable file",
     );
   }
+
+  if (
+    options?.maxBytes &&
+    Number(response.headers.get("content-length")) > options.maxBytes
+  )
+    return buildFailure("http-error", "File too large for a preview");
 
   const finalFileName = buildFinalFileName(
     preferredName,
@@ -324,7 +359,7 @@ const performDownloadAttempt = async (
   };
 };
 
-export const downloadLmsResourceWithSession = async (
+const downloadOnce = async (
   url: string,
   preferredName: string,
   options?: LmsDownloadOptions,
@@ -332,6 +367,30 @@ export const downloadLmsResourceWithSession = async (
   const absoluteUrl = toAbsoluteLmsUrl(url);
 
   try {
+    if (new URL(absoluteUrl).origin !== new URL(getCurrentBaseUrl()).origin)
+      return buildFailure("http-error", "Unsupported LMS file origin");
+    const scope = (await getCredentials())?.username || "";
+    const key = attachmentPreviewKey(scope, absoluteUrl);
+    const cached = await lookupSavedLmsFile(key);
+    if (cached) {
+      const saved =
+        options?.destination === "preview-cache"
+          ? cached
+          : await persistLmsDownload(key, cached);
+      options?.onProgress?.({
+        totalBytesWritten: 0,
+        totalBytesExpected: null,
+        fraction: 1,
+      });
+      return {
+        success: true,
+        uri: saved.uri,
+        fileName: saved.fileName,
+        status: 200,
+        contentType: saved.contentType,
+      };
+    }
+    options = { ...options, cacheKey: key };
     const sessionOk = await ensureAuthenticatedSession();
     if (!sessionOk) {
       return buildFailure(
@@ -363,6 +422,20 @@ export const downloadLmsResourceWithSession = async (
       );
     }
 
+    if (result.success) {
+      const record = {
+        uri: result.uri,
+        fileName: result.fileName,
+        contentType: result.contentType,
+        downloadedAt: Date.now(),
+        location: "preview-cache" as const,
+      };
+      rememberLmsFile(key, record);
+      if (options?.destination !== "preview-cache") {
+        const saved = await persistLmsDownload(key, record);
+        result = { ...result, uri: saved.uri, fileName: saved.fileName };
+      }
+    }
     return result;
   } catch (error) {
     debug.api("LMS direct download exception", {
@@ -375,6 +448,46 @@ export const downloadLmsResourceWithSession = async (
     return buildFailure(
       "network-error",
       error instanceof Error ? error.message : "Download failed",
+    );
+  }
+};
+
+const pendingDownloads = new Map<string, Promise<LmsDownloadResult>>();
+export const downloadLmsResourceWithSession = async (
+  url: string,
+  name: string,
+  options?: LmsDownloadOptions,
+): Promise<LmsDownloadResult> => {
+  const absoluteUrl = toAbsoluteLmsUrl(url);
+  const key = attachmentPreviewKey(
+    (await getCredentials())?.username || "",
+    absoluteUrl,
+  );
+  let work = pendingDownloads.get(key);
+  if (!work) {
+    work = downloadOnce(absoluteUrl, name, {
+      ...options,
+      destination: "preview-cache",
+    }).finally(() => pendingDownloads.delete(key));
+    pendingDownloads.set(key, work);
+  }
+  const result = await work;
+  if (!result.success) return result;
+  if (options?.destination === "preview-cache") return result;
+  try {
+    const cached = await lookupSavedLmsFile(key);
+    if (!cached) throw new Error("Saved file is unavailable");
+    const saved = await persistLmsDownload(key, cached);
+    options?.onProgress?.({
+      fraction: 1,
+      totalBytesWritten: 0,
+      totalBytesExpected: null,
+    });
+    return { ...result, uri: saved.uri, fileName: saved.fileName };
+  } catch (error) {
+    return buildFailure(
+      "network-error",
+      error instanceof Error ? error.message : "Could not save download",
     );
   }
 };

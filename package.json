@@ -30,9 +30,11 @@
     "test:e2e:feedback": "bun tests/e2e/lms/test-feedback-autofill-playwright.ts",
     "test:e2e:hosted-auth": "bun tests/e2e/hosted/setup-auth-state.ts",
     "test:e2e:hosted-timetable": "bun tests/e2e/hosted/test-timetable-playwright.ts",
-    "test:widgets": "node scripts/check-widgets.mjs"
+    "test:widgets": "node scripts/check-widgets.mjs",
+    "postinstall": "node scripts/prepare-pdf-preview.mjs"
   },
   "dependencies": {
+    "@expo/ui": "~58.0.9",
     "@expo/vector-icons": "^15.0.2",
     "@pushforge/builder": "^2.0.5",
     "@react-native-community/netinfo": "12.0.1",
@@ -79,11 +81,13 @@
     "expo-task-manager": "~58.0.10",
     "expo-updates": "~58.0.11",
     "expo-web-browser": "~58.0.3",
+    "expo-widgets": "~58.0.9",
     "fuse.js": "^7.1.0",
     "hono": "^4.13.1",
     "htmlparser2": "^10.0.0",
     "ical.js": "^2.2.1",
     "nativewind": "^4.1.0",
+    "pdfjs-dist": "5.4.624",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.0-rc.3",
@@ -101,9 +105,7 @@
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.13.0",
     "zod": "^4.4.3",
-    "zustand": "^5.0.10",
-    "expo-widgets": "~58.0.9",
-    "@expo/ui": "~58.0.9"
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.21.1",

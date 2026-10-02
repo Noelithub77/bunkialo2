@@ -7,7 +7,7 @@ on:
         description: Installed native build
         required: true
         type: choice
-        options: [legacy-sdk54, previous-sdk58, current]
+        options: [legacy-sdk54, previous-sdk58, previous-v15, current]
         default: legacy-sdk54
       native_release_tag:
         description: Native release tag (optional for legacy and previous builds)
@@ -28,7 +28,7 @@ jobs:
     env:
       OTA_TARGET: ${{ inputs.target }}
       NATIVE_RELEASE_TAG: ${{ inputs.native_release_tag }}
-      EXPECTED_RUNTIME: ${{ inputs.target == 'legacy-sdk54' && '1.4.1' || inputs.target == 'previous-sdk58' && '1.4.1-sdk58-widgets-v1' || '1.5.0-sdk58-widgets-v1' }}
+      EXPECTED_RUNTIME: ${{ inputs.target == 'legacy-sdk54' && '1.4.1' || inputs.target == 'previous-sdk58' && '1.4.1-sdk58-widgets-v1' || inputs.target == 'previous-v15' && '1.5.0-sdk58-widgets-v1' || '1.5.0-sdk58-widgets-pdf-v1' }}
       EXPECTED_UPDATE_ID: ${{ inputs.update_id }}
       ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL: "5"
     steps:
@@ -49,6 +49,7 @@ jobs:
           if [ -n "$NATIVE_RELEASE_TAG" ]; then TAG="$NATIVE_RELEASE_TAG";
           elif [ "$OTA_TARGET" = legacy-sdk54 ]; then TAG='v1.4.1(59)';
           elif [ "$OTA_TARGET" = previous-sdk58 ]; then TAG='v1.4.1(62)';
+          elif [ "$OTA_TARGET" = previous-v15 ]; then TAG='v1.5.0(63)';
           else echo 'native_release_tag is required for v1.5 verification'; exit 1; fi
           gh release download "$TAG" --pattern app-production.aab --dir artifacts/legacy-emulator
           curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o artifacts/legacy-emulator/bundletool.jar

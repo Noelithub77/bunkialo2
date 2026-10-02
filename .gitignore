@@ -56,3 +56,8 @@ src/scripts/lms-download-report.json
 .vercel
 .env*
 credentials.json
+
+# Generated locally from the locked PDF renderer dependency
+/public/pdf-preview/
+
+/tests/android-attachments/app/src/main/kotlin/

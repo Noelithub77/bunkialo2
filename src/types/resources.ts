@@ -25,6 +25,7 @@ export interface LmsResourceItemNode {
   title: string;
   moduleType: LmsResourceModuleType;
   typeLabel: string | null;
+  fileTypeHint?: "pdf" | "image" | null;
   url: string;
   description: string | null;
   availabilityText: string | null;
