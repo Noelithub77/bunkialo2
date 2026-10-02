@@ -72,7 +72,8 @@ root=pathlib.Path('.')
 def data(path, marker):
     text=(root/path).read_text()
     text=text[text.index(marker):]
-    return json.JSONDecoder().raw_decode(text[text.index('['):])[0]
+    text=text.split('=', 1)[1].lstrip()
+    return json.JSONDecoder().raw_decode(text)[0]
 faculties=data('src/data/faculty.ts', 'export const faculties')
 hostels=data('src/data/hostels.ts', 'export const hostelGroups')
 by_id={f['id']:f for f in faculties}
