@@ -279,7 +279,8 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
               !isActive && { opacity: 0.7, transform: [{ scale: 0.95 }] },
               {
                 borderColor:
-                  borderColor ?? (isDark ? courseColor + "4A" : courseColor + "3A"),
+                  borderColor ??
+                  (isDark ? courseColor + "4A" : courseColor + "3A"),
                 borderWidth: 1,
               },
               (isFinished || isFutureClass) && { opacity: cardOpacity },
@@ -329,53 +330,62 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
                   size={14}
                   color={theme.textSecondary}
                 />
-                <Text className="text-[13px] font-semibold" style={{ color: theme.text }}>
-                  {formatTimeDisplay(item.startTime)} - {formatTimeDisplay(item.endTime)}
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{ color: theme.text }}
+                >
+                  {formatTimeDisplay(item.startTime)} -{" "}
+                  {formatTimeDisplay(item.endTime)}
                 </Text>
               </View>
 
               {/* session type and badges */}
-              <View className="mt-3 flex-row flex-wrap items-center gap-1">
-                <View
-                  className="rounded-lg px-2 py-[3px]"
-                  style={{
-                    backgroundColor: isCurrentlyActive
-                      ? Colors.status.success + "CC"
-                      : courseColor + "CC",
-                  }}
-                >
-                  <Text className="text-[11px] font-semibold text-white">
-                    {item.sessionType.charAt(0).toUpperCase() +
-                      item.sessionType.slice(1)}
-                  </Text>
+              {(item.sessionType === "lab" ||
+                item.isManual ||
+                item.isCustomCourse) && (
+                <View className="mt-3 flex-row flex-wrap items-center gap-1">
+                  {item.sessionType === "lab" && (
+                    <View
+                      className="rounded-lg px-2 py-[3px]"
+                      style={{
+                        backgroundColor: isCurrentlyActive
+                          ? Colors.status.success + "CC"
+                          : courseColor + "CC",
+                      }}
+                    >
+                      <Text className="text-[11px] font-semibold text-white">
+                        Lab
+                      </Text>
+                    </View>
+                  )}
+                  {item.isManual && (
+                    <View
+                      className="rounded-lg px-1 py-[3px]"
+                      style={{ backgroundColor: Colors.status.info + "40" }}
+                    >
+                      <Text
+                        className="text-[10px] font-semibold"
+                        style={{ color: Colors.status.info }}
+                      >
+                        Manual
+                      </Text>
+                    </View>
+                  )}
+                  {item.isCustomCourse && (
+                    <View
+                      className="rounded-lg px-1 py-[3px]"
+                      style={{ backgroundColor: Colors.status.success + "40" }}
+                    >
+                      <Text
+                        className="text-[10px] font-semibold"
+                        style={{ color: Colors.status.success }}
+                      >
+                        Custom
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                {item.isManual && (
-                  <View
-                    className="rounded-lg px-1 py-[3px]"
-                    style={{ backgroundColor: Colors.status.info + "40" }}
-                  >
-                    <Text
-                      className="text-[10px] font-semibold"
-                      style={{ color: Colors.status.info }}
-                    >
-                      Manual
-                    </Text>
-                  </View>
-                )}
-                {item.isCustomCourse && (
-                  <View
-                    className="rounded-lg px-1 py-[3px]"
-                    style={{ backgroundColor: Colors.status.success + "40" }}
-                  >
-                    <Text
-                      className="text-[10px] font-semibold"
-                      style={{ color: Colors.status.success }}
-                    >
-                      Custom
-                    </Text>
-                  </View>
-                )}
-              </View>
+              )}
             </View>
           </View>
         </Pressable>
@@ -437,7 +447,8 @@ export function UpNextCarousel({ slots, onCoursePress }: UpNextCarouselProps) {
             key={index}
             className="h-1.5 w-1.5 rounded-full"
             style={{
-              backgroundColor: index === activeIndex ? theme.text : theme.border,
+              backgroundColor:
+                index === activeIndex ? theme.text : theme.border,
             }}
           />
         ))}

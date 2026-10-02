@@ -47,7 +47,7 @@ export const SearchInput = forwardRef<ComponentRef<typeof TextInput>, SearchInpu
         />
         <TextInput
           ref={ref}
-          className="flex-1 py-0"
+          className="flex-1 py-0 web:outline-none"
           style={[
             {
               color: theme.text,

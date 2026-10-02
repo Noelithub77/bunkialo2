@@ -20,6 +20,7 @@ import {
   ScrollView,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -27,6 +28,7 @@ export default function FacultyScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  const { height: windowHeight } = useWindowDimensions();
 
   const {
     faculties,
@@ -46,6 +48,14 @@ export default function FacultyScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const searchBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (searchBlurTimer.current) clearTimeout(searchBlurTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (faculties.length === 0) loadFaculty();
@@ -87,11 +97,13 @@ export default function FacultyScreen() {
   }, []);
 
   const handleSubmit = useCallback(() => {
+    setIsSearchFocused(false);
     Keyboard.dismiss();
   }, []);
 
   const isSearching = searchQuery.trim().length > 0;
-  const showRecentSearches = !isSearching && recentSearches.length > 0;
+  const showRecentSearches =
+    isSearchFocused && !isSearching && recentSearches.length > 0;
   const displayData = isSearching
     ? searchResults.map((result) => result.faculty)
     : wardens;
@@ -121,7 +133,7 @@ export default function FacultyScreen() {
   return (
     <Container>
       {/* fixed search header - outside FlatList to prevent keyboard dismiss */}
-      <View className="px-4 pt-4">
+      <View className="z-20 px-4 pt-4">
         <Text
           className="mb-4 text-[28px] font-bold"
           style={{ color: theme.text }}
@@ -129,75 +141,118 @@ export default function FacultyScreen() {
           Faculty
         </Text>
 
-        <SearchInput
-          ref={inputRef}
-          focused={isSearchFocused}
-          placeholder="Search"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          onSubmitEditing={handleSubmit}
-          returnKeyType="search"
-          autoCorrect={false}
-          onClear={handleClearSearch}
-        />
-
-        {/* recent searches */}
-        {showRecentSearches && (
-          <View className="mt-6">
-            <View className="mb-2 flex-row items-center justify-between">
-              <Text
-                className="text-[13px] font-semibold uppercase tracking-[0.5px]"
-                style={{ color: theme.textSecondary }}
-              >
-                Recent Searches
-              </Text>
-              <Pressable onPress={clearRecentSearches} hitSlop={8}>
+        <View className="relative z-30">
+          <SearchInput
+            ref={inputRef}
+            focused={isSearchFocused}
+            placeholder="Search"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => {
+              if (searchBlurTimer.current)
+                clearTimeout(searchBlurTimer.current);
+              setIsSearchFocused(true);
+              setHostelMenuOpen(false);
+            }}
+            onBlur={() => {
+              // Allow a dropdown row to receive its press before web focus moves.
+              searchBlurTimer.current = setTimeout(
+                () => setIsSearchFocused(false),
+                150,
+              );
+            }}
+            onSubmitEditing={handleSubmit}
+            returnKeyType="search"
+            autoCorrect={false}
+            onClear={handleClearSearch}
+          />
+          {showRecentSearches && (
+            <View
+              className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border"
+              style={{
+                backgroundColor: isDark ? Colors.gray[900] : theme.background,
+                borderColor: theme.border,
+                elevation: 12,
+                shadowColor: Colors.black,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: isDark ? 0.35 : 0.12,
+                shadowRadius: 14,
+              }}
+            >
+              <View className="flex-row items-center justify-between pl-4 pr-2">
                 <Text
-                  className="text-[13px] font-medium"
-                  style={{ color: Colors.status.danger }}
+                  className="text-[11px] font-semibold uppercase tracking-[0.5px]"
+                  style={{ color: theme.textSecondary }}
                 >
-                  Clear
+                  Recent
                 </Text>
-              </Pressable>
-            </View>
-            <View className="flex-row flex-wrap gap-2">
-              {recentSearches.map((query) => (
                 <Pressable
-                  key={query}
-                  className="flex-row items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-1.5"
-                  style={{
-                    backgroundColor: isDark
-                      ? Colors.gray[800]
-                      : Colors.gray[200],
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear recent searches"
+                  className="h-11 w-11 items-center justify-center"
+                  onPress={() => {
+                    clearRecentSearches();
+                    inputRef.current?.focus();
                   }}
-                  onPress={() => handleRecentSearchPress(query)}
                 >
                   <Ionicons
-                    name="time-outline"
-                    size={14}
+                    name="trash-outline"
+                    size={16}
                     color={theme.textSecondary}
                   />
-                  <Text className="text-[13px]" style={{ color: theme.text }}>
-                    {query}
-                  </Text>
-                  <Pressable
-                    onPress={() => removeRecentSearch(query)}
-                    hitSlop={8}
-                    className="p-0.5"
-                  >
-                    <Ionicons
-                      name="close"
-                      size={14}
-                      color={theme.textSecondary}
-                    />
-                  </Pressable>
                 </Pressable>
-              ))}
+              </View>
+              <ScrollView
+                style={{ maxHeight: 224 }}
+                keyboardShouldPersistTaps="always"
+                nestedScrollEnabled
+              >
+                {recentSearches.map((query) => (
+                  <View
+                    key={query}
+                    className="flex-row items-center border-t pl-4 pr-2"
+                    style={{ borderColor: theme.border }}
+                  >
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Search for ${query}`}
+                      className="min-h-12 flex-1 flex-row items-center gap-3 py-3"
+                      onPress={() => handleRecentSearchPress(query)}
+                    >
+                      <Ionicons
+                        name="time-outline"
+                        size={17}
+                        color={theme.textSecondary}
+                      />
+                      <Text
+                        className="flex-1 text-[14px]"
+                        numberOfLines={1}
+                        style={{ color: theme.text }}
+                      >
+                        {query}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove recent search ${query}`}
+                      className="h-11 w-11 items-center justify-center"
+                      onPress={() => {
+                        removeRecentSearch(query);
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      <Ionicons
+                        name="close"
+                        size={17}
+                        color={theme.textSecondary}
+                      />
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
             </View>
-          </View>
-        )}
+          )}
+        </View>
 
         {/* section labels */}
         {!isSearching && (
@@ -224,10 +279,16 @@ export default function FacultyScreen() {
               aria-disabled={!hasHydrated}
               disabled={!hasHydrated}
               onPress={() => {
+                setIsSearchFocused(false);
                 Keyboard.dismiss();
                 setHostelMenuOpen((open) => !open);
               }}
             >
+              <Ionicons
+                name="home-outline"
+                size={18}
+                color={theme.textSecondary}
+              />
               <Text
                 className="flex-1 text-[15px] font-semibold"
                 style={{ color: theme.text }}
@@ -242,43 +303,70 @@ export default function FacultyScreen() {
             </Pressable>
             {hostelMenuOpen && (
               <ScrollView
-                className="mt-2 rounded-xl border"
+                className="mt-2 overflow-hidden rounded-2xl border"
                 accessibilityRole="radiogroup"
                 accessibilityLabel="Hostel groups"
                 style={{
-                  maxHeight: 280,
+                  maxHeight: Math.min(360, Math.max(224, windowHeight * 0.43)),
                   backgroundColor: theme.backgroundSecondary,
                   borderColor: theme.border,
                 }}
                 nestedScrollEnabled
+                showsVerticalScrollIndicator
                 keyboardShouldPersistTaps="handled"
               >
-                {hostelGroups.map((hostel) => (
-                  <Pressable
-                    key={hostel.id}
-                    className="min-h-12 flex-row items-center justify-between gap-3 px-3 py-3"
-                    accessibilityRole="radio"
-                    accessibilityLabel={hostel.name}
-                    accessibilityState={{
-                      checked: selectedHostel.id === hostel.id,
-                    }}
-                    aria-checked={selectedHostel.id === hostel.id}
-                    onPress={() => {
-                      selectHostel(hostel.id);
-                      setHostelMenuOpen(false);
-                    }}
-                  >
-                    <Text
-                      className="flex-1 text-[14px]"
-                      style={{ color: theme.text }}
-                    >
-                      {hostel.name}
-                    </Text>
-                    {selectedHostel.id === hostel.id && (
-                      <Ionicons name="checkmark" size={18} color={theme.text} />
-                    )}
-                  </Pressable>
-                ))}
+                {hostelGroups.map((hostel, index) => {
+                  const isSelected = selectedHostel.id === hostel.id;
+                  return (
+                    <View key={hostel.id}>
+                      {index > 0 && (
+                        <View
+                          className="mx-4 h-px"
+                          style={{ backgroundColor: theme.border }}
+                        />
+                      )}
+                      <Pressable
+                        className="m-1.5 min-h-14 flex-row items-center justify-between gap-3 rounded-xl px-3 py-3"
+                        style={{
+                          backgroundColor: isSelected
+                            ? isDark
+                              ? "#17243A"
+                              : "#EAF2FF"
+                            : "transparent",
+                        }}
+                        android_ripple={{ color: theme.border }}
+                        accessibilityRole="radio"
+                        accessibilityLabel={hostel.name}
+                        accessibilityState={{
+                          checked: isSelected,
+                        }}
+                        aria-checked={isSelected}
+                        onPress={() => {
+                          selectHostel(hostel.id);
+                          setHostelMenuOpen(false);
+                        }}
+                      >
+                        <Text
+                          className={`flex-1 text-[14px] leading-[21px] ${isSelected ? "font-semibold" : "font-normal"}`}
+                          style={{ color: theme.text }}
+                        >
+                          {hostel.name}
+                        </Text>
+                        <Ionicons
+                          name={
+                            isSelected ? "checkmark-circle" : "ellipse-outline"
+                          }
+                          size={20}
+                          color={
+                            isSelected
+                              ? Colors.status.info
+                              : theme.textSecondary
+                          }
+                        />
+                      </Pressable>
+                    </View>
+                  );
+                })}
               </ScrollView>
             )}
           </View>

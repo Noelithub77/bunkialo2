@@ -136,8 +136,6 @@ export function DaySchedule({
         const shouldShowBreak = index > 0 && gapMinutes >= 30;
         const rowTopSpacing =
           index === 0 ? 2 : shouldShowBreak ? 8 : getGapSpacing(gapMinutes);
-        const sessionLabel =
-          slot.sessionType.charAt(0).toUpperCase() + slot.sessionType.slice(1);
 
         return (
           <View key={slot.id}>
@@ -178,7 +176,10 @@ export function DaySchedule({
               </View>
             )}
 
-            <View className="flex-row items-start" style={{ marginTop: rowTopSpacing }}>
+            <View
+              className="flex-row items-start"
+              style={{ marginTop: rowTopSpacing }}
+            >
               {/* time column */}
               <View className="w-[76px] items-end pr-3 pt-0.5">
                 <Text
@@ -202,7 +203,9 @@ export function DaySchedule({
                 disabled={!onCoursePress}
                 style={({ pressed }) => [
                   {
-                    borderLeftColor: isNow ? Colors.status.success : courseColor,
+                    borderLeftColor: isNow
+                      ? Colors.status.success
+                      : courseColor,
                     borderLeftWidth: 3,
                   },
                   isNow && {
@@ -233,11 +236,13 @@ export function DaySchedule({
                     left: 0,
                   }}
                 />
-                <View className="px-3.5 py-2.5">
+                <View className="min-h-[56px] justify-center px-3.5 py-2.5">
                   <View className="flex-row items-center justify-between gap-2">
                     <Text
                       className="flex-1 text-[16px] font-semibold"
-                      style={{ color: isPast ? theme.textSecondary : theme.text }}
+                      style={{
+                        color: isPast ? theme.textSecondary : theme.text,
+                      }}
                       numberOfLines={1}
                     >
                       {slot.courseName}
@@ -247,50 +252,61 @@ export function DaySchedule({
                         className="rounded-lg px-1.5 py-0.5"
                         style={{ backgroundColor: Colors.status.success }}
                       >
-                        <Text className="text-[9px] font-bold text-white">NOW</Text>
+                        <Text className="text-[9px] font-bold text-white">
+                          NOW
+                        </Text>
                       </View>
                     )}
                   </View>
-                  <View className="mt-2 flex-row flex-wrap items-center gap-1">
-                    <View
-                      className="rounded-lg px-2 py-0.5"
-                      style={{ backgroundColor: theme.backgroundSecondary + "DD" }}
-                    >
-                      <Text
-                        className="text-[10px]"
-                        style={{ color: theme.textSecondary }}
-                      >
-                        {sessionLabel}
-                        {onCoursePress ? " · Tap to edit" : ""}
-                      </Text>
+                  {(slot.sessionType === "lab" ||
+                    slot.isManual ||
+                    slot.isCustomCourse) && (
+                    <View className="mt-2 flex-row flex-wrap items-center gap-1">
+                      {slot.sessionType === "lab" && (
+                        <View
+                          className="rounded-lg px-2 py-0.5"
+                          style={{
+                            backgroundColor: theme.backgroundSecondary + "DD",
+                          }}
+                        >
+                          <Text
+                            className="text-[10px]"
+                            style={{ color: theme.textSecondary }}
+                          >
+                            Lab
+                          </Text>
+                        </View>
+                      )}
+                      {slot.isManual && (
+                        <View
+                          className="rounded px-1 py-0.5"
+                          style={{ backgroundColor: Colors.status.info + "20" }}
+                        >
+                          <Text
+                            className="text-[9px] font-medium"
+                            style={{ color: Colors.status.info }}
+                          >
+                            Manual
+                          </Text>
+                        </View>
+                      )}
+                      {slot.isCustomCourse && (
+                        <View
+                          className="rounded px-1 py-0.5"
+                          style={{
+                            backgroundColor: Colors.status.success + "20",
+                          }}
+                        >
+                          <Text
+                            className="text-[9px] font-medium"
+                            style={{ color: Colors.status.success }}
+                          >
+                            Custom
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                    {slot.isManual && (
-                      <View
-                        className="rounded px-1 py-0.5"
-                        style={{ backgroundColor: Colors.status.info + "20" }}
-                      >
-                        <Text
-                          className="text-[9px] font-medium"
-                          style={{ color: Colors.status.info }}
-                        >
-                          Manual
-                        </Text>
-                      </View>
-                    )}
-                    {slot.isCustomCourse && (
-                      <View
-                        className="rounded px-1 py-0.5"
-                        style={{ backgroundColor: Colors.status.success + "20" }}
-                      >
-                        <Text
-                          className="text-[9px] font-medium"
-                          style={{ color: Colors.status.success }}
-                        >
-                          Custom
-                        </Text>
-                      </View>
-                    )}
-                  </View>
+                  )}
                 </View>
               </Pressable>
             </View>
