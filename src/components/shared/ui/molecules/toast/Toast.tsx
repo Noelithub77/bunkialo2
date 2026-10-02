@@ -240,7 +240,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, index }) => {
       transform: [
         { translateY: translateY.value },
         { scale: scale.value },
-        { rotateZ: `${rotateZ.value}deg` },
+        { rotateZ: `${rotateZ.value}deg` as `${number}deg` },
       ],
       zIndex: 1000 - index,
     };

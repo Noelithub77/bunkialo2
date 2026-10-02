@@ -1,6 +1,6 @@
 import type { ViewStyle } from "react-native";
 
-const SHADOW: ViewStyle = {
+const SHADOW = {
   shadowColor: "#000",
   shadowOffset: {
     width: 0,
@@ -9,7 +9,7 @@ const SHADOW: ViewStyle = {
   shadowOpacity: 0.23,
   shadowRadius: 2.62,
   elevation: 4,
-} as const;
+} as const satisfies ViewStyle;
 const SegmentedControlPresets = {
   ios: {
     segmentedControlBackgroundColor: "#E5E5EA",

@@ -2,8 +2,8 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useGestureUiStore } from "@/stores/gesture-ui-store";
 import { Ionicons } from "@expo/vector-icons";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import { Link, usePathname, withLayoutContext } from "expo-router";
+import { Link, usePathname } from "expo-router";
+import MaterialTopTabs from "expo-router/js-top-tabs";
 import type { ComponentProps } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 
@@ -43,8 +43,7 @@ const TABS: TabItem[] = [
   },
 ];
 
-const { Navigator } = createMaterialTopTabNavigator();
-const MaterialTopTabs = withLayoutContext(Navigator);
+export const unstable_settings = { anchor: "index" };
 
 const NavigationItem = ({
   item,
@@ -101,7 +100,6 @@ const WebTabNavigator = ({
 }) => (
   <View className="min-w-0 flex-1">
     <MaterialTopTabs
-      initialRouteName="index"
       backBehavior="initialRoute"
       tabBar={() => null}
       screenOptions={{

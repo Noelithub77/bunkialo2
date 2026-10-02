@@ -1,4 +1,4 @@
-import type { StyleProp, ViewStyle } from "react-native";
+import type { ViewProps } from "react-native";
 
 export type ToastType = "default" | "success" | "error" | "warning" | "info";
 export type ToastPosition = "top" | "bottom";
@@ -24,7 +24,7 @@ export interface ToastOptions {
     | React.ReactNode
     | ((props: ExpandedContentProps) => React.ReactNode);
   backgroundColor?: string;
-  style?: StyleProp<ViewStyle>;
+  style?: ViewProps["style"];
 }
 
 export interface Toast {

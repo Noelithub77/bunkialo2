@@ -23,8 +23,7 @@ import { syncPortalNotifications } from "@/services/attendance/portal-notificati
 import { usePortalNotificationStore } from "@/stores/portal-notification-store";
 import { scheduleDeferredTask, scheduleIdleTask } from "@/utils/scheduling";
 import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useIsFocused } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,

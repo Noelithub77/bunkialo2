@@ -4,14 +4,12 @@ import { useDashboardStore } from "@/stores/dashboard-store";
 import { useGestureUiStore } from "@/stores/gesture-ui-store";
 import { scheduleIdleTask } from "@/utils/scheduling";
 import { Ionicons } from "@expo/vector-icons";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import { withLayoutContext } from "expo-router";
+import MaterialBottomTabs from "expo-router/js-top-tabs";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { Navigator } = createMaterialTopTabNavigator();
-const MaterialBottomTabs = withLayoutContext(Navigator);
+export const unstable_settings = { anchor: "index" };
 const PRIMARY_TAB_WARMUP_PRELOADERS = [
   () => import("./timetable"),
   () => import("./mess"),
@@ -136,7 +134,6 @@ export default function TabLayout() {
 
   return (
     <MaterialBottomTabs
-      initialRouteName="index"
       backBehavior="initialRoute"
       tabBarPosition="bottom"
       screenOptions={{
@@ -182,8 +179,8 @@ export default function TabLayout() {
         name="faculty"
         options={{
           title: "Faculty",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="people-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="people-outline" size={iconSize} color={typeof color === "string" ? color : theme.text} />
           ),
         }}
       />
@@ -191,8 +188,8 @@ export default function TabLayout() {
         name="timetable"
         options={{
           title: "Timetable",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="time-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="time-outline" size={iconSize} color={typeof color === "string" ? color : theme.text} />
           ),
         }}
       />
@@ -202,8 +199,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Dashboard",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="grid-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="grid-outline" size={iconSize} color={typeof color === "string" ? color : theme.text} />
           ),
         }}
       />
@@ -213,8 +210,8 @@ export default function TabLayout() {
         name="mess"
         options={{
           title: "Mess",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="restaurant-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="restaurant-outline" size={iconSize} color={typeof color === "string" ? color : theme.text} />
           ),
         }}
       />
@@ -222,8 +219,8 @@ export default function TabLayout() {
         name="attendance"
         options={{
           title: "Bunks",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="calendar-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="calendar-outline" size={iconSize} color={typeof color === "string" ? color : theme.text} />
           ),
         }}
       />

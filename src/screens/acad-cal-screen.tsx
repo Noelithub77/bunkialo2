@@ -16,7 +16,7 @@ import type { CalendarEvent, ViewMode } from "@/stores/acad-cal-ui-store";
 import { useAcadCalUIStore } from "@/stores/acad-cal-ui-store";
 import { useAcademicCalendarStore } from "@/stores/academic-calendar-store";
 import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "expo-router";
 import { router } from "expo-router";
 import { useEffect, useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";

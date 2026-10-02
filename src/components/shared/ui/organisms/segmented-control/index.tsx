@@ -3,7 +3,6 @@ import {
   Dimensions,
   StyleSheet,
   TouchableOpacity,
-  ViewStyle,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -100,9 +99,7 @@ const SegmentedControl: React.FC<ISegmentedControl> &
     });
   }, [currentIndex, translateValue]);
 
-  const animatedTabStyle = useAnimatedStyle<
-    Partial<Pick<ViewStyle, "transform">>
-  >(() => {
+  const animatedTabStyle = useAnimatedStyle(() => {
     return {
       transform: [
         { translateX: tabTranslate.value },

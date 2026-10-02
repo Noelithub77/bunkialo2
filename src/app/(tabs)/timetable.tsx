@@ -24,9 +24,8 @@ import type {
   ManualSlotInput,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect, useGlobalSearchParams } from "expo-router";
+import { useFocusEffect, useGlobalSearchParams, useIsFocused } from "expo-router";
 import type { ErrorBoundaryProps } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {

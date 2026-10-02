@@ -1,4 +1,4 @@
-import type { StyleProp, ViewStyle } from "react-native";
+import type { ViewProps } from "react-native";
 
 type GrainyGradientColors = [string, string?, string?, string?];
 
@@ -13,7 +13,7 @@ interface IGrainyGradient {
   enabled?: boolean;
   amplitude?: number;
   brightness?: number;
-  style?: StyleProp<ViewStyle>;
+  style?: ViewProps["style"];
   /** Render at reduced resolution (0-1), stretched to full size. Default 0.5 */
   resolutionScale?: number;
   /** Stop animating after this many ms. 0 = never stop. Default 3000 */

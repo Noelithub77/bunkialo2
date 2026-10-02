@@ -8,14 +8,17 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { ToastProviderWithViewport } from "@/components/shared/ui/molecules/toast";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { Stack, router, useGlobalSearchParams, usePathname } from "expo-router";
+  Stack,
+  router,
+  useGlobalSearchParams,
+  usePathname,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
