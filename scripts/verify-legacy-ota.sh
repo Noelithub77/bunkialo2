@@ -7,7 +7,7 @@ adb root
 adb wait-for-device
 adb install --no-incremental artifacts/legacy-emulator/universal.apk
 adb logcat -c
-# Build 59 keeps its native modules, manifest, channel and runtime. Only the
+# The original release keeps its native modules, manifest, channel and runtime. Only the
 # universal APK's signature is changed to a disposable test key for installation.
 adb shell am start -n "$APP_ID/.MainActivity"
 python3 - <<'PY'
@@ -38,6 +38,7 @@ for attempt in range(90):
 raise SystemExit('Expected production OTA did not download')
 PY
 adb shell am force-stop "$APP_ID"
+adb logcat -c
 adb shell am start -n "$APP_ID/.MainActivity"
 sleep 30
 adb logcat -d > "$EVIDENCE/logcat.txt"
