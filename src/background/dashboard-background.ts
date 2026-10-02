@@ -14,7 +14,7 @@ import {
 import * as BackgroundTask from "expo-background-task";
 import * as TaskManager from "expo-task-manager";
 import { useAttendanceStore } from "@/stores/attendance-store";
-import { syncPortalNotifications } from "@/services/attendance/portal-notification-sync";
+
 
 const notifyDevSyncResult = async (params: {
   success: boolean;
@@ -94,7 +94,14 @@ const recordBackgroundFailure = async (errorMessage?: string): Promise<void> => 
 
 const runDashboardBackgroundSync =
   async (): Promise<BackgroundTask.BackgroundTaskResult> => {
+    await Promise.all([
+      useDashboardStore.persist.rehydrate(),
+      useSettingsStore.persist.rehydrate(),
+    ]);
     const dashboardStore = useDashboardStore.getState();
+    const elapsed = Date.now() - (dashboardStore.lastSyncTime ?? 0);
+    const interval = Math.max(15, useSettingsStore.getState().refreshIntervalMinutes) * 60000;
+    if (dashboardStore.lastSyncTime !== null && elapsed >= 0 && elapsed < interval) return BackgroundTask.BackgroundTaskResult.Success;
     updateBackgroundActivity({
       lastAttemptAt: Date.now(),
       lastError: null,
@@ -110,7 +117,6 @@ const runDashboardBackgroundSync =
         useAttendanceStore
           .getState()
           .fetchAttendance({ background: true, silent: true }),
-        syncPortalNotifications(),
       ]);
       updateBackgroundActivity({
         isRegistered: true,

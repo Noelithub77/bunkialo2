@@ -23,6 +23,7 @@ execFileSync("git", ["rev-parse", "--verify", nativeBase]);
 const { writeFileSync } = await import("node:fs");
 writeFileSync(resolve(destination, "src/app/login.tsx"), login);
 const files = [
+  "src/background/dashboard-background.ts",
   "src/background/wifix-background.ts",
   "src/stores/wifix-store.ts",
   "src/background/index.ts",
