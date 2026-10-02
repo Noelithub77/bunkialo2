@@ -1,3 +1,4 @@
+import { useFacultyPhoto } from "@/hooks/use-faculty-photo";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Faculty } from "@/types";
@@ -20,6 +21,7 @@ export const FacultyCard = memo(function FacultyCard({
   matchedFields,
   role,
 }: FacultyCardProps) {
+  const imageUrl = useFacultyPhoto(faculty.imageUrl);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
@@ -52,7 +54,7 @@ export const FacultyCard = memo(function FacultyCard({
       <View className="flex-1 flex-row items-center gap-4">
         {faculty.imageUrl ? (
           <Image
-            source={{ uri: faculty.imageUrl }}
+            source={{ uri: imageUrl }}
             className="h-12 w-12 rounded-full"
             contentFit="cover"
             style={{ height: 48, width: 48, borderRadius: 999 }}

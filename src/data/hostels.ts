@@ -5,7 +5,7 @@ import type { HostelGroup } from "@/types";
 export const hostelGroups: HostelGroup[] = [
   {
     id: "anamudi",
-    name: "Anamudi & Sahyadri",
+    name: "Anamudi | Sahyadri",
     wardenIds: [
       "dr-kanchan-lata-kashyap",
       "dr-asha-sebastian",
@@ -18,7 +18,7 @@ export const hostelGroups: HostelGroup[] = [
   },
   {
     id: "meenachil",
-    name: "Meenachil & Chittar",
+    name: "Meenachil | Chittar",
     wardenIds: [
       "dr-ananth-a",
       "dr-vengadeswaran-s",
@@ -28,7 +28,7 @@ export const hostelGroups: HostelGroup[] = [
   },
   {
     id: "manimala",
-    name: "Manimala & MJ Apartment",
+    name: "Manimala | MJ Apartment",
     wardenIds: [
       "dr-sivaiah-bellamkonda",
       "dr-koppala-guravaiah",
@@ -38,7 +38,7 @@ export const hostelGroups: HostelGroup[] = [
   },
   {
     id: "nila",
-    name: "Nila & Agasthya",
+    name: "Nila | Agasthya",
     wardenIds: [
       "dr-santhos-kumar-a",
       "dr-venkatesh-s",
@@ -48,7 +48,7 @@ export const hostelGroups: HostelGroup[] = [
   },
   {
     id: "kalapurakkal",
-    name: "Kalapurakkal & Cooptyre Arcade & Kalapurakkal Apartment & Sunshine Apartment",
+    name: "Kalapurakkal | Cooptyre Arcade | Kalapurakkal Apartment | Sunshine Apartment",
     wardenIds: [
       "dr-jayakrushna-sahoo",
       "dr-john-paul-martin",
@@ -58,7 +58,7 @@ export const hostelGroups: HostelGroup[] = [
   },
   {
     id: "anna-residency",
-    name: "Anna Residency & Maryland Panackal Residency & KTM Building & Pala Court Complex",
+    name: "Anna Residency | Maryland Panackal Residency | KTM Building | Pala Court Complex",
     wardenIds: [
       "dr-susheel-kumar-joshi",
       "dr-murugan-d",

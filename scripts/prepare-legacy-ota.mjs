@@ -24,6 +24,25 @@ const { writeFileSync } = await import("node:fs");
 writeFileSync(resolve(destination, "src/app/login.tsx"), login);
 const files = [
   "src/app/(tabs)/faculty.tsx",
+  "src/app/course/[courseid]/assignment/[assignmentid].tsx",
+  "src/services/assignment.ts",
+  "src/stores/assignment-store.ts",
+  "src/types/assignment.ts",
+  "src/utils/upload-progress.ts",
+  "src/utils/assignment-share.ts",
+  "src/utils/scheduling.ts",
+  "tests/unit/services/assignment.test.ts",
+  "src/components/faculty/faculty-image-viewer.tsx",
+  "src/components/faculty/faculty-image-viewer.native.tsx",
+  "src/components/faculty/faculty-image-viewer.web.tsx",
+  "src/components/faculty/faculty-image-viewer.types.ts",
+  "src/app/faculty/[id].tsx",
+  "src/hooks/use-faculty-photo.ts",
+  "src/services/faculty-photo-cache.ts",
+  "src/services/faculty-photo-cache.web.ts",
+  "src/stores/faculty-photo-cache-store.ts",
+  "src/utils/faculty-photo-cache.ts",
+  "tests/unit/utils/faculty-photo-cache.test.ts",
   "src/components/faculty/faculty-card.tsx",
   "src/data/faculty.ts",
   "src/data/hostels.ts",
@@ -87,3 +106,16 @@ writeFileSync(
     ),
 );
 console.log(`Prepared SDK 54 / runtime 1.4.1 at ${destination}`);
+
+const rootLayout = resolve(destination, "src/app/_layout.tsx");
+const rootSource = readFileSync(rootLayout, "utf8");
+if (!rootSource.includes("export default function RootLayout() {"))
+  throw new Error("Legacy root layout hook anchor missing");
+writeFileSync(
+  rootLayout,
+  `import { useFacultyPhotoCaching } from "@/hooks/use-faculty-photo";\n` +
+    rootSource.replace(
+      "export default function RootLayout() {",
+      "export default function RootLayout() {\n  useFacultyPhotoCaching();",
+    ),
+);

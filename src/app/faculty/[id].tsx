@@ -1,3 +1,4 @@
+import { useFacultyPhoto } from "@/hooks/use-faculty-photo";
 import { Container } from "@/components/ui/container";
 import { FacultyImageViewer } from "@/components/faculty/faculty-image-viewer";
 import { Colors } from "@/constants/theme";
@@ -22,6 +23,8 @@ export default function FacultyDetailScreen() {
   const faculty = useMemo(() => {
     return faculties.find((f) => f.id === id);
   }, [faculties, id]);
+
+  const imageUrl = useFacultyPhoto(faculty?.imageUrl);
 
   if (!faculty) {
     return (
@@ -96,7 +99,7 @@ export default function FacultyDetailScreen() {
               className="mb-4"
             >
               <Image
-                source={{ uri: faculty.imageUrl }}
+                source={{ uri: imageUrl }}
                 className="h-[100px] w-[100px] rounded-full"
                 contentFit="cover"
                 style={{ height: 100, width: 100, borderRadius: 999 }}
@@ -314,7 +317,7 @@ export default function FacultyDetailScreen() {
       </ScrollView>
       {faculty.imageUrl ? (
         <FacultyImageViewer
-          imageUrl={faculty.imageUrl}
+          imageUrl={imageUrl ?? faculty.imageUrl}
           facultyName={faculty.name}
           designation={faculty.designation}
           visible={isImageViewerVisible}

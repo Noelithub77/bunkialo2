@@ -1,8 +1,14 @@
-name: Verify legacy Android OTA
+name: Verify Android OTA
 
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: Installed native build
+        required: true
+        type: choice
+        options: [legacy-sdk54, current]
+        default: legacy-sdk54
       update_id:
         description: Exact Android update ID to verify
         required: true
@@ -16,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
+      OTA_TARGET: ${{ inputs.target }}
+      EXPECTED_RUNTIME: ${{ inputs.target == 'current' && '1.4.1-sdk58-widgets-v1' || '1.4.1' }}
       EXPECTED_UPDATE_ID: ${{ inputs.update_id }}
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +36,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts/legacy-emulator
-          gh release download 'v1.4.1(59)' --pattern app-production.aab --dir artifacts/legacy-emulator
+          if [ "$OTA_TARGET" = current ]; then TAG='v1.4.1(62)'; else TAG='v1.4.1(59)'; fi
+          gh release download "$TAG" --pattern app-production.aab --dir artifacts/legacy-emulator
           curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o artifacts/legacy-emulator/bundletool.jar
           keytool -genkeypair -keystore artifacts/legacy-emulator/test-only.jks -alias androiddebugkey -storepass android -keypass android -dname 'CN=Android Debug,O=Android,C=US' -keyalg RSA -validity 30
           java -jar artifacts/legacy-emulator/bundletool.jar build-apks --bundle=artifacts/legacy-emulator/app-production.aab --output=artifacts/legacy-emulator/build59.apks --mode=universal --ks=artifacts/legacy-emulator/test-only.jks --ks-key-alias=androiddebugkey --ks-pass=pass:android --key-pass=pass:android
@@ -41,7 +50,7 @@ jobs:
       - name: Verify production update on old native runtime
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: ${{ inputs.target == 'current' && 35 || 29 }}
           arch: x86_64
           target: default
           profile: pixel_2
@@ -51,5 +60,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: legacy-ota-emulator-evidence
+          name: ota-emulator-evidence-${{ inputs.target }}
           path: artifacts/legacy-emulator/evidence/

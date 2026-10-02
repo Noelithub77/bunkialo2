@@ -45,3 +45,12 @@ export interface HostelGroup {
   name: string;
   wardenIds: string[];
 }
+
+export interface FacultyPhotoStorage {
+  directory: string | null;
+  exists: (path: string) => Promise<boolean>;
+  prepareDirectory: () => Promise<void>;
+  download: (url: string, path: string) => Promise<boolean>;
+  move: (from: string, to: string) => Promise<void>;
+  remove: (path: string) => Promise<void>;
+}

@@ -171,7 +171,7 @@ try {
   const wardenIds = new Set();
   const hostelGroups = rawGroups.map((group) => ({
     id: idFor(group.names[0]),
-    name: group.names.join(" & "),
+    name: group.names.join(" | "),
     wardenIds: group.wardens.map((warden) => {
       const email = emailFor(warden.email);
       if (!email || !/^[^@]+@iiitkottayam\.ac\.in$/.test(email))

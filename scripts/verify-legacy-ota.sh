@@ -29,13 +29,13 @@ for attempt in range(90):
             con.close()
             (out/'update-rows.txt').write_text(repr(rows))
             # Expo Updates status READY=1; embedded update has status=5.
-            if any(update_id==expected and runtime=='1.4.1' and status==1 for update_id,runtime,status in rows):
-                print('Production SDK 54 OTA downloaded and ready:',rows)
+            if any(update_id==expected and runtime==os.environ['EXPECTED_RUNTIME'] and status==1 for update_id,runtime,status in rows):
+                print('Production OTA downloaded and ready:',rows)
                 raise SystemExit(0)
         except sqlite3.Error:
             pass
     time.sleep(5)
-raise SystemExit('No ready production OTA for runtime 1.4.1 downloaded')
+raise SystemExit('Expected production OTA did not download')
 PY
 adb shell am force-stop "$APP_ID"
 adb shell am start -n "$APP_ID/.MainActivity"
@@ -61,5 +61,43 @@ con=sqlite3.connect(p/'launched.db')
 row=con.execute('SELECT successful_launch_count, failed_launch_count FROM updates WHERE hex(id)=?',(os.environ['EXPECTED_UPDATE_ID'].replace('-','').upper(),)).fetchone()
 if row is None or row[0]<1 or row[1]!=0:
     raise SystemExit(f'Expected update did not launch successfully: {row}')
-print('Old build 59 successfully launches the exact production OTA:',os.environ['EXPECTED_UPDATE_ID'],row)
+print('Native app successfully launches the exact production OTA:',os.environ['EXPECTED_UPDATE_ID'],row)
 PY
+
+# Confirm that default wardens were cached in persistent Documents storage.
+python3 - <<'PYTEST'
+import json, pathlib, subprocess, time
+root=pathlib.Path('.')
+def data(path, marker):
+    text=(root/path).read_text()
+    text=text[text.index(marker):]
+    return json.JSONDecoder().raw_decode(text[text.index('['):])[0]
+faculties=data('src/data/faculty.ts', 'export const faculties')
+hostels=data('src/data/hostels.ts', 'export const hostelGroups')
+by_id={f['id']:f for f in faculties}
+urls=[by_id[i]['imageUrl'] for i in next(h for h in hostels if h['id']=='manimala')['wardenIds']]
+def key(url):
+    first=2166136261; second=5381
+    for character in url:
+        first=((first ^ ord(character))*16777619)&0xffffffff
+        second=((second*33)^ord(character))&0xffffffff
+    return f'{first:x}-{second:x}.img'
+expected={key(url) for url in urls if url}
+base='/data/user/0/com.codialo.Bunkialo2/files/faculty-photos-v1'
+for attempt in range(36):
+    result=subprocess.run(['adb','shell','ls',base],capture_output=True,text=True)
+    cached=set(result.stdout.split())
+    if expected <= cached:
+        break
+    time.sleep(5)
+else:
+    raise SystemExit(f'Default warden photo cache missing: {expected-cached}')
+print('Default warden photos cached in persistent storage:', sorted(expected))
+subprocess.run(['adb','shell','am','force-stop','com.codialo.Bunkialo2'],check=True)
+subprocess.run(['adb','shell','am','start','-n','com.codialo.Bunkialo2/.MainActivity'],check=True)
+time.sleep(15)
+after=set(subprocess.check_output(['adb','shell','ls',base],text=True).split())
+if not expected <= after: raise SystemExit('Photo cache did not survive app restart')
+print('Persistent photo cache survives app restart')
+pathlib.Path('artifacts/legacy-emulator/evidence/photo-cache.txt').write_text('Default wardens cached; retained after restart.\n'+repr(sorted(after)))
+PYTEST

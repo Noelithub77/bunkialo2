@@ -11,7 +11,7 @@ describe("official faculty and hostel roster", () => {
       hostelGroups.length,
     );
     const defaultGroup = hostelGroups.find((group) => group.id === "manimala");
-    expect(defaultGroup?.name).toBe("Manimala & MJ Apartment");
+    expect(defaultGroup?.name).toBe("Manimala | MJ Apartment");
     expect(defaultGroup?.wardenIds.length).toBeGreaterThan(0);
   });
 

@@ -1,3 +1,4 @@
+import { useFacultyPhotoCaching } from "@/hooks/use-faculty-photo";
 import "react-native-reanimated";
 import "../global.css";
 import "@/background";
@@ -59,6 +60,7 @@ const CustomLightTheme = {
 };
 
 export default function RootLayout() {
+  useFacultyPhotoCaching();
   useAssignmentShareIntent();
   useHomeWidgets();
   const colorScheme = useColorScheme();
