@@ -3,6 +3,7 @@ import {
   attachmentPreviewKind,
   attachmentPreviewKey,
   withAttachmentPreviewSlot,
+  resolveAttachmentUrl,
 } from "../../../src/utils/attachment-preview";
 describe("attachment previews", () => {
   it("identifies protected file URLs and scopes persisted keys to each account", () => {
@@ -48,4 +49,20 @@ describe("attachment previews", () => {
     expect(completed).toHaveLength(11);
     expect(await withAttachmentPreviewSlot(async () => true)).toBe(true);
   });
+});
+
+it("keeps external instruction links separate from authenticated files and rejects script URLs", () => {
+  expect(
+    resolveAttachmentUrl("/pluginfile.php/1/a.pdf", "https://lms.test"),
+  ).toEqual({ url: "https://lms.test/pluginfile.php/1/a.pdf", isLms: true });
+  expect(
+    resolveAttachmentUrl("https://example.org/reading.pdf", "https://lms.test")
+      ?.isLms,
+  ).toBe(false);
+  expect(
+    resolveAttachmentUrl("javascript:alert(1)", "https://lms.test"),
+  ).toBeNull();
+  expect(
+    resolveAttachmentUrl("data:text/html,hello", "https://lms.test"),
+  ).toBeNull();
 });

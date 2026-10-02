@@ -19,13 +19,13 @@ describe("Moodle announcements", () => {
   });
   it("preserves instruction paragraphs and protected attachments without unrelated navigation", () => {
     const posts = parseLmsForumPosts(
-      `<article data-region='post' data-post-id='7' class='forumpost'><h3 data-region-content='forum-post-core-subject'>Assignment update</h3><a href='/user/view.php?id=2'>Teacher</a><time datetime='2026-10-01T10:00:00Z'></time><div class='post-content-container'><p>Read these instructions.</p><p>Bring your work.</p><a href='/pluginfile.php/42/notes.pdf?forcedownload=1'>Notes.pdf</a></div><a href='https://evil.test/pluginfile.php/x.pdf'>Outside</a></article>`,
+      `<article data-region='post' data-post-id='7' class='forumpost'><h3 data-region-content='forum-post-core-subject'>Assignment update</h3><a href='/user/view.php?id=2'>Teacher</a><time datetime='2026-10-01T10:00:00Z'></time><div class='post-content-container'><p>Read these instructions.</p><p>Bring your work.</p><img src='/pluginfile.php/12/diagram.png' alt='Diagram'/><a href='/pluginfile.php/42/notes.pdf?forcedownload=1'>Notes.pdf</a></div><a href='https://evil.test/pluginfile.php/x.pdf'>Outside</a></article>`,
       "https://lms.test",
     );
     expect(posts).toHaveLength(1);
     expect(posts[0].body).toContain("instructions.\nBring");
     expect(posts[0].author).toBe("Teacher");
-    expect(posts[0].attachments).toHaveLength(1);
+    expect(posts[0].attachments).toHaveLength(2);
     expect(posts[0].attachments[0].name).toBe("Notes.pdf");
   });
 });

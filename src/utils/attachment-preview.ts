@@ -33,3 +33,16 @@ export const withAttachmentPreviewSlot = async <T>(
     else active--;
   }
 };
+
+export const resolveAttachmentUrl = (
+  value: string,
+  base: string,
+): { url: string; isLms: boolean } | null => {
+  try {
+    const url = new URL(value, base);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return { url: url.href, isLms: url.origin === new URL(base).origin };
+  } catch {
+    return null;
+  }
+};

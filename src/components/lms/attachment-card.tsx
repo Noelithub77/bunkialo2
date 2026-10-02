@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
+  Linking,
   ActivityIndicator,
   Pressable,
   Text,
@@ -24,6 +25,7 @@ import { openLmsFileOutside } from "@/services/open-lms-file";
 import {
   attachmentPreviewKind,
   attachmentPreviewKey,
+  resolveAttachmentUrl,
 } from "@/utils/attachment-preview";
 import { Toast } from "@/components/shared/ui/molecules/toast";
 import type { AttachmentPreview, LmsAttachment } from "@/types";
@@ -44,7 +46,9 @@ export function LmsAttachmentCard({
   const scope = useLmsAttachmentScope();
   const kind =
     kindHint || attachmentPreviewKind(attachment.name, attachment.url);
-  const absoluteUrl = new URL(attachment.url, getCurrentBaseUrl()).href;
+  const target = resolveAttachmentUrl(attachment.url, getCurrentBaseUrl());
+  const absoluteUrl = target?.url || "";
+  const isLms = target?.isLms ?? false;
   const key = attachmentPreviewKey(scope || "", absoluteUrl);
   const saved = useSavedLmsFileStore((state) => state.records[key]);
   const [preview, setPreview] = useState<AttachmentPreview | null>(null),
@@ -54,8 +58,8 @@ export function LmsAttachmentCard({
   const { height } = useWindowDimensions();
   const requested = useRef(false);
   useEffect(() => {
-    if (scope !== null) void lookupSavedLmsFile(key);
-  }, [key, scope]);
+    if (scope !== null && isLms) void lookupSavedLmsFile(key);
+  }, [key, scope, isLms]);
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
       ref.current?.measureInWindow((_x, y) => setTop(y + scrollOffset)),
@@ -67,7 +71,7 @@ export function LmsAttachmentCard({
     top - scrollOffset <= height + 250 &&
     top - scrollOffset >= -previewHeight - 250;
   useEffect(() => {
-    if (requested.current || !visible || scope === null) return;
+    if (requested.current || !visible || scope === null || !isLms) return;
     if (!kind || (kind === "pdf" && !pdfAttachmentPreviewsSupported)) return;
     requested.current = true;
     let cancelled = false;
@@ -106,9 +110,22 @@ export function LmsAttachmentCard({
     previewHeight,
     scope,
     visible,
+    isLms,
   ]);
   const open = async () => {
     if (busy) return;
+    if (!target) {
+      Toast.show("Could not open link", { type: "error" });
+      return;
+    }
+    if (!isLms) {
+      try {
+        await Linking.openURL(absoluteUrl);
+      } catch {
+        Toast.show("Could not open link", { type: "error" });
+      }
+      return;
+    }
     if (
       kind === "image" ||
       (kind === "pdf" && pdfAttachmentPreviewsSupported)

@@ -567,6 +567,22 @@ export const fetchAssignmentDetails = async (
     .filter((item): item is { id: string; name: string; url: string } =>
       Boolean(item),
     );
+  for (const image of querySelectorAll(
+    doc,
+    ".activity-description img[src*='pluginfile.php']",
+  )) {
+    const src = getAttr(image, "src");
+    if (!src) continue;
+    const url = toAbsoluteLmsUrl(src);
+    if (resources.some((item) => item.url === url)) continue;
+    resources.push({
+      id: `inline-image-${resources.length + 1}`,
+      name:
+        getAttr(image, "alt")?.trim() ||
+        decodeURIComponent(new URL(url).pathname.split("/").pop() || "Image"),
+      url,
+    });
+  }
   const dates = {
     ...parseActivityDatesFromStatusTables(doc),
     ...parseActivityDates(doc),

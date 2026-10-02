@@ -90,6 +90,23 @@ describe("assignment loading", () => {
     expect(details.resources).toEqual([]);
   });
 
+  test("keeps embedded Moodle instruction images as previewable resources", async () => {
+    get.mockResolvedValueOnce({
+      data: viewHtml.replace(
+        "Upload your answers.",
+        "Upload your answers.<img src='/pluginfile.php/12/question.png' alt='Question diagram'/>",
+      ),
+    });
+    const details = await fetchAssignmentDetailsWithSession("6078");
+    expect(details.resources).toEqual([
+      {
+        id: "inline-image-1",
+        name: "Question diagram",
+        url: "https://lms.example/pluginfile.php/12/question.png",
+      },
+    ]);
+  });
+
   test("loads the view in one request without a session probe or edit request", async () => {
     const details = await fetchAssignmentDetailsWithSession("6078");
     expect(details.assignmentName).toBe("Worksheet 3");

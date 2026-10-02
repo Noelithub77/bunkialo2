@@ -62,6 +62,19 @@ export const parseLmsForumPosts = (
           decodeURIComponent(url.pathname.split("/").pop() || "File");
         attachments.set(url.href, { id: url.href, name, url: url.href });
       }
+      for (const image of querySelectorAll(
+        post,
+        ".post-content-container img[src*='pluginfile.php'], [data-region='post-content'] img[src*='pluginfile.php'], .posting img[src*='pluginfile.php']",
+      )) {
+        const src = getAttr(image, "src");
+        if (!src) continue;
+        const url = new URL(src, base);
+        if (url.origin !== new URL(base).origin) continue;
+        const name =
+          getAttr(image, "alt")?.trim() ||
+          decodeURIComponent(url.pathname.split("/").pop() || "Image");
+        attachments.set(url.href, { id: url.href, name, url: url.href });
+      }
       return {
         id:
           getAttr(post, "data-post-id") || getAttr(post, "id") || String(index),
