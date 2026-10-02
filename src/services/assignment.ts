@@ -977,3 +977,15 @@ export const fetchAssignmentDetailsWithSession = async (
   // Render the view page immediately; the store loads edit metadata separately.
   return fetchAssignmentDetails(assignmentId);
 };
+
+/** Course crumbs often contain only CSS311; resolve the full heading separately. */
+export const fetchAssignmentCourseName = async (
+  courseId: string,
+): Promise<string> => {
+  const response = await api.get<string>(
+    `/course/view.php?id=${encodeURIComponent(courseId)}`,
+  );
+  if (isLoginHtml(response.data))
+    throw new Error("Session expired while fetching course name");
+  return normalizeText(getText(querySelector(parseHtml(response.data), "h1")));
+};

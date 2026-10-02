@@ -4,6 +4,17 @@ const path = require("node:path");
 
 const config = getDefaultConfig(__dirname);
 
+// Generated OTA checkouts must not be watched or bundled as app source.
+const existingBlockList = config.resolver.blockList;
+config.resolver.blockList = [
+  ...(Array.isArray(existingBlockList)
+    ? existingBlockList
+    : existingBlockList
+      ? [existingBlockList]
+      : []),
+  /[/\\]artifacts[/\\].*/,
+];
+
 // Expo SQLite loads its web runtime from a WebAssembly asset.
 if (!config.resolver.assetExts.includes("wasm")) {
   config.resolver.assetExts.push("wasm");

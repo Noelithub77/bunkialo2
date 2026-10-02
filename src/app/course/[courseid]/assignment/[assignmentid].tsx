@@ -22,7 +22,15 @@ import {
   Platform,
   View,
 } from "react-native";
-import { formatSyncTime } from "@/course/utils/course-utils";
+import { useDashboardStore } from "@/stores/dashboard-store";
+import { useLmsResourcesStore } from "@/stores/lms-resources-store";
+import { fetchAssignmentCourseName } from "@/services/assignment";
+import {
+  assignmentCourseName,
+  assignmentDescription,
+  assignmentRelativeDate,
+  assignmentSubmissionLabel,
+} from "@/utils/assignment-presentation";
 import { downloadLmsResourceWithSession } from "@/services/lms-download";
 import { getContentUriAsync } from "expo-file-system/legacy";
 import { startActivityAsync } from "expo-intent-launcher";
@@ -53,7 +61,7 @@ const formatMaxBytes = (value: number | null): string | null => {
     size /= 1024;
     unitIndex += 1;
   }
-  return `${size.toFixed(size >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+  return `${Number(size.toFixed(size >= 10 ? 0 : 1))} ${units[unitIndex]}`;
 };
 
 const normalizeParam = (value: string | string[] | undefined): string =>
@@ -132,6 +140,14 @@ export default function AssignmentDetailScreen() {
   const canEditSubmission = Boolean(details?.canEditSubmission);
   const effectiveMaxFiles = details?.maxFiles ?? editSession?.maxFiles ?? null;
   const effectiveMaxBytes = details?.maxBytes ?? editSession?.maxBytes ?? null;
+  const [showUpload, setShowUpload] = useState(false);
+  const [exactDates, setExactDates] = useState<Record<string, boolean>>({});
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [resolvedCourseName, setResolvedCourseName] = useState<{
+    courseId: string;
+    name: string;
+  } | null>(null);
+  const [now, setNow] = useState(Date.now());
   const [onlineText, setOnlineText] = useState("");
   const [files, setFiles] = useState<AssignmentUploadLocalFile[]>([]);
   const [hasSeededOnlineText, setHasSeededOnlineText] = useState(false);
@@ -143,8 +159,16 @@ export default function AssignmentDetailScreen() {
   useEffect(() => {
     setOnlineText("");
     setFiles([]);
+    setShowUpload(false);
+    setExactDates({});
+    setDescriptionExpanded(false);
     setHasSeededOnlineText(false);
   }, [assignmentId]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!assignmentId || !hasHydrated) return;
@@ -170,10 +194,60 @@ export default function AssignmentDetailScreen() {
   }, [editSession?.onlineTextDraftHtml, hasSeededOnlineText]);
 
   const dueAtForDisplay = details?.dueAt ?? fallbackDueAtMs;
-  const dueIsOverdue = Boolean(dueAtForDisplay && dueAtForDisplay < Date.now());
+  const dueIsOverdue = Boolean(dueAtForDisplay && dueAtForDisplay < now);
   const resolvedCourseId = details?.courseId ?? courseId;
-  const breadcrumbCourse =
-    details?.courseName ?? (courseId ? `Course ${courseId}` : "Course");
+  const timelineCourseName = useDashboardStore(
+    (state) =>
+      state.events.find((event) => String(event.course.id) === resolvedCourseId)
+        ?.course.fullname,
+  );
+  const resourceCourseName = useLmsResourcesStore(
+    (state) => state.cacheByCourseId[resolvedCourseId]?.tree.courseTitle,
+  );
+  const knownCourseName =
+    timelineCourseName || resourceCourseName || details?.courseName;
+  const breadcrumbCourse = assignmentCourseName(
+    resolvedCourseName?.courseId === resolvedCourseId
+      ? resolvedCourseName.name
+      : knownCourseName,
+  );
+  useEffect(() => {
+    if (
+      !resolvedCourseId ||
+      assignmentCourseName(knownCourseName) !== "Course" ||
+      isOffline
+    )
+      return;
+    let active = true;
+    void fetchAssignmentCourseName(resolvedCourseId)
+      .then((name) => {
+        if (active) setResolvedCourseName({ courseId: resolvedCourseId, name });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [resolvedCourseId, knownCourseName, isOffline]);
+  const description = assignmentDescription(
+    details?.descriptionHtml ?? null,
+    details?.descriptionText ?? null,
+  );
+  const submissionLabel = assignmentSubmissionLabel(
+    details?.submissionStatusText ?? null,
+  );
+  const statusColor =
+    submissionLabel === "Submitted"
+      ? "#34D399"
+      : submissionLabel === "Draft"
+        ? "#A78BFA"
+        : "#FB923C";
+  const hasPayload = files.length > 0 || onlineText.trim().length > 0;
+  const dateLabel = (key: string, timestamp: number) =>
+    exactDates[key]
+      ? formatDateTime(timestamp)
+      : assignmentRelativeDate(timestamp, now);
+  const toggleDate = (key: string) =>
+    setExactDates((current) => ({ ...current, [key]: !current[key] }));
   const breadcrumbAssignment =
     details?.assignmentName ??
     (assignmentId ? `Assignment ${assignmentId}` : "Assignment");
@@ -194,10 +268,6 @@ export default function AssignmentDetailScreen() {
     } catch {
       Toast.show("Could not open assignment on LMS", { type: "error" });
     }
-  };
-
-  const openDashboard = () => {
-    router.push("/(tabs)");
   };
 
   const openCourseResources = () => {
@@ -298,6 +368,7 @@ export default function AssignmentDetailScreen() {
       setFiles([]);
       setOnlineText("");
       setHasSeededOnlineText(false);
+      setShowUpload(false);
       return;
     }
 
@@ -421,495 +492,503 @@ export default function AssignmentDetailScreen() {
       <KeyboardAwareScrollView
         keyboardShouldPersistTaps="handled"
         bottomOffset={24}
-        contentContainerClassName="px-4 pb-10"
+        contentContainerClassName="px-5 pb-10"
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
             onRefresh={() => {
-              if (!assignmentId) return;
-              void refreshAssignmentDetails(assignmentId);
+              if (assignmentId) void refreshAssignmentDetails(assignmentId);
             }}
             tintColor={theme.text}
           />
         }
       >
-        <View className="mb-4 mt-3 gap-4">
-          <View className="flex-row items-center justify-between">
+        <View className="mb-7 mt-3 gap-5">
+          <View className="flex-row items-center justify-between gap-4">
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Back"
               onPress={() => router.back()}
               className="h-11 w-11 items-center justify-center rounded-full"
-              style={{
-                backgroundColor: isDark ? Colors.gray[900] : Colors.white,
-              }}
+              style={{ backgroundColor: theme.backgroundSecondary }}
             >
               <Ionicons name="arrow-back" size={21} color={theme.text} />
             </Pressable>
-
-            <View
-              className="rounded-full border px-3 py-1.5"
-              style={{
-                backgroundColor: isDark ? Colors.gray[900] : Colors.white,
-                borderColor: theme.border,
-              }}
-            >
-              <Text
-                className="text-[10px]"
-                style={{ color: theme.textSecondary }}
-              >
-                {formatSyncTime(entry?.lastSyncTime ?? null)}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            className="rounded-2xl border px-4 py-3"
-            style={{
-              borderColor: theme.border,
-              backgroundColor: theme.backgroundSecondary,
-            }}
-          >
-            <View className="flex-row flex-wrap items-center gap-1.5">
+            {dueAtForDisplay && (
               <Pressable
-                className="rounded-md px-1 py-0.5"
-                onPress={openDashboard}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle due date"
+                onPress={() => toggleDate("due")}
+                className="max-w-[80%] flex-row items-center gap-2 rounded-full px-3.5 py-2.5"
+                style={{
+                  backgroundColor: `${dueIsOverdue ? Colors.status.danger : "#FB923C"}18`,
+                }}
               >
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={dueIsOverdue ? Colors.status.danger : "#FB923C"}
+                />
                 <Text
                   className="text-[12px] font-semibold"
-                  style={{ color: theme.textSecondary }}
+                  style={{
+                    color: dueIsOverdue ? Colors.status.danger : "#FB923C",
+                  }}
                 >
-                  Dashboard
+                  {dateLabel("due", dueAtForDisplay)}
                 </Text>
               </Pressable>
-
+            )}
+          </View>
+          <View className="gap-3">
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`Course: ${breadcrumbCourse}`}
+              disabled={!resolvedCourseId}
+              onPress={openCourseResources}
+              className="flex-row items-center gap-2 self-start"
+            >
+              <Ionicons
+                name="school-outline"
+                size={15}
+                color={theme.textSecondary}
+              />
+              <Text
+                className="shrink text-[12px] font-medium leading-[18px]"
+                style={{ color: theme.textSecondary }}
+                numberOfLines={2}
+              >
+                {breadcrumbCourse}
+              </Text>
               <Ionicons
                 name="chevron-forward"
                 size={12}
                 color={theme.textSecondary}
               />
-
-              <Pressable
-                className="rounded-md px-1 py-0.5"
-                onPress={openCourseResources}
-                disabled={!resolvedCourseId}
-              >
-                <Text
-                  className="text-[12px] font-semibold"
-                  style={{
-                    color: resolvedCourseId
-                      ? theme.textSecondary
-                      : `${theme.textSecondary}88`,
-                  }}
-                  numberOfLines={1}
-                >
-                  {breadcrumbCourse}
-                </Text>
-              </Pressable>
-            </View>
-
+            </Pressable>
             <Text
-              className="mt-1 text-[24px] font-extrabold leading-[30px]"
+              className="text-[26px] font-bold leading-[33px] tracking-tight"
               style={{ color: theme.text }}
             >
-              {breadcrumbAssignment}
+              {breadcrumbAssignment.replace(/_/g, " ")}
             </Text>
+            {details?.openedAt && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Toggle opened date"
+                onPress={() => toggleDate("opened")}
+                className="flex-row items-center gap-1.5 self-start py-1"
+              >
+                <Ionicons
+                  name="lock-open-outline"
+                  size={13}
+                  color={theme.textSecondary}
+                />
+                <Text
+                  className="text-[11px]"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Opened {dateLabel("opened", details.openedAt)}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
-
         {!entry && isLoading && (
-          <View className="items-center gap-3 py-12">
-            <ActivityIndicator size="large" color={theme.text} />
-            <Text className="text-sm" style={{ color: theme.textSecondary }}>
-              Loading assignment...
-            </Text>
+          <View className="items-center py-12">
+            <ActivityIndicator color={theme.textSecondary} />
           </View>
         )}
-
         {!entry && error && !isLoading && (
           <View
-            className="items-center gap-4 rounded-2xl border p-4"
-            style={{
-              borderColor: `${Colors.status.danger}55`,
-              backgroundColor: `${Colors.status.danger}12`,
-            }}
+            className="items-center gap-3 rounded-2xl p-4"
+            style={{ backgroundColor: `${Colors.status.danger}12` }}
           >
             <Text
-              className="text-[14px] text-center"
+              className="text-center text-[13px]"
               style={{ color: Colors.status.danger }}
             >
               {error}
             </Text>
             <Pressable
-              className="rounded-full px-4 py-2"
-              style={{ backgroundColor: theme.backgroundSecondary }}
+              accessibilityRole="button"
               onPress={() => {
-                if (!assignmentId) return;
-                void refreshAssignmentDetails(assignmentId);
+                if (assignmentId) void refreshAssignmentDetails(assignmentId);
               }}
             >
-              <Text
-                className="text-[13px] font-semibold"
-                style={{ color: theme.text }}
-              >
-                Retry
-              </Text>
+              <Text style={{ color: theme.text }}>Retry</Text>
             </Pressable>
           </View>
         )}
-
         {details && (
-          <View className="gap-3">
-            <View
-              className="rounded-2xl border p-4"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundSecondary,
-              }}
-            >
-              <Text
-                className="text-[15px] font-semibold"
-                style={{ color: theme.text }}
+          <View className="gap-5">
+            {description !== "" && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Toggle assignment instructions"
+                accessibilityState={{ expanded: descriptionExpanded }}
+                onPress={() => setDescriptionExpanded((value) => !value)}
+                className="gap-2"
               >
-                Assignment Info
-              </Text>
-              <View className="mt-2 gap-1.5">
                 <Text
-                  className="text-[13px]"
+                  className="text-[11px] font-semibold uppercase tracking-wider"
                   style={{ color: theme.textSecondary }}
                 >
-                  Opened: {formatDateTime(details.openedAt)}
+                  Instructions
                 </Text>
                 <Text
-                  className="text-[13px] font-semibold"
-                  style={{
-                    color: dueIsOverdue
-                      ? Colors.status.danger
-                      : theme.textSecondary,
-                  }}
+                  className="text-[13px] leading-[21px]"
+                  numberOfLines={descriptionExpanded ? undefined : 4}
+                  style={{ color: theme.text }}
                 >
-                  Due: {formatDateTime(dueAtForDisplay)}
+                  {description}
                 </Text>
-                {details.cutoffAt && (
-                  <Text
-                    className="text-[13px]"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    Cutoff: {formatDateTime(details.cutoffAt)}
-                  </Text>
-                )}
-                {details.allowSubmissionsFrom && (
-                  <Text
-                    className="text-[13px]"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    Allow submissions from:{" "}
-                    {formatDateTime(details.allowSubmissionsFrom)}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View
-              className="rounded-2xl border p-4"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundSecondary,
-              }}
-            >
-              <Text
-                className="text-[15px] font-semibold"
-                style={{ color: theme.text }}
-              >
-                Description
-              </Text>
-              <Text
-                className="mt-2 text-[13px] leading-5"
-                style={{ color: theme.textSecondary }}
-              >
-                {details.descriptionText ||
-                  "No assignment description provided."}
-              </Text>
-              {details.resources && details.resources.length > 0 && (
-                <View className="mt-3 gap-2">
-                  <Text
-                    className="text-[15px] font-semibold"
-                    style={{ color: theme.text }}
-                  >
-                    Resources
-                  </Text>
-
-                  {details.resources.map((resource) => {
-                    const preferredName =
-                      resource.name?.trim() ||
-                      (() => {
-                        const raw =
-                          resource.url
-                            .split("/")
-                            .pop()
-                            ?.split("?")[0]
-                            .split("#")[0] || "";
-                        try {
-                          return decodeURIComponent(raw);
-                        } catch {
-                          return raw;
-                        }
-                      })() ||
-                      "assignment-resource";
-
-                    const iconName = getFileIconName(preferredName);
-                    const isDownloading = Boolean(
-                      downloadingUrlSet[resource.url],
-                    );
-
-                    return (
-                      <Pressable
-                        key={resource.id}
-                        disabled={isDownloading}
-                        className="flex-row items-center gap-3 rounded-xl border px-3 py-3"
-                        style={{
-                          borderColor: theme.border,
-                          backgroundColor: theme.background,
-                          opacity: isDownloading ? 0.6 : 1,
-                        }}
-                        onPress={() => {
-                          if (isDownloading) return;
-                          void openExternal(resource.url, preferredName);
-                        }}
+              </Pressable>
+            )}
+            {details.resources.length > 0 && (
+              <View className="gap-2.5">
+                <Text
+                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Files
+                </Text>
+                {details.resources.map((resource) => {
+                  const preferredName = resource.name?.trim() || "File";
+                  const downloading = Boolean(downloadingUrlSet[resource.url]);
+                  return (
+                    <Pressable
+                      key={resource.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${preferredName}`}
+                      disabled={downloading}
+                      onPress={() =>
+                        void openExternal(resource.url, preferredName)
+                      }
+                      className="flex-row items-center gap-3 rounded-2xl p-3.5"
+                      style={{ backgroundColor: theme.backgroundSecondary }}
+                    >
+                      <View
+                        className="h-10 w-10 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: "#60A5FA18" }}
                       >
                         <Ionicons
-                          name={iconName}
-                          size={20}
-                          color={Colors.accent}
+                          name={getFileIconName(preferredName)}
+                          size={21}
+                          color="#60A5FA"
                         />
-
-                        <View className="flex-1">
-                          <Text
-                            className="text-[13px] font-medium"
-                            style={{ color: theme.text }}
-                            numberOfLines={2}
-                          >
-                            {preferredName}
-                          </Text>
-                        </View>
-
-                        {isDownloading ? (
-                          <ActivityIndicator
-                            size="small"
-                            color={theme.textSecondary}
-                          />
-                        ) : (
-                          <Ionicons
-                            name="download-outline"
-                            size={18}
-                            color={theme.textSecondary}
-                          />
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-
-            <View
-              className="rounded-2xl border p-4"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundSecondary,
-              }}
-            >
-              <Text
-                className="text-[15px] font-semibold"
-                style={{ color: theme.text }}
-              >
-                Submission
-              </Text>
-
-              <View className="mt-2 gap-1.5">
-                <Text
-                  className="text-[13px]"
-                  style={{ color: theme.textSecondary }}
-                >
-                  Status: {details.submissionStatusText || "Not available"}
-                </Text>
-                <Text
-                  className="text-[13px]"
-                  style={{ color: theme.textSecondary }}
-                >
-                  Grading: {details.gradingStatusText || "Not available"}
-                </Text>
-                <Text
-                  className="text-[13px]"
-                  style={{ color: theme.textSecondary }}
-                >
-                  Time remaining: {details.timeRemainingText || "Not available"}
-                </Text>
-                <Text
-                  className="text-[12px]"
-                  style={{ color: theme.textSecondary }}
-                >
-                  Methods: {supportsFileSubmission ? "File" : ""}
-                  {supportsFileSubmission && supportsOnlineTextSubmission
-                    ? " + "
-                    : ""}
-                  {supportsOnlineTextSubmission ? "Online text" : ""}
-                  {!supportsFileSubmission && !supportsOnlineTextSubmission
-                    ? isLoadingEdit
-                      ? "Loading..."
-                      : "Not editable"
-                    : ""}
-                </Text>
-                {supportsFileSubmission && (
-                  <Text
-                    className="text-[12px]"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    Limits: {effectiveMaxFiles ?? "?"} file(s)
-                    {maxFileSizeLabel ? `, ${maxFileSizeLabel}` : ""}
-                  </Text>
-                )}
+                      </View>
+                      <Text
+                        className="flex-1 text-[13px] font-medium leading-5"
+                        style={{ color: theme.text }}
+                        numberOfLines={2}
+                      >
+                        {preferredName}
+                      </Text>
+                      {downloading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={theme.textSecondary}
+                        />
+                      ) : (
+                        <Ionicons
+                          name="download-outline"
+                          size={18}
+                          color={theme.textSecondary}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
-
-              {isLoadingEdit && (
-                <Text
-                  className="mt-3 text-[12px]"
-                  style={{ color: theme.textSecondary }}
+            )}
+            <View
+              className="gap-4 rounded-[22px] p-4"
+              style={{ backgroundColor: theme.backgroundSecondary }}
+            >
+              <View className="flex-row items-center gap-2.5">
+                <View
+                  className="h-8 w-8 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `${statusColor}18` }}
                 >
-                  Loading submission options...
-                </Text>
-              )}
-              {supportsFileSubmission && (
-                <View className="mt-3 gap-2">
-                  <Pressable
-                    className="rounded-xl border px-3 py-2.5"
-                    style={{
-                      borderColor: theme.border,
-                      backgroundColor: theme.background,
-                    }}
-                    onPress={() => void addFiles()}
-                  >
-                    <Text
-                      className="text-[13px] font-semibold"
-                      style={{ color: theme.text }}
-                    >
-                      Add File
-                    </Text>
-                  </Pressable>
-
-                  {files.length > 0 && (
-                    <View className="gap-2">
-                      {files.map((file) => (
-                        <View
-                          key={`${file.uri}-${file.name}`}
-                          className="flex-row items-center justify-between rounded-xl border px-3 py-2"
-                          style={{
-                            borderColor: theme.border,
-                            backgroundColor: theme.background,
-                          }}
-                        >
-                          <Text
-                            className="flex-1 pr-2 text-[12px]"
-                            numberOfLines={1}
-                            style={{ color: theme.text }}
-                          >
-                            {file.name}
-                          </Text>
-                          <Pressable onPress={() => removeFile(file.uri)}>
-                            <Ionicons
-                              name="close-circle-outline"
-                              size={18}
-                              color={theme.textSecondary}
-                            />
-                          </Pressable>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {supportsOnlineTextSubmission && (
-                <View className="mt-3">
-                  <TextInput
-                    multiline
-                    value={onlineText}
-                    onChangeText={setOnlineText}
-                    placeholder="Write submission text..."
-                    placeholderTextColor={theme.textSecondary}
-                    className="min-h-[120px] rounded-xl border px-3 py-2 text-[13px]"
-                    style={{
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.background,
-                      textAlignVertical: "top",
-                    }}
+                  <Ionicons
+                    name={
+                      submissionLabel === "Submitted"
+                        ? "checkmark-done-outline"
+                        : submissionLabel === "Draft"
+                          ? "document-outline"
+                          : "cloud-upload-outline"
+                    }
+                    size={17}
+                    color={statusColor}
                   />
                 </View>
-              )}
-
-              {(isSubmitting || uploadProgress !== null) && (
                 <Text
-                  className="mt-3 text-[12px]"
-                  style={{ color: theme.textSecondary }}
+                  className="flex-1 text-[13px] font-semibold"
+                  style={{ color: theme.text }}
                 >
-                  {uploadProgress !== null
-                    ? `Uploading ${Math.round((clampUploadProgress(uploadProgress) ?? 0) * 100)}%`
-                    : "Submitting..."}
+                  {submissionLabel}
                 </Text>
-              )}
-
-              <View className="mt-3 flex-row items-center gap-2">
-                <Pressable
-                  className="flex-1 items-center rounded-xl px-3 py-2.5"
-                  style={{
-                    backgroundColor: canEditSubmission
-                      ? Colors.accent
-                      : theme.background,
-                    borderColor: theme.border,
-                    borderWidth: canEditSubmission ? 0 : 1,
-                    opacity: isSubmitting ? 0.7 : 1,
-                  }}
-                  disabled={
-                    isSubmitting ||
-                    isLoadingEdit ||
-                    !editSession ||
-                    !canEditSubmission
-                  }
-                  onPress={() => void handleSubmit()}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={canEditSubmission ? Colors.white : theme.text}
-                    />
-                  ) : (
+                {details.gradingStatusText &&
+                  !/not graded/i.test(details.gradingStatusText) && (
                     <Text
-                      className="text-[13px] font-semibold"
-                      style={{
-                        color: canEditSubmission ? Colors.white : theme.text,
-                      }}
+                      className="shrink text-[11px]"
+                      style={{ color: "#34D399" }}
                     >
-                      Submit
+                      {details.gradingStatusText}
                     </Text>
                   )}
-                </Pressable>
-
+              </View>
+              {details.cutoffAt &&
+                details.cutoffAt !== dueAtForDisplay &&
+                dueIsOverdue && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Toggle final deadline"
+                    onPress={() => toggleDate("cutoff")}
+                    className="flex-row items-center gap-2"
+                  >
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={14}
+                      color={theme.textSecondary}
+                    />
+                    <Text
+                      className="text-[11px]"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      Closes {dateLabel("cutoff", details.cutoffAt)}
+                    </Text>
+                  </Pressable>
+                )}
+              {canEditSubmission && !showUpload && (
                 <Pressable
-                  className="items-center rounded-xl border px-3 py-2.5"
-                  style={{
-                    borderColor: theme.border,
-                    backgroundColor: theme.background,
-                  }}
-                  onPress={() => void openOnLms()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add submission"
+                  onPress={() => setShowUpload(true)}
+                  className="flex-row items-center justify-center gap-2 rounded-xl py-3.5"
+                  style={{ backgroundColor: Colors.accent }}
                 >
+                  <Ionicons name="add" size={18} color={Colors.black} />
                   <Text
                     className="text-[13px] font-semibold"
-                    style={{ color: theme.text }}
+                    style={{ color: Colors.black }}
                   >
-                    Open LMS
+                    {submissionLabel === "Submitted"
+                      ? "Edit submission"
+                      : "Add submission"}
                   </Text>
                 </Pressable>
-              </View>
+              )}
+              {showUpload && canEditSubmission && (
+                <View className="gap-3">
+                  {isLoadingEdit ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.textSecondary}
+                    />
+                  ) : (
+                    <>
+                      {supportsFileSubmission && (
+                        <View className="gap-2.5">
+                          <View className="flex-row items-center justify-between gap-2">
+                            <Text
+                              className="flex-1 text-[11px]"
+                              style={{ color: theme.textSecondary }}
+                            >
+                              {[
+                                effectiveMaxFiles !== null
+                                  ? `${effectiveMaxFiles} ${effectiveMaxFiles === 1 ? "file" : "files"}`
+                                  : null,
+                                maxFileSizeLabel,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </Text>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel="Close upload"
+                              disabled={isSubmitting}
+                              onPress={() => setShowUpload(false)}
+                              className="h-8 w-8 items-center justify-center"
+                            >
+                              <Ionicons
+                                name="close"
+                                size={17}
+                                color={theme.textSecondary}
+                              />
+                            </Pressable>
+                          </View>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Choose files"
+                            disabled={
+                              isSubmitting || !editSession || !canEditSubmission
+                            }
+                            onPress={() => void addFiles()}
+                            className="flex-row items-center justify-center gap-2 rounded-xl border py-3"
+                            style={{
+                              borderColor: theme.border,
+                              backgroundColor: theme.background,
+                            }}
+                          >
+                            <Ionicons
+                              name="attach"
+                              size={18}
+                              color={theme.text}
+                            />
+                            <Text
+                              className="text-[13px] font-medium"
+                              style={{ color: theme.text }}
+                            >
+                              Choose files
+                            </Text>
+                          </Pressable>
+                          {files.map((file) => (
+                            <View
+                              key={`${file.uri}-${file.name}`}
+                              className="flex-row items-center gap-2 rounded-xl px-3 py-2"
+                              style={{ backgroundColor: theme.background }}
+                            >
+                              <Ionicons
+                                name={getFileIconName(file.name)}
+                                size={17}
+                                color="#60A5FA"
+                              />
+                              <Text
+                                className="flex-1 text-[12px]"
+                                numberOfLines={1}
+                                style={{ color: theme.text }}
+                              >
+                                {file.name}
+                              </Text>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={`Remove ${file.name}`}
+                                disabled={isSubmitting}
+                                onPress={() => removeFile(file.uri)}
+                                className="h-8 w-8 items-center justify-center"
+                              >
+                                <Ionicons
+                                  name="close-circle-outline"
+                                  size={18}
+                                  color={theme.textSecondary}
+                                />
+                              </Pressable>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      {supportsOnlineTextSubmission && (
+                        <TextInput
+                          accessibilityLabel="Submission text"
+                          multiline
+                          editable={!isSubmitting}
+                          value={onlineText}
+                          onChangeText={setOnlineText}
+                          placeholder="Submission text"
+                          placeholderTextColor={theme.textSecondary}
+                          className="min-h-[120px] rounded-xl border px-3 py-2 text-[13px]"
+                          style={{
+                            color: theme.text,
+                            borderColor: theme.border,
+                            backgroundColor: theme.background,
+                            textAlignVertical: "top",
+                          }}
+                        />
+                      )}
+                      {!supportsFileSubmission &&
+                        !supportsOnlineTextSubmission && (
+                          <Text
+                            className="text-[12px]"
+                            style={{ color: theme.textSecondary }}
+                          >
+                            Submission unavailable
+                          </Text>
+                        )}
+                    </>
+                  )}
+                  {(isSubmitting || uploadProgress !== null) && (
+                    <View className="gap-2">
+                      <View
+                        className="h-1 overflow-hidden rounded-full"
+                        style={{ backgroundColor: theme.border }}
+                      >
+                        <View
+                          className="h-1 rounded-full"
+                          style={{
+                            width: `${Math.round((clampUploadProgress(uploadProgress) ?? 0) * 100)}%`,
+                            backgroundColor: Colors.accent,
+                          }}
+                        />
+                      </View>
+                      <Text
+                        className="text-right text-[11px]"
+                        style={{ color: theme.textSecondary }}
+                      >
+                        {uploadProgress !== null
+                          ? `${Math.round((clampUploadProgress(uploadProgress) ?? 0) * 100)}%`
+                          : "Submitting…"}
+                      </Text>
+                    </View>
+                  )}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Submit assignment"
+                    disabled={
+                      isSubmitting ||
+                      isLoadingEdit ||
+                      !editSession ||
+                      !hasPayload ||
+                      !canEditSubmission ||
+                      isOffline
+                    }
+                    onPress={() => void handleSubmit()}
+                    className="items-center rounded-xl py-3.5"
+                    style={{
+                      backgroundColor: Colors.accent,
+                      opacity:
+                        !hasPayload ||
+                        isSubmitting ||
+                        isLoadingEdit ||
+                        !editSession ||
+                        isOffline
+                          ? 0.4
+                          : 1,
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator size="small" color={Colors.black} />
+                    ) : (
+                      <Text
+                        className="text-[13px] font-semibold"
+                        style={{ color: Colors.black }}
+                      >
+                        Submit
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              )}
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open assignment in LMS"
+              onPress={() => void openOnLms()}
+              className="flex-row items-center justify-center gap-1.5 py-2"
+            >
+              <Text
+                className="text-[12px] font-medium"
+                style={{ color: theme.textSecondary }}
+              >
+                Open LMS
+              </Text>
+              <Ionicons
+                name="open-outline"
+                size={14}
+                color={theme.textSecondary}
+              />
+            </Pressable>
           </View>
         )}
       </KeyboardAwareScrollView>
