@@ -68,23 +68,7 @@ PY
 # Confirm that default wardens were cached in persistent Documents storage.
 python3 - <<'PYTEST'
 import json, pathlib, subprocess, time
-root=pathlib.Path('.')
-def data(path, marker):
-    text=(root/path).read_text()
-    text=text[text.index(marker):]
-    text=text.split('=', 1)[1].lstrip()
-    return json.JSONDecoder().raw_decode(text)[0]
-faculties=data('src/data/faculty.ts', 'export const faculties')
-hostels=data('src/data/hostels.ts', 'export const hostelGroups')
-by_id={f['id']:f for f in faculties}
-urls=[by_id[i]['imageUrl'] for i in next(h for h in hostels if h['id']=='manimala')['wardenIds']]
-def key(url):
-    first=2166136261; second=5381
-    for character in url:
-        first=((first ^ ord(character))*16777619)&0xffffffff
-        second=((second*33)^ord(character))&0xffffffff
-    return f'{first:x}-{second:x}.img'
-expected={key(url) for url in urls if url}
+expected=set(json.loads(pathlib.Path('artifacts/legacy-emulator/expected-photo-files.json').read_text()))
 base='/data/user/0/com.codialo.Bunkialo2/files/faculty-photos-v1'
 for attempt in range(36):
     result=subprocess.run(['adb','shell','ls',base],capture_output=True,text=True)
