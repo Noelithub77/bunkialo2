@@ -176,7 +176,7 @@ jobs:
         with:
           tag_name: v${{ steps.versions.outputs.package_version }}${{ steps.versions.outputs.version_code && format('({0})', steps.versions.outputs.version_code) || '' }}
           name: v${{ steps.versions.outputs.package_version }}${{ steps.versions.outputs.version_code && format(' ({0})', steps.versions.outputs.version_code) || '' }}
-          generate_release_notes: true
+          body_path: releases/v${{ steps.versions.outputs.package_version }}.md
           files: ${{ runner.temp }}/artifacts/app-production.aab
 
   publish-google-play:

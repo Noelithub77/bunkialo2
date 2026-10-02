@@ -8,6 +8,7 @@ on:
         type: choice
         options:
           - current
+          - previous-sdk58
           - legacy-sdk54
         default: current
         required: true
@@ -57,7 +58,11 @@ jobs:
             echo 'runtime=1.4.1' >> "$GITHUB_OUTPUT"
           else
             echo 'directory=.' >> "$GITHUB_OUTPUT"
-            echo 'runtime=1.4.1-sdk58-widgets-v1' >> "$GITHUB_OUTPUT"
+            if [ "$OTA_TARGET" = previous-sdk58 ]; then
+              echo 'runtime=1.4.1-sdk58-widgets-v1' >> "$GITHUB_OUTPUT"
+            else
+              node -e 'console.log("runtime="+require("./package.json").version+"-sdk58-widgets-v1")' >> "$GITHUB_OUTPUT"
+            fi
           fi
       - uses: expo/expo-github-action@v8
         env:
@@ -73,12 +78,15 @@ jobs:
         working-directory: ${{ steps.source.outputs.directory }}
         env:
           EXPECTED_RUNTIME: ${{ steps.source.outputs.runtime }}
+          OTA_RUNTIME_VERSION: ${{ steps.source.outputs.runtime }}
         run: |
           bun test
           bunx tsc --noEmit
           bunx expo config --type public --json > resolved-config.json
           node -e 'const c=require("./resolved-config.json"); if(c.runtimeVersion!==process.env.EXPECTED_RUNTIME || c.android.package!=="com.codialo.Bunkialo2" || c.extra.eas.projectId!=="7cbe49d9-9827-4df3-b86e-849443804d63") throw new Error("OTA runtime or app identity mismatch");'
       - name: Publish compatible production OTA
+        env:
+          OTA_RUNTIME_VERSION: ${{ steps.source.outputs.runtime }}
         working-directory: ${{ steps.source.outputs.directory }}
         run: eas update --branch production --platform "$OTA_PLATFORM" --message "$UPDATE_MESSAGE" --non-interactive --json > ota-result.json
       - uses: actions/upload-artifact@v4
@@ -88,5 +96,6 @@ jobs:
       - name: Record target
         env:
           EXPECTED_RUNTIME: ${{ steps.source.outputs.runtime }}
+          OTA_RUNTIME_VERSION: ${{ steps.source.outputs.runtime }}
         run: |
           echo "Published $OTA_TARGET ($OTA_PLATFORM), runtime $EXPECTED_RUNTIME" >> "$GITHUB_STEP_SUMMARY"

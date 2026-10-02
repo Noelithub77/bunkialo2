@@ -594,6 +594,21 @@ export const fetchAssignmentDetails = async (
     descriptionHtml: description.html,
     descriptionText: description.text,
     resources,
+    submittedFiles: querySelectorAll(
+      doc,
+      '.submissionstatustable a[href*="/assignsubmission_file/"], .submissionstatustable .fileuploadsubmission a[href]',
+    ).flatMap((link, index) => {
+      const href = getAttr(link, "href");
+      return href
+        ? [
+            {
+              id: `submitted-${index}`,
+              name: normalizeText(getText(link)) || "Submitted file",
+              url: toAbsoluteLmsUrl(href),
+            },
+          ]
+        : [];
+    }),
     submissionStatusText: statusRows["submission status"] ?? null,
     gradingStatusText: statusRows["grading status"] ?? null,
     timeRemainingText: statusRows["time remaining"] ?? null,

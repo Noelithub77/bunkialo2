@@ -5,7 +5,7 @@ const viewHtml = `<h1>Worksheet 3</h1>
   <nav aria-label="Navigation bar"><li><a href="/course/view.php?id=162">Maths</a></li></nav>
   <div class="activity-description"><div id="intro">Upload your answers.</div></div>
   <a href="/mod/assign/view.php?id=6078&amp;action=editsubmission">Add submission</a>
-  <table class="submissionstatustable"><tr><td>Submission status</td><td>No submission</td></tr></table>`;
+  <table class="submissionstatustable"><tr><td>Submission status</td><td>No submission</td></tr><tr><td>File submissions</td><td><div class="fileuploadsubmission"><a href="/pluginfile.php/10/assignsubmission_file/submission_files/22/answers.pdf">answers.pdf</a></div></td></tr></table>`;
 const editHtml = `<form action="/mod/assign/view.php" method="post">
   <input type="hidden" name="action" value="savesubmission" />
   <input type="hidden" name="id" value="6078" />
@@ -78,6 +78,18 @@ beforeEach(async () => {
 });
 
 describe("assignment loading", () => {
+  test("keeps submitted files separate from assignment resources", async () => {
+    const details = await fetchAssignmentDetailsWithSession("6078");
+    expect(details.submittedFiles).toEqual([
+      {
+        id: "submitted-0",
+        name: "answers.pdf",
+        url: "https://lms.example/pluginfile.php/10/assignsubmission_file/submission_files/22/answers.pdf",
+      },
+    ]);
+    expect(details.resources).toEqual([]);
+  });
+
   test("loads the view in one request without a session probe or edit request", async () => {
     const details = await fetchAssignmentDetailsWithSession("6078");
     expect(details.assignmentName).toBe("Worksheet 3");

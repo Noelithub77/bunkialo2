@@ -7,8 +7,12 @@ on:
         description: Installed native build
         required: true
         type: choice
-        options: [legacy-sdk54, current]
+        options: [legacy-sdk54, previous-sdk58, current]
         default: legacy-sdk54
+      native_release_tag:
+        description: Native release tag (optional for legacy and previous builds)
+        required: false
+        type: string
       update_id:
         description: Exact Android update ID to verify
         required: true
@@ -23,7 +27,8 @@ jobs:
     timeout-minutes: 25
     env:
       OTA_TARGET: ${{ inputs.target }}
-      EXPECTED_RUNTIME: ${{ inputs.target == 'current' && '1.4.1-sdk58-widgets-v1' || '1.4.1' }}
+      NATIVE_RELEASE_TAG: ${{ inputs.native_release_tag }}
+      EXPECTED_RUNTIME: ${{ inputs.target == 'legacy-sdk54' && '1.4.1' || inputs.target == 'previous-sdk58' && '1.4.1-sdk58-widgets-v1' || '1.5.0-sdk58-widgets-v1' }}
       EXPECTED_UPDATE_ID: ${{ inputs.update_id }}
       ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL: "5"
     steps:
@@ -35,13 +40,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - name: Prepare original build 59 native app
+      - name: Prepare matching original native app
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts/legacy-emulator
           bun scripts/faculty-photo-verification.ts > artifacts/legacy-emulator/expected-photo-files.json
-          if [ "$OTA_TARGET" = current ]; then TAG='v1.4.1(62)'; else TAG='v1.4.1(59)'; fi
+          if [ -n "$NATIVE_RELEASE_TAG" ]; then TAG="$NATIVE_RELEASE_TAG";
+          elif [ "$OTA_TARGET" = legacy-sdk54 ]; then TAG='v1.4.1(59)';
+          elif [ "$OTA_TARGET" = previous-sdk58 ]; then TAG='v1.4.1(62)';
+          else echo 'native_release_tag is required for v1.5 verification'; exit 1; fi
           gh release download "$TAG" --pattern app-production.aab --dir artifacts/legacy-emulator
           curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o artifacts/legacy-emulator/bundletool.jar
           keytool -genkeypair -keystore artifacts/legacy-emulator/test-only.jks -alias androiddebugkey -storepass android -keypass android -dname 'CN=Android Debug,O=Android,C=US' -keyalg RSA -validity 30
@@ -55,7 +63,7 @@ jobs:
       - name: Verify production update on old native runtime
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: ${{ inputs.target == 'current' && 35 || 29 }}
+          api-level: ${{ inputs.target == 'legacy-sdk54' && 29 || 35 }}
           arch: x86_64
           target: default
           profile: pixel_2

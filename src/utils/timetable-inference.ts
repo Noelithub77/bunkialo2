@@ -124,8 +124,11 @@ const parseTimeToMinutes = (value: string): number | null => {
   return hours24 * 60 + minutes;
 };
 
+export const snapTimetableMinutes = (minutes: number): number =>
+  Math.round(minutes / 30) * 30;
+
 const minutesToTime = (minutes: number): string => {
-  const clamped = Math.max(0, Math.min(23 * 60 + 59, minutes));
+  const clamped = Math.max(0, Math.min(24 * 60, minutes));
   const hour = Math.floor(clamped / 60);
   const minute = clamped % 60;
   return `${hour.toString().padStart(2, "0")}:${minute
@@ -136,8 +139,7 @@ const minutesToTime = (minutes: number): string => {
 export const calculateDurationMinutes = (
   startMinutes: number,
   endMinutes: number,
-): number =>
-  endMinutes - startMinutes;
+): number => endMinutes - startMinutes;
 
 export const getSessionType = (
   desc: string,
@@ -212,7 +214,9 @@ const parseAttendanceSlot = (
   const dayMatch = record.date.match(/^([A-Za-z]{3})\s+/);
   if (!dayMatch) return { slot: null, reason: "missing_day" };
 
-  const dayOfWeek = DAY_NAMES.indexOf(dayMatch[1] as (typeof DAY_NAMES)[number]);
+  const dayOfWeek = DAY_NAMES.indexOf(
+    dayMatch[1] as (typeof DAY_NAMES)[number],
+  );
   if (dayOfWeek === -1) return { slot: null, reason: "invalid_day" };
 
   const dateMatch = record.date.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
@@ -228,9 +232,20 @@ const parseAttendanceSlot = (
   );
   if (!timeMatch) return { slot: null, reason: "missing_time_range" };
 
-  const startMinutes = parseTimeToMinutes(timeMatch[1]);
-  const endMinutes = parseTimeToMinutes(timeMatch[2]);
-  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+  const rawStartMinutes = parseTimeToMinutes(timeMatch[1]);
+  const rawEndMinutes = parseTimeToMinutes(timeMatch[2]);
+  if (
+    rawStartMinutes === null ||
+    rawEndMinutes === null ||
+    rawEndMinutes <= rawStartMinutes
+  )
+    return { slot: null, reason: "invalid_time_range" };
+  const startMinutes = snapTimetableMinutes(rawStartMinutes);
+  const endMinutes = Math.max(
+    startMinutes + 30,
+    snapTimetableMinutes(rawEndMinutes),
+  );
+  if (startMinutes >= 24 * 60 || endMinutes > 24 * 60) {
     return { slot: null, reason: "invalid_time_range" };
   }
 
@@ -240,7 +255,7 @@ const parseAttendanceSlot = (
   }
 
   const sessionEnd = new Date(year, month, day);
-  sessionEnd.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+  sessionEnd.setHours(Math.floor(rawEndMinutes / 60), rawEndMinutes % 60, 0, 0);
 
   return {
     slot: {
@@ -249,11 +264,44 @@ const parseAttendanceSlot = (
       endMinutes,
       startTime: minutesToTime(startMinutes),
       endTime: minutesToTime(endMinutes),
-      sessionType: getSessionType(record.description, startMinutes, endMinutes),
+      sessionType: getSessionType(
+        record.description,
+        rawStartMinutes,
+        rawEndMinutes,
+      ),
       weekKey: getIsoWeekKey(sessionDate),
       endedAtMs: sessionEnd.getTime(),
     },
   };
+};
+
+const normalizeMistypedMeridiems = (
+  slots: ParsedAttendanceSlot[],
+): ParsedAttendanceSlot[] => {
+  const key = (day: DayOfWeek, start: number, end: number) =>
+    `${day}-${start}-${end}`;
+  const counts = new Map<string, number>();
+  for (const slot of slots) {
+    const id = key(slot.dayOfWeek, slot.startMinutes, slot.endMinutes);
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return slots.map((slot) => {
+    if (slot.startMinutes >= 8 * 60 || slot.endMinutes > 8 * 60) return slot;
+    const pmStart = slot.startMinutes + 12 * 60;
+    const pmEnd = slot.endMinutes + 12 * 60;
+    const morningCount =
+      counts.get(key(slot.dayOfWeek, slot.startMinutes, slot.endMinutes)) ?? 0;
+    const daytimeCount = counts.get(key(slot.dayOfWeek, pmStart, pmEnd)) ?? 0;
+    if (daytimeCount <= morningCount || pmEnd > 22 * 60) return slot;
+    return {
+      ...slot,
+      startMinutes: pmStart,
+      endMinutes: pmEnd,
+      startTime: minutesToTime(pmStart),
+      endTime: minutesToTime(pmEnd),
+      endedAtMs: slot.endedAtMs + 12 * 60 * 60 * 1000,
+    };
+  });
 };
 
 const median = (values: number[]): number => {
@@ -283,10 +331,10 @@ const buildCandidateSlot = (
   totalWeekSpanCount: number,
   dayObservationCount: number,
 ): InferredRecurringSlotCandidate => {
-  const startMinutes = median(cluster.startSamples);
-  let endMinutes = median(cluster.endSamples);
+  const startMinutes = snapTimetableMinutes(median(cluster.startSamples));
+  let endMinutes = snapTimetableMinutes(median(cluster.endSamples));
   if (endMinutes <= startMinutes) {
-    endMinutes = Math.min(23 * 60 + 59, startMinutes + 55);
+    endMinutes = Math.min(24 * 60, startMinutes + 30);
   }
 
   const startTime = minutesToTime(startMinutes);
@@ -363,8 +411,9 @@ export const inferRecurringLmsSlotsVerbose = (
     return { selectedSlots: [], candidates: [] };
   }
 
-  const pastSlots = parsed.filter((slot) => slot.endedAtMs <= nowMs);
-  const observedSlots = pastSlots.length > 0 ? pastSlots : parsed;
+  const normalized = normalizeMistypedMeridiems(parsed);
+  const pastSlots = normalized.filter((slot) => slot.endedAtMs <= nowMs);
+  const observedSlots = pastSlots.length > 0 ? pastSlots : normalized;
   if (pastSlots.length === 0) {
     debug.timetable(
       "No completed sessions found; using all parseable rows for inference",
@@ -418,7 +467,10 @@ export const inferRecurringLmsSlotsVerbose = (
       bestCluster.endSamples.push(slot.endMinutes);
       bestCluster.weekKeys.add(slot.weekKey);
       bestCluster.sessionTypeCounts[slot.sessionType] += 1;
-      bestCluster.lastSeenAtMs = Math.max(bestCluster.lastSeenAtMs, slot.endedAtMs);
+      bestCluster.lastSeenAtMs = Math.max(
+        bestCluster.lastSeenAtMs,
+        slot.endedAtMs,
+      );
       continue;
     }
 
@@ -446,7 +498,10 @@ export const inferRecurringLmsSlotsVerbose = (
     if (clusters.length === 0) continue;
 
     const activeWeeksForDay = (dayWeeks.get(dayOfWeek) ?? new Set()).size;
-    const totalObservations = clusters.reduce((sum, cluster) => sum + cluster.count, 0);
+    const totalObservations = clusters.reduce(
+      (sum, cluster) => sum + cluster.count,
+      0,
+    );
 
     const scored: ScoredCluster[] = clusters.map((cluster) => {
       const weekCoverage =
@@ -459,7 +514,8 @@ export const inferRecurringLmsSlotsVerbose = (
 
     scored.sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
-      if (a.cluster.count !== b.cluster.count) return b.cluster.count - a.cluster.count;
+      if (a.cluster.count !== b.cluster.count)
+        return b.cluster.count - a.cluster.count;
       return b.cluster.lastSeenAtMs - a.cluster.lastSeenAtMs;
     });
 
@@ -475,11 +531,14 @@ export const inferRecurringLmsSlotsVerbose = (
         );
     const effectiveKept = kept.length > 0 ? kept : scored.slice(0, 1);
     if (!keepAll && kept.length === 0 && scored.length > 0) {
-      debug.timetable("No cluster passed strict threshold; using best fallback", {
-        dayOfWeek,
-        activeWeeksForDay,
-        bestScore,
-      });
+      debug.timetable(
+        "No cluster passed strict threshold; using best fallback",
+        {
+          dayOfWeek,
+          activeWeeksForDay,
+          bestScore,
+        },
+      );
     }
 
     const selectedClusterSet = new Set(

@@ -35,7 +35,11 @@ export const assignmentDescription = (
   fallback: string | null,
 ): string => {
   if (!html) return fallback?.trim() ?? "";
-  const doc = parseHtml(html);
+  const doc = parseHtml(
+    html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6])>/gi, "</$1>\n"),
+  );
   // Moodle places attachment names and upload timestamps inside the intro.
   for (const node of querySelectorAll(
     doc,
@@ -50,8 +54,10 @@ export const assignmentDescription = (
           ? node.data
           : "",
     )
-    .join(" ")
-    .replace(/\s+/g, " ")
+    .join("")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 };
 

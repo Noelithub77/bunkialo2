@@ -33,6 +33,14 @@ describe("assignment presentation", () => {
       "Solve question 4.",
     );
   });
+  test("preserves paragraph breaks and teacher bullet lists", () => {
+    const text = assignmentDescription(
+      "<div><p>Project update.</p><p>Please mention:<br>• Team members<br>• Dataset</p></div>",
+      null,
+    );
+    expect(text).toContain("Project update.\n");
+    expect(text).toContain("Please mention:\n• Team members\n• Dataset");
+  });
   test("relative dates handle future, past and the deadline boundary", () => {
     const now = Date.parse("2026-10-02T10:00:00Z");
     expect(assignmentRelativeDate(now + 4 * 86400000 + 2 * 3600000, now)).toBe(

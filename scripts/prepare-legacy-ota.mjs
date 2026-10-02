@@ -60,6 +60,8 @@ const files = [
   "src/utils/upload-progress.ts",
   "src/utils/assignment-share.ts",
   "src/utils/assignment-presentation.ts",
+  "src/utils/timetable-inference.ts",
+  "tests/unit/utils/timetable-inference.test.ts",
   "src/utils/scheduling.ts",
   "tests/unit/services/assignment.test.ts",
   "tests/unit/utils/assignment-presentation.test.ts",

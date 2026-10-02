@@ -8,10 +8,10 @@ import { getCurrentBaseUrl } from "@/services/api";
 import { useAssignmentStore } from "@/stores/assignment-store";
 import { useAuthStore } from "@/stores/auth-store";
 import type { AssignmentUploadLocalFile } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -36,7 +36,12 @@ import { getContentUriAsync } from "expo-file-system/legacy";
 import { startActivityAsync } from "expo-intent-launcher";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
 import { debug } from "@/utils/debug";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import {
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
+import { useBunkStore } from "@/stores/bunk-store";
+import { useCourseLinkStore } from "@/stores/course-link-store";
 import { clampUploadProgress } from "@/utils/upload-progress";
 import { getAssignmentViewUrl } from "@/utils/assignment-share";
 
@@ -142,7 +147,9 @@ export default function AssignmentDetailScreen() {
   const effectiveMaxBytes = details?.maxBytes ?? editSession?.maxBytes ?? null;
   const [showUpload, setShowUpload] = useState(false);
   const [exactDates, setExactDates] = useState<Record<string, boolean>>({});
-  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
+  const scrollRef = useRef<ComponentRef<typeof KeyboardAwareScrollView>>(null);
   const [resolvedCourseName, setResolvedCourseName] = useState<{
     courseId: string;
     name: string;
@@ -161,7 +168,8 @@ export default function AssignmentDetailScreen() {
     setFiles([]);
     setShowUpload(false);
     setExactDates({});
-    setDescriptionExpanded(false);
+    setDescriptionExpanded(true);
+    setShowDetails(false);
     setHasSeededOnlineText(false);
   }, [assignmentId]);
 
@@ -248,6 +256,31 @@ export default function AssignmentDetailScreen() {
       : assignmentRelativeDate(timestamp, now);
   const toggleDate = (key: string) =>
     setExactDates((current) => ({ ...current, [key]: !current[key] }));
+  const linkedCourseKey = useCourseLinkStore(
+    (state) =>
+      state.identities.find(
+        (identity) => identity.lmsCourseId === resolvedCourseId,
+      )?.key,
+  );
+  const courseColor =
+    useBunkStore(
+      (state) =>
+        state.courses.find(
+          (course) =>
+            course.courseId === linkedCourseKey ||
+            course.courseId === resolvedCourseId,
+        )?.config?.color,
+    ) ||
+    Colors.courseColors[
+      (Number(resolvedCourseId) || 0) % Colors.courseColors.length
+    ];
+  useEffect(() => {
+    if (!showUpload) return;
+    const frame = requestAnimationFrame(() =>
+      scrollRef.current?.scrollToEnd({ animated: true }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [showUpload]);
   const breadcrumbAssignment =
     details?.assignmentName ??
     (assignmentId ? `Assignment ${assignmentId}` : "Assignment");
@@ -490,9 +523,12 @@ export default function AssignmentDetailScreen() {
   return (
     <Container className="relative">
       <KeyboardAwareScrollView
+        ref={scrollRef}
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         bottomOffset={24}
-        contentContainerClassName="px-5 pb-10"
+        contentContainerClassName="px-5 pb-6"
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -521,18 +557,18 @@ export default function AssignmentDetailScreen() {
                 onPress={() => toggleDate("due")}
                 className="max-w-[80%] flex-row items-center gap-2 rounded-full px-3.5 py-2.5"
                 style={{
-                  backgroundColor: `${dueIsOverdue ? Colors.status.danger : "#FB923C"}18`,
+                  backgroundColor: `${dueIsOverdue ? Colors.status.danger : courseColor}18`,
                 }}
               >
                 <Ionicons
                   name="time-outline"
                   size={16}
-                  color={dueIsOverdue ? Colors.status.danger : "#FB923C"}
+                  color={dueIsOverdue ? Colors.status.danger : courseColor}
                 />
                 <Text
                   className="text-[12px] font-semibold"
                   style={{
-                    color: dueIsOverdue ? Colors.status.danger : "#FB923C",
+                    color: dueIsOverdue ? Colors.status.danger : courseColor,
                   }}
                 >
                   {dateLabel("due", dueAtForDisplay)}
@@ -540,7 +576,14 @@ export default function AssignmentDetailScreen() {
               </Pressable>
             )}
           </View>
-          <View className="gap-3">
+          <View
+            className="gap-4 rounded-[24px] px-4 py-5"
+            style={{
+              backgroundColor: `${courseColor}0A`,
+              borderWidth: 1,
+              borderColor: `${courseColor}18`,
+            }}
+          >
             <Pressable
               accessibilityRole="link"
               accessibilityLabel={`Course: ${breadcrumbCourse}`}
@@ -548,11 +591,7 @@ export default function AssignmentDetailScreen() {
               onPress={openCourseResources}
               className="flex-row items-center gap-2 self-start"
             >
-              <Ionicons
-                name="school-outline"
-                size={15}
-                color={theme.textSecondary}
-              />
+              <Ionicons name="school-outline" size={15} color={courseColor} />
               <Text
                 className="shrink text-[12px] font-medium leading-[18px]"
                 style={{ color: theme.textSecondary }}
@@ -621,24 +660,36 @@ export default function AssignmentDetailScreen() {
           </View>
         )}
         {details && (
-          <View className="gap-5">
+          <View className="flex-1 gap-7">
             {description !== "" && (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Toggle assignment instructions"
                 accessibilityState={{ expanded: descriptionExpanded }}
                 onPress={() => setDescriptionExpanded((value) => !value)}
-                className="gap-2"
+                className="gap-3 rounded-[22px] p-4"
+                style={{
+                  backgroundColor: `${courseColor}0C`,
+                  borderLeftWidth: 3,
+                  borderLeftColor: courseColor,
+                }}
               >
+                <View className="flex-row items-center justify-between">
+                  <Text
+                    className="text-[11px] font-semibold uppercase tracking-wider"
+                    style={{ color: courseColor }}
+                  >
+                    Instructions
+                  </Text>
+                  <Ionicons
+                    name={descriptionExpanded ? "chevron-up" : "chevron-down"}
+                    size={14}
+                    color={courseColor}
+                  />
+                </View>
                 <Text
-                  className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: theme.textSecondary }}
-                >
-                  Instructions
-                </Text>
-                <Text
-                  className="text-[13px] leading-[21px]"
-                  numberOfLines={descriptionExpanded ? undefined : 4}
+                  className="text-[14px] leading-[23px]"
+                  numberOfLines={descriptionExpanded ? undefined : 5}
                   style={{ color: theme.text }}
                 >
                   {description}
@@ -670,12 +721,12 @@ export default function AssignmentDetailScreen() {
                     >
                       <View
                         className="h-10 w-10 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: "#60A5FA18" }}
+                        style={{ backgroundColor: `${courseColor}18` }}
                       >
                         <Ionicons
                           name={getFileIconName(preferredName)}
                           size={21}
-                          color="#60A5FA"
+                          color={courseColor}
                         />
                       </View>
                       <Text
@@ -702,6 +753,7 @@ export default function AssignmentDetailScreen() {
                 })}
               </View>
             )}
+            <View className="min-h-4 flex-1" />
             <View
               className="gap-4 rounded-[22px] p-4"
               style={{ backgroundColor: theme.backgroundSecondary }}
@@ -739,46 +791,102 @@ export default function AssignmentDetailScreen() {
                     </Text>
                   )}
               </View>
-              {details.cutoffAt &&
-                details.cutoffAt !== dueAtForDisplay &&
-                dueIsOverdue && (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Toggle final deadline"
-                    onPress={() => toggleDate("cutoff")}
-                    className="flex-row items-center gap-2"
-                  >
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={14}
-                      color={theme.textSecondary}
-                    />
-                    <Text
-                      className="text-[11px]"
-                      style={{ color: theme.textSecondary }}
-                    >
-                      Closes {dateLabel("cutoff", details.cutoffAt)}
-                    </Text>
-                  </Pressable>
-                )}
-              {canEditSubmission && !showUpload && (
+              {(details.submittedFiles ?? []).map((file) => (
                 <Pressable
+                  key={file.id}
                   accessibilityRole="button"
-                  accessibilityLabel="Add submission"
-                  onPress={() => setShowUpload(true)}
-                  className="flex-row items-center justify-center gap-2 rounded-xl py-3.5"
-                  style={{ backgroundColor: Colors.accent }}
+                  accessibilityLabel={`Open submitted ${file.name}`}
+                  onPress={() => void openExternal(file.url, file.name)}
+                  className="flex-row items-center gap-2 rounded-xl px-3 py-3"
+                  style={{ backgroundColor: theme.background }}
                 >
-                  <Ionicons name="add" size={18} color={Colors.black} />
+                  <Ionicons
+                    name="document-attach-outline"
+                    size={17}
+                    color={courseColor}
+                  />
                   <Text
-                    className="text-[13px] font-semibold"
-                    style={{ color: Colors.black }}
+                    className="flex-1 text-[12px]"
+                    numberOfLines={2}
+                    style={{ color: theme.text }}
                   >
-                    {submissionLabel === "Submitted"
-                      ? "Edit submission"
-                      : "Add submission"}
+                    {file.name}
                   </Text>
+                  <Ionicons
+                    name="download-outline"
+                    size={16}
+                    color={theme.textSecondary}
+                  />
                 </Pressable>
+              ))}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Assignment details"
+                accessibilityState={{ expanded: showDetails }}
+                onPress={() => setShowDetails((value) => !value)}
+                className="flex-row items-center justify-between py-1"
+              >
+                <Text
+                  className="text-[12px]"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Details
+                </Text>
+                <Ionicons
+                  name={showDetails ? "chevron-up" : "chevron-down"}
+                  size={14}
+                  color={theme.textSecondary}
+                />
+              </Pressable>
+              {showDetails && (
+                <View
+                  className="gap-3 border-t pt-3"
+                  style={{ borderColor: theme.border }}
+                >
+                  {[
+                    [
+                      "Opened",
+                      details.openedAt
+                        ? formatDateTime(details.openedAt)
+                        : null,
+                    ],
+                    [
+                      "Due",
+                      dueAtForDisplay ? formatDateTime(dueAtForDisplay) : null,
+                    ],
+                    [
+                      "Closes",
+                      details.cutoffAt
+                        ? formatDateTime(details.cutoffAt)
+                        : null,
+                    ],
+                    [
+                      "Available from",
+                      details.allowSubmissionsFrom
+                        ? formatDateTime(details.allowSubmissionsFrom)
+                        : null,
+                    ],
+                    ["Submission", details.submissionStatusText],
+                    ["Grading", details.gradingStatusText],
+                  ]
+                    .filter(([, value]) => value)
+                    .map(([label, value]) => (
+                      <View key={label} className="gap-1">
+                        <Text
+                          className="text-[10px]"
+                          style={{ color: theme.textSecondary }}
+                        >
+                          {label}
+                        </Text>
+                        <Text
+                          className="text-[12px] leading-[18px]"
+                          style={{ color: theme.text }}
+                        >
+                          {value}
+                        </Text>
+                      </View>
+                    ))}
+                </View>
               )}
               {showUpload && canEditSubmission && (
                 <View className="gap-3">
@@ -853,7 +961,7 @@ export default function AssignmentDetailScreen() {
                               <Ionicons
                                 name={getFileIconName(file.name)}
                                 size={17}
-                                color="#60A5FA"
+                                color={courseColor}
                               />
                               <Text
                                 className="flex-1 text-[12px]"
@@ -918,7 +1026,7 @@ export default function AssignmentDetailScreen() {
                           className="h-1 rounded-full"
                           style={{
                             width: `${Math.round((clampUploadProgress(uploadProgress) ?? 0) * 100)}%`,
-                            backgroundColor: Colors.accent,
+                            backgroundColor: courseColor,
                           }}
                         />
                       </View>
@@ -932,66 +1040,105 @@ export default function AssignmentDetailScreen() {
                       </Text>
                     </View>
                   )}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Submit assignment"
-                    disabled={
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+      </KeyboardAwareScrollView>
+      {details && (
+        <KeyboardStickyView>
+          <View
+            className="flex-row items-center gap-3 border-t px-5 py-4"
+            style={{
+              backgroundColor: theme.background,
+              borderColor: `${courseColor}22`,
+            }}
+          >
+            <View className="flex-1">
+              {canEditSubmission && !showUpload && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add submission"
+                  onPress={() => setShowUpload(true)}
+                  className="min-h-[56px] flex-row items-center justify-center gap-2 rounded-xl py-3.5"
+                  style={{ backgroundColor: courseColor }}
+                >
+                  <Ionicons name="add" size={18} color={Colors.black} />
+                  <Text
+                    className="text-[13px] font-semibold"
+                    style={{ color: Colors.black }}
+                  >
+                    {submissionLabel === "Submitted"
+                      ? "Edit submission"
+                      : "Add submission"}
+                  </Text>
+                </Pressable>
+              )}
+              {showUpload && canEditSubmission && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Submit assignment"
+                  disabled={
+                    isSubmitting ||
+                    isLoadingEdit ||
+                    !editSession ||
+                    !hasPayload ||
+                    !canEditSubmission ||
+                    isOffline
+                  }
+                  onPress={() => void handleSubmit()}
+                  className="min-h-[56px] items-center justify-center rounded-xl py-3.5"
+                  style={{
+                    backgroundColor: courseColor,
+                    opacity:
+                      !hasPayload ||
                       isSubmitting ||
                       isLoadingEdit ||
                       !editSession ||
-                      !hasPayload ||
-                      !canEditSubmission ||
                       isOffline
-                    }
-                    onPress={() => void handleSubmit()}
-                    className="items-center rounded-xl py-3.5"
-                    style={{
-                      backgroundColor: Colors.accent,
-                      opacity:
-                        !hasPayload ||
-                        isSubmitting ||
-                        isLoadingEdit ||
-                        !editSession ||
-                        isOffline
-                          ? 0.4
-                          : 1,
-                    }}
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator size="small" color={Colors.black} />
-                    ) : (
-                      <Text
-                        className="text-[13px] font-semibold"
-                        style={{ color: Colors.black }}
-                      >
-                        Submit
-                      </Text>
-                    )}
-                  </Pressable>
-                </View>
+                        ? 0.4
+                        : 1,
+                  }}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color={Colors.black} />
+                  ) : (
+                    <Text
+                      className="text-[13px] font-semibold"
+                      style={{ color: Colors.black }}
+                    >
+                      Submit
+                    </Text>
+                  )}
+                </Pressable>
               )}
             </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open assignment in LMS"
               onPress={() => void openOnLms()}
-              className="flex-row items-center justify-center gap-1.5 py-2"
+              className="min-h-[56px] flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2"
+              style={{
+                borderColor: `${courseColor}30`,
+                backgroundColor: `${courseColor}0A`,
+              }}
             >
               <Text
                 className="text-[12px] font-medium"
                 style={{ color: theme.textSecondary }}
               >
-                Open LMS
+                LMS
               </Text>
-              <Ionicons
-                name="open-outline"
-                size={14}
+              <MaterialCommunityIcons
+                name="arrow-top-right"
+                size={18}
                 color={theme.textSecondary}
               />
             </Pressable>
           </View>
-        )}
-      </KeyboardAwareScrollView>
+        </KeyboardStickyView>
+      )}
     </Container>
   );
 }
