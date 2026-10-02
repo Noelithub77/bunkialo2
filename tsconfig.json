@@ -25,6 +25,7 @@
     "src/services/archive/**",
     "worker/**",
     "worker-configuration.d.ts",
-    "tests/unit/desktop-snapshot.test.ts"
+    "tests/unit/desktop-snapshot.test.ts",
+    "artifacts/**"
   ]
 }

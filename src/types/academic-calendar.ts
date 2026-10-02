@@ -42,6 +42,7 @@ export interface AcademicEvent {
   allDay?: boolean;
   location?: string;
   calendarUrl?: string;
+  visibility?: "public" | "private" | "confidential";
 }
 
 export interface AcademicEventOverride

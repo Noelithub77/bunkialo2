@@ -7,6 +7,7 @@ import {
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { AcademicEvent } from "@/types";
+import { isVisibleAcademicEvent } from "@/utils/academic-event-visibility";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 import { Linking } from "react-native";
@@ -53,6 +54,7 @@ export const AcademicEventCard = ({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const theme = isDark ? Colors.dark : Colors.light;
+  if (!isVisibleAcademicEvent(event)) return null;
   const cardBorder = isDark ? Colors.gray[600] : theme.border;
   const meta = CATEGORY_META[event.category];
   const hasDateRange = event.endDate !== undefined && event.endDate !== event.date;

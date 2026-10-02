@@ -72,7 +72,7 @@ const toReminderEvents = (
     type: "dashboard-reminder" as const,
   })),
   ...academicEvents.flatMap((event) => {
-    if (event.origin !== "google-calendar" || !event.startAt) return [];
+    if (event.origin !== "google-calendar" || !event.startAt || !isVisibleAcademicEvent(event)) return [];
     const startAt = Date.parse(event.startAt);
     if (!Number.isFinite(startAt)) return [];
 
@@ -373,3 +373,4 @@ export const syncDashboardNotifications = async (
     releaseQueue();
   }
 };
+import { isVisibleAcademicEvent } from "@/utils/academic-event-visibility";

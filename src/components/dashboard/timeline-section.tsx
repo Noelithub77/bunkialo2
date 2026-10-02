@@ -14,6 +14,7 @@ import type {
   TimelineEvent,
 } from "@/types";
 import { getAcademicEventsForWindow } from "@/utils/academic-calendar-window";
+import { isVisibleAcademicEvent } from "@/utils/academic-event-visibility";
 import { router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Text, View } from "react-native";
@@ -98,7 +99,7 @@ export const TimelineSection = ({ events }: TimelineSectionProps) => {
   const windowStart = toISODate(new Date());
   const academicEvents = getAcademicEventsForDashboard(
     overrides,
-    [...customEvents, ...googleEvents],
+    [...customEvents, ...googleEvents].filter(isVisibleAcademicEvent),
     windowStart,
   );
 

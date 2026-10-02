@@ -6,8 +6,25 @@ import {
   GOOGLE_CALENDAR_TIME_ZONE,
 } from "@/constants/google-calendar";
 import type { AcademicEvent } from "@/types";
+import { isRedactedCalendarTitle } from "@/utils/academic-event-visibility";
 
 const LOOKAHEAD_DAYS = 90;
+
+const isPublicComponent = (component: ICAL.Component): boolean => {
+  const classification = String(
+    component.getFirstPropertyValue("class") ?? "PUBLIC",
+  ).toUpperCase();
+  const status = String(
+    component.getFirstPropertyValue("status") ?? "",
+  ).toUpperCase();
+  const title = String(component.getFirstPropertyValue("summary") ?? "");
+  // RFC 5545 defaults an omitted CLASS to PUBLIC.
+  return (
+    classification === "PUBLIC" &&
+    status !== "CANCELLED" &&
+    !isRedactedCalendarTitle(title)
+  );
+};
 
 const pad = (value: number): string => `${value}`.padStart(2, "0");
 
@@ -76,7 +93,9 @@ const formatDateInCalendarZone = (date: Date): string => {
 };
 
 const getEventDate = (time: ICAL.Time): string =>
-  time.isDate ? formatDateFields(time) : formatDateInCalendarZone(time.toJSDate());
+  time.isDate
+    ? formatDateFields(time)
+    : formatDateInCalendarZone(time.toJSDate());
 
 const getExclusiveEndDate = (time: ICAL.Time): string => {
   if (!time.isDate) return getEventDate(time);
@@ -97,9 +116,7 @@ const base64UrlEncodeAscii = (value: string): string => {
 
     encoded += alphabet[first >> 2];
     encoded += alphabet[((first & 3) << 4) | (second >> 4)];
-    encoded += hasSecond
-      ? alphabet[((second & 15) << 2) | (third >> 6)]
-      : "=";
+    encoded += hasSecond ? alphabet[((second & 15) << 2) | (third >> 6)] : "=";
     encoded += hasThird ? alphabet[third & 63] : "=";
   }
 
@@ -108,7 +125,10 @@ const base64UrlEncodeAscii = (value: string): string => {
 
 const createGoogleEventUrl = (uid: string): string => {
   const eventId = uid.split("@", 1)[0];
-  const calendarId = GOOGLE_CALENDAR_ID.replace("@group.calendar.google.com", "@g");
+  const calendarId = GOOGLE_CALENDAR_ID.replace(
+    "@group.calendar.google.com",
+    "@g",
+  );
   const eid = base64UrlEncodeAscii(`${eventId} ${calendarId}`);
   return `https://calendar.google.com/calendar/event?eid=${eid}&ctz=${encodeURIComponent(GOOGLE_CALENDAR_TIME_ZONE)}`;
 };
@@ -180,6 +200,7 @@ const normalizeOccurrence = ({
     startAt,
     termId: "odd-2026-27",
     title: event.summary?.trim() || "Club event",
+    visibility: "public",
   };
 };
 
@@ -192,15 +213,29 @@ export const parseGoogleCalendarFeed = (
   const rangeEndMs = addDays(now, LOOKAHEAD_DAYS).getTime();
   const events: AcademicEvent[] = [];
 
+  const masters = new Map<string, ICAL.Event>();
+  const exceptions: ICAL.Event[] = [];
   for (const component of calendar.getAllSubcomponents("vevent")) {
-    const status = component.getFirstPropertyValue("status");
-    if (status === "CANCELLED") continue;
-
     const event = new ICAL.Event(component);
+    if (event.isRecurrenceException()) exceptions.push(event);
+    else masters.set(event.uid, event);
+  }
+  for (const exception of exceptions) {
+    const master = masters.get(exception.uid);
+    if (master) master.relateException(exception);
+    else if (isPublicComponent(exception.component))
+      masters.set(`${exception.uid}-${exception.recurrenceId}`, exception);
+  }
+  for (const event of masters.values()) {
+    if (!isPublicComponent(event.component)) continue;
     const occurrences = getEventOccurrences(event, nowMs, rangeEndMs);
     for (const occurrence of occurrences) {
+      if (!isPublicComponent(occurrence.event.component)) continue;
       const startMs = occurrence.startDate.toUnixTime() * 1000;
-      if (startMs > rangeEndMs || occurrence.endDate.toUnixTime() * 1000 < nowMs) {
+      if (
+        startMs > rangeEndMs ||
+        occurrence.endDate.toUnixTime() * 1000 < nowMs
+      ) {
         continue;
       }
       events.push(normalizeOccurrence(occurrence));
@@ -210,7 +245,9 @@ export const parseGoogleCalendarFeed = (
   return events.sort((first, second) => {
     const dateOrder = first.date.localeCompare(second.date);
     if (dateOrder !== 0) return dateOrder;
-    return (first.startAt ?? first.date).localeCompare(second.startAt ?? second.date);
+    return (first.startAt ?? first.date).localeCompare(
+      second.startAt ?? second.date,
+    );
   });
 };
 

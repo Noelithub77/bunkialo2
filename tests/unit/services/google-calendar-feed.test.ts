@@ -39,7 +39,9 @@ describe("Google Calendar feed", () => {
       startAt: "2026-09-22T11:00:00.000Z",
       title: "Enigma Orientation",
     });
-    expect(event?.calendarUrl).toContain("calendar.google.com/calendar/event?eid=");
+    expect(event?.calendarUrl).toContain(
+      "calendar.google.com/calendar/event?eid=",
+    );
   });
 
   test("converts exclusive all-day end dates into an inclusive range", () => {
@@ -56,5 +58,63 @@ describe("Google Calendar feed", () => {
       title: "AAROH '26",
     });
     expect(events[0]?.startAt).toBeUndefined();
+  });
+});
+
+const feedWith = (events: string): string =>
+  `BEGIN:VCALENDAR\nVERSION:2.0\n${events}\nEND:VCALENDAR`;
+const calendarEvent = (id: string, extra: string): string =>
+  `BEGIN:VEVENT\nUID:${id}@google.com\nDTSTART:20261005T110000Z\nDTEND:20261005T120000Z\nSUMMARY:${id}\n${extra}\nEND:VEVENT`;
+
+describe("public club events only", () => {
+  test("drops private and confidential events even when their titles are descriptive", () => {
+    const feed = feedWith(
+      [
+        calendarEvent("Public orientation", "CLASS:PUBLIC"),
+        calendarEvent("Default public event", ""),
+        calendarEvent("Named private meeting", "CLASS:PRIVATE"),
+        calendarEvent("Named confidential meeting", "CLASS:CONFIDENTIAL"),
+        calendarEvent("Cancelled event", "CLASS:PUBLIC\nSTATUS:CANCELLED"),
+        calendarEvent("Busy", ""),
+        calendarEvent("Private", "CLASS:PUBLIC"),
+        calendarEvent("Private event", ""),
+      ].join("\n"),
+    );
+    const events = parseGoogleCalendarFeed(
+      feed,
+      new Date("2026-10-01T00:00:00Z"),
+    );
+    expect(events.map((event) => event.title).sort()).toEqual([
+      "Default public event",
+      "Public orientation",
+    ]);
+    expect(events.every((event) => event.visibility === "public")).toBe(true);
+  });
+
+  test("a private recurrence exception never reappears through its public series", () => {
+    const feed = feedWith(`BEGIN:VEVENT
+UID:weekly@google.com
+DTSTART:20261001T110000Z
+DTEND:20261001T120000Z
+RRULE:FREQ=WEEKLY;COUNT=3
+SUMMARY:Public weekly meeting
+CLASS:PUBLIC
+END:VEVENT
+BEGIN:VEVENT
+UID:weekly@google.com
+RECURRENCE-ID:20261008T110000Z
+DTSTART:20261008T110000Z
+DTEND:20261008T120000Z
+SUMMARY:Private meeting
+CLASS:PRIVATE
+END:VEVENT`);
+    const events = parseGoogleCalendarFeed(
+      feed,
+      new Date("2026-10-01T00:00:00Z"),
+    );
+    expect(events.map((event) => event.date)).toEqual([
+      "2026-10-01",
+      "2026-10-15",
+    ]);
   });
 });
