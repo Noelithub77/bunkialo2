@@ -3,20 +3,146 @@ import type { PortalNotification } from "@/types";
 let enabled = true;
 let permission = true;
 let fail = false;
+let readFail = false;
+let waitForRead: Promise<void> | null = null;
+const reads: string[] = [];
 const deliveries: string[] = [];
-mock.module("@/stores/storage", () => ({ zustandStorage: { getItem: async () => null, setItem: async () => {}, removeItem: async () => {} } }));
-mock.module("@/services/attendance/attendance-api", () => ({ getPortalNotifications: async () => ({items: [], unreadCount: 0}), markPortalNotificationRead: async () => {}, markAllPortalNotificationsRead: async () => {} }));
-mock.module("@/stores/settings-store", () => ({ useSettingsStore: { getState: () => ({notificationsEnabled: enabled}), persist: {hasHydrated: () => true} } }));
-mock.module("@/stores/attendance-store", () => ({useAttendanceStore: {getState: () => ({courses: []})}}));
-mock.module("@/utils/notifications", () => ({ hasNotificationPermissions: async () => permission, ensureNotificationChannels: async () => {}, sendImmediateNotification: async (p: {identifier: string}) => { if (fail) throw new Error("Offline"); deliveries.push(p.identifier); return p.identifier; } }));
-const { usePortalNotificationStore: store } = await import("@/stores/portal-notification-store");
-const { syncPortalNotificationsFromPage: sync } = await import("@/services/attendance/portal-notification-sync");
-const item = (id: string, readAt: string | null = null): PortalNotification => ({id, readAt, title: "Marked absent — CSE311", body: "You were marked absent in Artificial Intelligence on 2026-10-01.", kind: "ATTENDANCE_ABSENT", link: null, createdAt: new Date().toISOString()});
-const page = (...items: PortalNotification[]) => ({items, unreadCount: items.filter(i => !i.readAt).length});
-beforeEach(async () => { enabled = permission = true; fail = false; deliveries.length = 0; await store.persist.rehydrate(); store.getState().clearPortalNotifications(); });
+mock.module("@/stores/storage", () => ({
+  zustandStorage: {
+    getItem: async () => null,
+    setItem: async () => {},
+    removeItem: async () => {},
+  },
+}));
+mock.module("@/services/attendance/attendance-api", () => ({
+  getPortalNotifications: async () => ({ items: [], unreadCount: 0 }),
+  markPortalNotificationRead: async (id: string) => {
+    reads.push(id);
+    if (waitForRead) await waitForRead;
+    if (readFail) throw new Error("Offline read");
+  },
+  markAllPortalNotificationsRead: async () => {},
+}));
+mock.module("@/stores/settings-store", () => ({
+  useSettingsStore: {
+    getState: () => ({ notificationsEnabled: enabled }),
+    persist: { hasHydrated: () => true },
+  },
+}));
+mock.module("@/stores/attendance-store", () => ({
+  useAttendanceStore: { getState: () => ({ courses: [] }) },
+}));
+mock.module("@/utils/notifications", () => ({
+  hasNotificationPermissions: async () => permission,
+  ensureNotificationChannels: async () => {},
+  sendImmediateNotification: async (p: { identifier: string }) => {
+    if (fail) throw new Error("Offline");
+    deliveries.push(p.identifier);
+    return p.identifier;
+  },
+}));
+const { usePortalNotificationStore: store } =
+  await import("@/stores/portal-notification-store");
+const { syncPortalNotificationsFromPage: sync } =
+  await import("@/services/attendance/portal-notification-sync");
+const item = (
+  id: string,
+  readAt: string | null = null,
+): PortalNotification => ({
+  id,
+  readAt,
+  title: "Marked absent — CSE311",
+  body: "You were marked absent in Artificial Intelligence on 2026-10-01.",
+  kind: "ATTENDANCE_ABSENT",
+  link: null,
+  createdAt: new Date().toISOString(),
+});
+const page = (...items: PortalNotification[]) => ({
+  items,
+  unreadCount: items.filter((i) => !i.readAt).length,
+});
+beforeEach(async () => {
+  enabled = permission = true;
+  fail = readFail = false;
+  waitForRead = null;
+  reads.length = 0;
+  deliveries.length = 0;
+  await store.persist.rehydrate();
+  store.getState().clearPortalNotifications();
+});
 describe("deterministic portal delivery", () => {
-  test("baseline stays silent; concurrent fetches deliver each new unread item once", async () => { await sync(page(item("old"))); await Promise.all([sync(page(item("new"))),sync(page(item("new")))]); expect(deliveries).toEqual(["attendance-portal-new"]); expect(store.getState().items).toHaveLength(2); });
-  test("failed delivery remains pending and retries on the next identical page", async () => { await sync(page()); fail = true; await expect(sync(page(item("new")))).rejects.toThrow("Offline"); expect(store.getState().pendingDeliveryIds).toEqual(["new"]); fail = false; await sync(page(item("new"))); expect(deliveries).toEqual(["attendance-portal-new"]); expect(store.getState().pendingDeliveryIds).toEqual([]); });
-  test("permission delay retains pending delivery; already read or dismissed items never alert", async () => { await sync(page()); permission = false; await sync(page(item("later"), item("read",new Date().toISOString()))); permission = true; await sync(page(item("later"))); expect(deliveries).toEqual(["attendance-portal-later"]); store.getState().dismiss(["hidden"]); await sync(page(item("hidden"))); expect(deliveries).toHaveLength(1); });
-  test("disabled notifications keep inbox updated without emitting or queueing alerts", async () => { await sync(page()); enabled = false; await sync(page(item("silent"))); expect(store.getState().items).toHaveLength(1); expect(store.getState().pendingDeliveryIds).toEqual([]); expect(deliveries).toHaveLength(0); });
+  test("baseline stays silent; concurrent fetches deliver each new unread item once", async () => {
+    await sync(page(item("old")));
+    await Promise.all([sync(page(item("new"))), sync(page(item("new")))]);
+    expect(deliveries).toEqual(["attendance-portal-new"]);
+    expect(store.getState().items).toHaveLength(2);
+  });
+  test("failed delivery remains pending and retries on the next identical page", async () => {
+    await sync(page());
+    fail = true;
+    await expect(sync(page(item("new")))).rejects.toThrow("Offline");
+    expect(store.getState().pendingDeliveryIds).toEqual(["new"]);
+    fail = false;
+    await sync(page(item("new")));
+    expect(deliveries).toEqual(["attendance-portal-new"]);
+    expect(store.getState().pendingDeliveryIds).toEqual([]);
+  });
+  test("permission delay retains pending delivery; already read or dismissed items never alert", async () => {
+    await sync(page());
+    permission = false;
+    await sync(page(item("later"), item("read", new Date().toISOString())));
+    permission = true;
+    await sync(page(item("later")));
+    expect(deliveries).toEqual(["attendance-portal-later"]);
+    store.getState().dismiss(["hidden"]);
+    await sync(page(item("hidden")));
+    expect(deliveries).toHaveLength(1);
+  });
+  test("disabled notifications keep inbox updated without emitting or queueing alerts", async () => {
+    await sync(page());
+    enabled = false;
+    await sync(page(item("silent")));
+    expect(store.getState().items).toHaveLength(1);
+    expect(store.getState().pendingDeliveryIds).toEqual([]);
+    expect(deliveries).toHaveLength(0);
+  });
+});
+
+describe("persisted read acknowledgements", () => {
+  test("offline read changes immediately, survives stale fetch, and retries without alerting", async () => {
+    await sync(page(item("read-offline")));
+    store.getState().setPendingDeliveryIds(["read-offline"]);
+    readFail = true;
+    const pending = store.getState().markRead("read-offline");
+    expect(store.getState().items[0].readAt).not.toBeNull();
+    expect(store.getState().pendingDeliveryIds).toEqual([]);
+    await pending;
+    expect(store.getState().pendingReadIds).toEqual(["read-offline"]);
+    await sync(page(item("read-offline")));
+    expect(store.getState().items[0].readAt).not.toBeNull();
+    expect(deliveries).toEqual([]);
+    readFail = false;
+    await store.getState().flushPendingReads();
+    expect(store.getState().pendingReadIds).toEqual([]);
+  });
+  test("bulk read captures a snapshot and concurrent acknowledgements are coalesced", async () => {
+    await sync(page(item("existing")));
+    let release!: () => void;
+    waitForRead = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const bulk = store.getState().markAllRead();
+    const retry = store.getState().flushPendingReads();
+    store.getState().setFetched([item("arrived-later")]);
+    expect(
+      store.getState().items.find((i) => i.id === "existing")?.readAt,
+    ).not.toBeNull();
+    expect(
+      store.getState().items.find((i) => i.id === "arrived-later")?.readAt,
+    ).toBeNull();
+    release();
+    await Promise.all([bulk, retry]);
+    expect(reads).toEqual(["existing"]);
+    expect(store.getState().pendingReadIds).toEqual([]);
+  });
 });

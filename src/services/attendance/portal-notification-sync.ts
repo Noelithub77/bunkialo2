@@ -36,6 +36,7 @@ export const syncPortalNotificationsFromPage = (
         )
       : [];
     before.setFetched(recentItems);
+    await usePortalNotificationStore.getState().flushPendingReads();
     if (!useSettingsStore.getState().notificationsEnabled) {
       before.setPendingDeliveryIds([]);
       return;
@@ -45,7 +46,9 @@ export const syncPortalNotificationsFromPage = (
       ...unseen.map((item) => item.id),
     ]);
     if (!(await hasNotificationPermissions())) return;
-    await ensureNotificationChannels([{ id: "attendance", name: "Attendance" }]);
+    await ensureNotificationChannels([
+      { id: "attendance", name: "Attendance" },
+    ]);
     const current = usePortalNotificationStore.getState();
     const pending = current.items
       .filter(

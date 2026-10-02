@@ -61,7 +61,6 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
   const seenPopupIds = usePopupStore((state) => state.seenPopupIds);
   const dismissedPopupIds = usePopupStore((state) => state.dismissedPopupIds);
   const markPopupSeen = usePopupStore((state) => state.markAsSeen);
-  const markAllPopupsSeen = usePopupStore((state) => state.markAllAsSeen);
   const dismissPopups = usePopupStore((state) => state.dismissPopups);
   const prunePopups = usePopupStore((state) => state.pruneExpiredPopups);
 
@@ -128,7 +127,8 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
     return [...attendanceItems, ...appItems].sort(
       (first, second) =>
         new Date(second.createdAt).getTime() -
-        new Date(first.createdAt).getTime() || first.id.localeCompare(second.id),
+          new Date(first.createdAt).getTime() ||
+        first.id.localeCompare(second.id),
     );
   }, [courses, dismissedPopupIds, isDark, portalItems, seenPopupIds]);
 
@@ -149,16 +149,21 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
   );
   const concernCounts = React.useMemo<Record<NotificationConcern, number>>(
     () => ({
-      all: notifications.length,
-      attendance: notifications.filter((item) => item.source === "attendance")
+      all: notifications.filter((item) => !item.isRead).length,
+      attendance: notifications.filter(
+        (item) => item.source === "attendance" && !item.isRead,
+      ).length,
+      app: notifications.filter((item) => item.source === "app" && !item.isRead)
         .length,
-      app: notifications.filter((item) => item.source === "app").length,
     }),
     [notifications],
   );
   const markCurrentRead = (): void => {
     if (concern !== "app") void markAllPortalRead();
-    if (concern !== "attendance") markAllPopupsSeen();
+    if (concern !== "attendance")
+      currentItems
+        .filter((item) => item.source === "app" && !item.isRead)
+        .forEach((item) => markPopupSeen(item.sourceId));
   };
 
   const clearNotifications = (target: ClearTarget): void => {
@@ -242,6 +247,7 @@ export function NoticesModal({ visible, onClose }: NoticesModalProps) {
                 concern={concern}
                 counts={concernCounts}
                 hasCurrentItems={currentItems.length > 0}
+                hasCurrentUnread={currentItems.some((item) => !item.isRead)}
                 hasAnyItems={notifications.length > 0}
                 theme={theme}
                 onConcernChange={setConcern}

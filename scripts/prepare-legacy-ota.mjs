@@ -32,6 +32,8 @@ const files = [
   "src/components/dashboard/notices-modal.tsx",
   "src/components/dashboard/notification-inbox-controls.tsx",
   "src/components/dashboard/notification-list-item.tsx",
+  "src/components/dashboard/notification-read-content.tsx",
+  "src/components/dashboard/notification-read-content.web.tsx",
   "src/components/settings/dashboard-settings-section.tsx",
   "src/components/sync/app-sync-controller.tsx",
   "src/components/sync/calendar-notification-controller.tsx",

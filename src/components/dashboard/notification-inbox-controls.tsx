@@ -8,6 +8,7 @@ interface NotificationInboxControlsProps {
   concern: NotificationConcern;
   counts: Record<NotificationConcern, number>;
   hasCurrentItems: boolean;
+  hasCurrentUnread: boolean;
   hasAnyItems: boolean;
   theme: {
     text: string;
@@ -36,6 +37,7 @@ export function NotificationInboxControls({
   concern,
   counts,
   hasCurrentItems,
+  hasCurrentUnread,
   hasAnyItems,
   theme,
   onConcernChange,
@@ -63,9 +65,23 @@ export function NotificationInboxControls({
         <View className="flex-row items-center gap-1">
           <Menu
             visible={moreMenuVisible}
+            contentStyle={{
+              backgroundColor: theme.backgroundSecondary,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+            theme={{
+              colors: {
+                onSurface: theme.text,
+                onSurfaceVariant: theme.textSecondary,
+              },
+            }}
             onDismiss={() => setMoreMenuVisible(false)}
             anchor={
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Notification actions"
                 onPress={() => setMoreMenuVisible(true)}
                 className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
                 style={{ backgroundColor: theme.backgroundSecondary }}
@@ -79,17 +95,21 @@ export function NotificationInboxControls({
             }
           >
             <Menu.Item
+              titleStyle={{ fontSize: 14 }}
+              style={{ height: 44 }}
               leadingIcon="email-check-outline"
               title={
                 concern === "all" ? "Mark all read" : `Mark ${concern} read`
               }
-              disabled={!hasCurrentItems}
+              disabled={!hasCurrentUnread}
               onPress={() => {
                 setMoreMenuVisible(false);
                 onMarkCurrentRead();
               }}
             />
             <Menu.Item
+              titleStyle={{ fontSize: 14 }}
+              style={{ height: 44 }}
               leadingIcon="notification-clear-all"
               title={concern === "all" ? "Clear inbox" : `Clear ${concern}`}
               disabled={!hasCurrentItems}
@@ -102,6 +122,8 @@ export function NotificationInboxControls({
               <>
                 <Divider />
                 <Menu.Item
+                  titleStyle={{ fontSize: 14 }}
+                  style={{ height: 44 }}
                   leadingIcon="delete-outline"
                   title="Clear everything"
                   disabled={!hasAnyItems}
@@ -114,6 +136,8 @@ export function NotificationInboxControls({
             )}
           </Menu>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close notifications"
             onPress={onClose}
             className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
             style={{ backgroundColor: theme.backgroundSecondary }}
@@ -141,17 +165,24 @@ export function NotificationInboxControls({
                 selected ? { backgroundColor: theme.background } : undefined
               }
             >
-              <Ionicons
-                name={
-                  option.value === "all"
-                    ? "layers-outline"
-                    : option.value === "attendance"
+              {option.value === "all" ? (
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{ color: selected ? theme.text : theme.textSecondary }}
+                >
+                  All
+                </Text>
+              ) : (
+                <Ionicons
+                  name={
+                    option.value === "attendance"
                       ? "school-outline"
                       : "sparkles-outline"
-                }
-                size={18}
-                color={selected ? theme.text : theme.textSecondary}
-              />
+                  }
+                  size={18}
+                  color={selected ? theme.text : theme.textSecondary}
+                />
+              )}
               <Text
                 className="text-[10px]"
                 style={{
