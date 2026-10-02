@@ -2,6 +2,11 @@ name: Verify legacy Android OTA
 
 on:
   workflow_dispatch:
+    inputs:
+      update_id:
+        description: Exact Android update ID to verify
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -10,6 +15,8 @@ jobs:
   emulator:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      EXPECTED_UPDATE_ID: ${{ inputs.update_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

@@ -11,8 +11,9 @@ adb logcat -c
 # universal APK's signature is changed to a disposable test key for installation.
 adb shell am start -n "$APP_ID/.MainActivity"
 python3 - <<'PY'
-import subprocess, time, pathlib, sqlite3
+import subprocess, time, pathlib, sqlite3, os
 out=pathlib.Path('artifacts/legacy-emulator/evidence')
+expected=os.environ['EXPECTED_UPDATE_ID'].replace('-', '').upper()
 for attempt in range(90):
     paths=subprocess.check_output(['adb','shell','find','/data/user/0/com.codialo.Bunkialo2','-name','*.db'],text=True).splitlines()
     for path in paths:
@@ -28,7 +29,7 @@ for attempt in range(90):
             con.close()
             (out/'update-rows.txt').write_text(repr(rows))
             # Expo Updates status READY=1; embedded update has status=2.
-            if any(runtime=='1.4.1' and status==1 for _,runtime,status in rows):
+            if any(update_id==expected and runtime=='1.4.1' and status==1 for update_id,runtime,status in rows):
                 print('Production SDK 54 OTA downloaded and ready:',rows)
                 raise SystemExit(0)
         except sqlite3.Error:
@@ -45,6 +46,7 @@ adb pull /sdcard/legacy-layout.xml "$EVIDENCE/layout.xml"
 adb exec-out screencap -p > "$EVIDENCE/old-runtime-login.png"
 python3 - <<'PY'
 from pathlib import Path
+import os, sqlite3, subprocess
 p=Path('artifacts/legacy-emulator/evidence')
 log=(p/'logcat.txt').read_text()
 layout=(p/'layout.xml').read_text()
@@ -52,5 +54,12 @@ if 'FATAL EXCEPTION' in log or 'ReactNativeJS: Error:' in log:
     raise SystemExit('Native or JavaScript crash; inspect logcat artifact')
 if 'LMS' not in layout and 'Sign in' not in layout and 'Roll' not in layout:
     raise SystemExit('Expected sign-in UI after launching downloaded OTA')
-print('Old build 59 successfully launches the downloaded production OTA')
+dbpath=subprocess.check_output(['adb','shell','find','/data/user/0/com.codialo.Bunkialo2','-name','updates.db'],text=True).strip()
+subprocess.run(['adb','pull',dbpath,str(p/'launched.db')],check=True)
+subprocess.run(['adb','pull',dbpath+'-wal',str(p/'launched.db')+'-wal'],capture_output=True)
+con=sqlite3.connect(p/'launched.db')
+row=con.execute('SELECT successful_launch_count, failed_launch_count FROM updates WHERE hex(id)=?',(os.environ['EXPECTED_UPDATE_ID'].replace('-','').upper(),)).fetchone()
+if row is None or row[0]<1 or row[1]!=0:
+    raise SystemExit(f'Expected update did not launch successfully: {row}')
+print('Old build 59 successfully launches the exact production OTA:',os.environ['EXPECTED_UPDATE_ID'],row)
 PY
