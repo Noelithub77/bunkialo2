@@ -1,3 +1,7 @@
+import { portalNotificationsSchema } from "../src/services/attendance/attendance-schemas";
+import { presentPortalNotification, webNotificationIdentifier } from "../src/utils/portal-notification";
+import { PORTAL_NOTIFICATION_POLL_MINUTES } from "../src/constants/portal-notifications";
+import { isNotificationRecent, NOTIFICATION_RETENTION_MS } from "../src/utils/notification-inbox";
 import { DurableObject } from "cloudflare:workers";
 import type { PushSubscription } from "@pushforge/builder";
 import type { StoredCookie } from "./lms/cookie-jar";
@@ -163,8 +167,8 @@ export class UserSession extends DurableObject<CloudflareBindings> {
   }
 
   private async keepAlive(): Promise<void> {
-    const current = await this.ctx.storage.getAlarm();
-    if (current === null) await this.ctx.storage.setAlarm(Date.now() + SESSION_TTL_MS);
+    this.setValue("expires-at", Date.now() + SESSION_TTL_MS);
+    await this.scheduleNextAlarm();
   }
 
   async loginLms(username: string, password: string): Promise<boolean> {
@@ -591,6 +595,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
   }
 
   async relayAttendance(input: {
+    background?: boolean;
     body: ArrayBuffer | null;
     contentType: string | null;
     method: string;
@@ -652,25 +657,25 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     if (target.pathname === "/api/auth/logout" && response.ok) {
       this.deleteValues("attendance", "attendance-credentials", "desktop-pairing");
     }
-    await this.keepAlive();
+    if (!input.background) await this.keepAlive();
     return limitedResponse(response);
   }
 
   async logout(): Promise<void> {
-    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms");
+    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms", "push", "portal-poll-at", "portal-receipts", "push-enabled", "expires-at");
     this.ctx.storage.sql.exec("DELETE FROM reminders");
     await this.ctx.storage.deleteAlarm();
   }
 
   async savePushSubscription(subscription: PushSubscription): Promise<void> {
     this.setValue("push", subscription);
-    await this.scheduleNextAlarm();
+    await this.keepAlive();
   }
 
   async removePushSubscription(): Promise<void> {
-    this.deleteValues("push");
+    this.deleteValues("push", "portal-poll-at");
     this.ctx.storage.sql.exec("DELETE FROM reminders");
-    await this.ctx.storage.deleteAlarm();
+    await this.scheduleNextAlarm();
   }
 
   async scheduleReminder(reminder: {
@@ -688,7 +693,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
          body = excluded.body,
          due_at = excluded.due_at,
          url = excluded.url,
-         sent_at = NULL`,
+         sent_at = reminders.sent_at`,
       reminder.id,
       reminder.title,
       reminder.body,
@@ -712,23 +717,75 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     return this.getValue<PushSubscription>("push") !== null;
   }
 
-  private async scheduleNextAlarm(): Promise<void> {
-    const next = this.ctx.storage.sql
-      .exec<{ due_at: number | null }>(
-        "SELECT MIN(due_at) AS due_at FROM reminders WHERE sent_at IS NULL",
-      )
-      .one().due_at;
-    if (next !== null) {
-      await this.ctx.storage.setAlarm(Math.max(Date.now() + 1000, next));
-    } else if (this.getValue<PushSubscription>("push")) {
-      await this.ctx.storage.setAlarm(Date.now() + SESSION_TTL_MS);
-    } else {
-      await this.ctx.storage.deleteAlarm();
+  async listScheduledReminderIds(): Promise<string[]> {
+    return this.ctx.storage.sql.exec<{id: string}>("SELECT id FROM reminders WHERE sent_at IS NULL").toArray().map((row) => row.id);
+  }
+
+  async setPushEnabled(enabled: boolean): Promise<void> {
+    this.setValue("push-enabled", enabled);
+    if (!enabled) this.ctx.storage.sql.exec("DELETE FROM reminders");
+    await this.keepAlive();
+  }
+
+  private async pollPortalNotifications(): Promise<void> {
+    const expiresAt = this.getValue<number>("expires-at");
+    let response: Response;
+    try {
+      response = await this.relayAttendance({ background: true, body: null, contentType: null, method: "GET", path: "/api/notifications" });
+    } finally {
+      // A token-refresh login must not keep an otherwise inactive session alive forever.
+      if (expiresAt !== null) this.setValue("expires-at", expiresAt);
     }
+    if (!response.ok) throw new Error(`Notification fetch returned ${response.status}`);
+    const page = portalNotificationsSchema.parse(await response.json());
+    if (!this.getValue<PushSubscription>("push") || this.getValue<boolean>("push-enabled") === false) return;
+    const saved = this.getValue<Record<string, number>>("portal-receipts");
+    const receipts = Object.fromEntries(Object.entries(saved ?? {}).filter(([, at]) => at >= Date.now() - NOTIFICATION_RETENTION_MS));
+    for (const item of page.items.filter((item) => isNotificationRecent(item.createdAt))) {
+      if (saved !== null && !item.readAt && receipts[item.id] === undefined) {
+        const presentation = presentPortalNotification(item);
+        // Stable IDs share the same receipt as foreground web delivery.
+        this.ctx.storage.sql.exec(`INSERT INTO reminders (id, title, body, due_at, url, sent_at) VALUES (?, ?, ?, ?, ?, NULL) ON CONFLICT(id) DO NOTHING`,
+          webNotificationIdentifier(`attendance-portal-${item.id}`), presentation.title, presentation.body, Date.now() + 1000, "/attendance");
+      }
+      receipts[item.id] = Date.parse(item.createdAt);
+    }
+    this.setValue("portal-receipts", receipts);
+  }
+
+  private async scheduleNextAlarm(): Promise<void> {
+    const now = Date.now();
+    let expiresAt = this.getValue<number>("expires-at");
+    if (expiresAt === null) {
+      expiresAt = now + SESSION_TTL_MS;
+      this.setValue("expires-at", expiresAt);
+    }
+    const times = [expiresAt];
+    const next = this.ctx.storage.sql.exec<{ due_at: number | null }>("SELECT MIN(due_at) AS due_at FROM reminders WHERE sent_at IS NULL").one().due_at;
+    if (next !== null) times.push(next);
+    if (this.getValue<PushSubscription>("push") && this.env.VAPID_PRIVATE_KEY && this.getValue<boolean>("push-enabled") !== false && (this.getValue("attendance") || this.getAttendanceCredentials())) {
+      let pollAt = this.getValue<number>("portal-poll-at");
+      if (pollAt === null) {
+        // The first fetch establishes a historical baseline immediately.
+        pollAt = now + 1000;
+        this.setValue("portal-poll-at", pollAt);
+      }
+      times.push(pollAt);
+    } else {
+      this.deleteValues("portal-poll-at");
+    }
+    await this.ctx.storage.setAlarm(Math.max(now + 1000, Math.min(...times)));
   }
 
   async alarm(): Promise<void> {
     const now = Date.now();
+    const expiresAt = this.getValue<number>("expires-at");
+    if (expiresAt !== null && expiresAt <= now) { await this.logout(); return; }
+    const pollAt = this.getValue<number>("portal-poll-at");
+    if (pollAt !== null && pollAt <= now && this.getValue<PushSubscription>("push") && this.getValue<boolean>("push-enabled") !== false) {
+      this.setValue("portal-poll-at", now + PORTAL_NOTIFICATION_POLL_MINUTES * 60000);
+      try { await this.pollPortalNotifications(); } catch { console.warn("Background attendance notification fetch failed; will retry at next interval"); }
+    }
     const due = this.ctx.storage.sql
       .exec<ReminderRow>(
         `SELECT id, title, body, due_at, url, sent_at
@@ -739,12 +796,7 @@ export class UserSession extends DurableObject<CloudflareBindings> {
     const subscription = this.getValue<PushSubscription>("push");
     const privateKey = this.env.VAPID_PRIVATE_KEY;
 
-    if (due.length === 0) {
-    this.deleteValues("attendance", "attendance-credentials", "desktop-pairing", "lms", "push");
-      this.ctx.storage.sql.exec("DELETE FROM reminders");
-      await this.ctx.storage.deleteAlarm();
-      return;
-    }
+    if (due.length === 0) { await this.scheduleNextAlarm(); return; }
 
     if (subscription && privateKey) {
       for (const reminder of due) {

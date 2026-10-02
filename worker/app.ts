@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import type { DesktopCredentials, DesktopPairingCode } from "../shared/desktop";
 import type { DesktopDirectory } from "./desktop/desktop-directory";
-import { UserSession } from "./session-object";
+import { UserSession, type FullSyncPayload } from "./session-object";
 import { publicVapidKeyFromPrivateJwk } from "./push/send-push";
 import {
   applyApiHeaders,
@@ -10,6 +10,7 @@ import {
   isTrustedBrowserRequest,
 } from "./security/request-policy";
 import {
+  isRecord,
   attendanceLoginSchema,
   lmsLoginSchema,
   pushReminderSchema,
@@ -173,7 +174,7 @@ app.get("/api/desktop/snapshot", async (context) => {
 
 app.post("/api/sync", async (context) => {
   try {
-    const payload = await context.var.session.syncAll();
+    const payload: FullSyncPayload = await context.var.session.syncAll();
     if (!payload.lms) {
       return context.json({ error: "LMS session is missing or expired." }, 401);
     }
@@ -306,6 +307,15 @@ app.post("/api/push/subscription", async (context) => {
 
 app.delete("/api/push/subscription", async (context) => {
   await context.var.session.removePushSubscription();
+  return context.body(null, 204);
+});
+
+app.get("/api/push/reminders", async (context) => context.json(await context.var.session.listScheduledReminderIds()));
+
+app.post("/api/push/preferences", async (context) => {
+  const value = await readJson(context.req.raw);
+  if (!isRecord(value) || typeof value.enabled !== "boolean") return context.json({ error: "Invalid notification preference." }, 400);
+  await context.var.session.setPushEnabled(value.enabled);
   return context.body(null, 204);
 });
 

@@ -26,15 +26,16 @@ export const pushSubscriptionSchema = z.object({
   }),
 });
 
+export const reminderIdSchema = z.string().min(1).max(160).regex(/^[a-zA-Z0-9_-]+$/);
+
 export const pushReminderSchema = z.object({
-  body: z.string().min(1).max(500),
+  body: z.string().max(500),
   date: z.number().int().positive(),
-  id: z.string().uuid(),
+  id: reminderIdSchema,
   title: z.string().min(1).max(160),
   url: z.string().startsWith("/").max(2048).optional(),
 });
 
-export const reminderIdSchema = z.string().uuid();
 
 export const readJson = async (
   request: Request,
