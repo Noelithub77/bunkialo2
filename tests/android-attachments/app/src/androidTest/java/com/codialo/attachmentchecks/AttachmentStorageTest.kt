@@ -18,13 +18,14 @@ class AttachmentStorageTest {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val key="test-${UUID.randomUUID()}"
   val pdf=File(context.cacheDir,"$key.pdf")
-  PdfDocument().use { document ->
+  val document=PdfDocument()
+  try {
     listOf(Color.RED,Color.BLUE).forEachIndexed { index,color ->
       val page=document.startPage(PdfDocument.PageInfo.Builder(300,420,index+1).create())
       page.canvas.drawColor(color);document.finishPage(page)
     }
     pdf.outputStream().use { document.writeTo(it) }
-  }
+  }finally { document.close() }
   val storage=LmsAttachmentStorage(context)
   try {
     assertEquals(2,storage.pageCount(Uri.fromFile(pdf).toString()))
