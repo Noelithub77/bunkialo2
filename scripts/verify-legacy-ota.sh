@@ -87,3 +87,16 @@ if not expected <= after: raise SystemExit('Photo cache did not survive app rest
 print('Persistent photo cache survives app restart')
 pathlib.Path('artifacts/legacy-emulator/evidence/photo-cache.txt').write_text('Default wardens cached; retained after restart.\n'+repr(sorted(after)))
 PYTEST
+
+# Validate the same OS activity used by Settings > Battery. Do not whitelist the
+# app here: users retain control of battery exemptions on their own devices.
+adb shell am start -a android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS > "$EVIDENCE/battery-settings.txt" 2>&1
+if rg -qi 'error:|exception' "$EVIDENCE/battery-settings.txt"; then
+  cat "$EVIDENCE/battery-settings.txt"
+  exit 1
+fi
+adb shell uiautomator dump /sdcard/battery-layout.xml
+adb pull /sdcard/battery-layout.xml "$EVIDENCE/battery-layout.xml"
+adb exec-out screencap -p > "$EVIDENCE/battery-settings.png"
+adb shell dumpsys deviceidle > "$EVIDENCE/device-idle.txt"
+adb shell am start -n "$APP_ID/.MainActivity"
