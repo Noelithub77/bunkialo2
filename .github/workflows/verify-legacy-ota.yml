@@ -25,6 +25,7 @@ jobs:
       OTA_TARGET: ${{ inputs.target }}
       EXPECTED_RUNTIME: ${{ inputs.target == 'current' && '1.4.1-sdk58-widgets-v1' || '1.4.1' }}
       EXPECTED_UPDATE_ID: ${{ inputs.update_id }}
+      ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL: "5"
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -59,6 +60,7 @@ jobs:
           target: default
           profile: pixel_2
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-snapshot -no-metrics
           script: bash scripts/verify-legacy-ota.sh
       - name: Upload verification evidence
         if: always()

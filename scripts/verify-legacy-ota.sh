@@ -91,12 +91,22 @@ PYTEST
 # Validate the same OS activity used by Settings > Battery. Do not whitelist the
 # app here: users retain control of battery exemptions on their own devices.
 adb shell am start -a android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS > "$EVIDENCE/battery-settings.txt" 2>&1
-if rg -qi 'error:|exception' "$EVIDENCE/battery-settings.txt"; then
-  cat "$EVIDENCE/battery-settings.txt"
-  exit 1
-fi
+python3 - <<'PYBATTERY'
+from pathlib import Path
+result=Path('artifacts/legacy-emulator/evidence/battery-settings.txt').read_text()
+if 'error:' in result.lower() or 'exception' in result.lower():
+    raise SystemExit(result)
+PYBATTERY
 adb shell uiautomator dump /sdcard/battery-layout.xml
 adb pull /sdcard/battery-layout.xml "$EVIDENCE/battery-layout.xml"
 adb exec-out screencap -p > "$EVIDENCE/battery-settings.png"
+python3 - <<'PYBATTERYUI'
+from pathlib import Path
+import xml.etree.ElementTree as ET
+root=ET.fromstring(Path('artifacts/legacy-emulator/evidence/battery-layout.xml').read_text())
+if not any(node.get('package') == 'com.android.settings' for node in root.iter()):
+    raise SystemExit('Battery action did not open Android Settings')
+print('Battery optimization settings opened successfully')
+PYBATTERYUI
 adb shell dumpsys deviceidle > "$EVIDENCE/device-idle.txt"
 adb shell am start -n "$APP_ID/.MainActivity"
